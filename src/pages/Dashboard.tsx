@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, Timestamp } from 'firebase/firestore';
 import { db, uploadFile } from '../lib/firebase';
 import { motion } from 'motion/react';
-import { Plus, Trash2, Package, DollarSign, Image as ImageIcon, Link as LinkIcon, FileText, Upload, CheckCircle2 } from 'lucide-react';
+import { Plus, Trash2, Package, DollarSign, Image as ImageIcon, Link as LinkIcon, FileText, Upload, CheckCircle2, Globe } from 'lucide-react';
 
 export default function Dashboard() {
   const [products, setProducts] = useState<any[]>([]);
@@ -15,9 +15,11 @@ export default function Dashboard() {
   const [price, setPrice] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [productFile, setProductFile] = useState<File | null>(null);
+  const [imageUrl, setImageUrl] = useState('');
+  const [downloadUrl, setDownloadUrl] = useState('');
+  const [uploadMethod, setUploadMethod] = useState<'direct' | 'link'>('direct');
   const [category, setCategory] = useState('cv');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState({ image: 0, file: 0 });
 
   useEffect(() => {
     const qProds = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
@@ -44,15 +46,20 @@ export default function Dashboard() {
     
     setIsSubmitting(true);
     try {
-      let finalImageUrl = '';
-      let finalDownloadUrl = '';
+      let finalImageUrl = imageUrl;
+      let finalDownloadUrl = downloadUrl;
 
-      if (imageFile) {
-        finalImageUrl = await uploadFile(imageFile, `products/images/${Date.now()}_${imageFile.name}`);
+      if (uploadMethod === 'direct') {
+        if (imageFile) {
+          finalImageUrl = await uploadFile(imageFile, `products/images/${Date.now()}_${imageFile.name}`);
+        }
+        if (productFile) {
+          finalDownloadUrl = await uploadFile(productFile, `products/files/${Date.now()}_${productFile.name}`);
+        }
       }
 
-      if (productFile) {
-        finalDownloadUrl = await uploadFile(productFile, `products/files/${Date.now()}_${productFile.name}`);
+      if (!finalImageUrl || !finalDownloadUrl) {
+        throw new Error("يرجى التأكد من رفع الملفات أو وضع الروابط");
       }
 
       await addDoc(collection(db, 'products'), {
@@ -69,12 +76,14 @@ export default function Dashboard() {
       setName('');
       setDescription('');
       setPrice('');
+      setImageUrl('');
+      setDownloadUrl('');
       setImageFile(null);
       setProductFile(null);
       alert("تم إضافة المنتج بنجاح!");
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert("حدث خطأ أثناء إضافة المنتج");
+      alert(`حدث خطأ: ${err.message || "فشل إضافة المنتج"}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -159,64 +168,107 @@ export default function Dashboard() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-400">صورة المنتج</label>
-                <div className="relative group">
-                  <input 
-                    type="file" 
-                    accept="image/*"
-                    onChange={(e) => setImageFile(e.target.files?.[0] || null)}
-                    className="hidden"
-                    id="image-upload"
-                    required
-                  />
-                  <label 
-                    htmlFor="image-upload"
-                    className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all"
-                  >
-                    {imageFile ? (
-                      <div className="flex items-center gap-2 text-primary font-bold">
-                        <CheckCircle2 size={20} />
-                        <span>{imageFile.name}</span>
-                      </div>
-                    ) : (
-                      <>
-                        <Upload className="text-gray-500 mb-2" />
-                        <span className="text-xs text-gray-500">اختر صورة المنتج</span>
-                      </>
-                    )}
-                  </label>
-                </div>
+              <div className="flex bg-dark p-1 rounded-xl border border-white/5 mb-6">
+                <button 
+                  type="button"
+                  onClick={() => setUploadMethod('direct')}
+                  className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${uploadMethod === 'direct' ? 'bg-primary text-white' : 'text-gray-500 hover:text-white'}`}
+                >
+                  رفع مباشر
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => setUploadMethod('link')}
+                  className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${uploadMethod === 'link' ? 'bg-primary text-white' : 'text-gray-500 hover:text-white'}`}
+                >
+                  استخدام روابط
+                </button>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-400">ملف المنتج (الذي سيتم تحميله)</label>
-                <div className="relative group">
-                  <input 
-                    type="file" 
-                    onChange={(e) => setProductFile(e.target.files?.[0] || null)}
-                    className="hidden"
-                    id="file-upload"
-                    required
-                  />
-                  <label 
-                    htmlFor="file-upload"
-                    className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all"
-                  >
-                    {productFile ? (
-                      <div className="flex items-center gap-2 text-gold font-bold">
-                        <CheckCircle2 size={20} />
-                        <span>{productFile.name}</span>
-                      </div>
-                    ) : (
-                      <>
-                        <Upload className="text-gray-500 mb-2" />
-                        <span className="text-xs text-gray-500">اختر ملف المنتج</span>
-                      </>
-                    )}
-                  </label>
-                </div>
-              </div>
+              {uploadMethod === 'direct' ? (
+                <>
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-gray-400">صورة المنتج</label>
+                    <div className="relative group">
+                      <input 
+                        type="file" 
+                        accept="image/*"
+                        onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                        className="hidden"
+                        id="image-upload"
+                      />
+                      <label 
+                        htmlFor="image-upload"
+                        className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all"
+                      >
+                        {imageFile ? (
+                          <div className="flex items-center gap-2 text-primary font-bold text-xs">
+                            <CheckCircle2 size={16} />
+                            <span className="truncate max-w-[150px]">{imageFile.name}</span>
+                          </div>
+                        ) : (
+                          <>
+                            <Upload className="text-gray-500 mb-1" size={20} />
+                            <span className="text-[10px] text-gray-500">اختر صورة</span>
+                          </>
+                        )}
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-gray-400">ملف المنتج</label>
+                    <div className="relative group">
+                      <input 
+                        type="file" 
+                        onChange={(e) => setProductFile(e.target.files?.[0] || null)}
+                        className="hidden"
+                        id="file-upload"
+                      />
+                      <label 
+                        htmlFor="file-upload"
+                        className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all"
+                      >
+                        {productFile ? (
+                          <div className="flex items-center gap-2 text-gold font-bold text-xs">
+                            <CheckCircle2 size={16} />
+                            <span className="truncate max-w-[150px]">{productFile.name}</span>
+                          </div>
+                        ) : (
+                          <>
+                            <Upload className="text-gray-500 mb-1" size={20} />
+                            <span className="text-[10px] text-gray-500">اختر ملف</span>
+                          </>
+                        )}
+                      </label>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-gray-400">رابط الصورة</label>
+                    <input 
+                      type="url" 
+                      value={imageUrl} 
+                      onChange={(e) => setImageUrl(e.target.value)}
+                      placeholder="https://..."
+                      className="bg-dark border-white/5 focus:border-primary outline-none transition-all"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-gray-400">رابط التحميل</label>
+                    <input 
+                      type="url" 
+                      value={downloadUrl} 
+                      onChange={(e) => setDownloadUrl(e.target.value)}
+                      placeholder="https://..."
+                      className="bg-dark border-white/5 focus:border-primary outline-none transition-all"
+                    />
+                  </div>
+                </>
+              )}
 
               <div className="space-y-2">
                 <label className="text-sm font-bold text-gray-400">الوصف</label>
