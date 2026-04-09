@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, Timestamp } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, uploadFile } from '../lib/firebase';
 import { motion } from 'motion/react';
-import { Plus, Trash2, Package, DollarSign, Image as ImageIcon, Link as LinkIcon, FileText } from 'lucide-react';
+import { Plus, Trash2, Package, DollarSign, Image as ImageIcon, Link as LinkIcon, FileText, Upload, CheckCircle2 } from 'lucide-react';
 
 export default function Dashboard() {
   const [products, setProducts] = useState<any[]>([]);
@@ -13,10 +13,11 @@ export default function Dashboard() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
-  const [downloadUrl, setDownloadUrl] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [productFile, setProductFile] = useState<File | null>(null);
   const [category, setCategory] = useState('cv');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({ image: 0, file: 0 });
 
   useEffect(() => {
     const qProds = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
@@ -43,12 +44,23 @@ export default function Dashboard() {
     
     setIsSubmitting(true);
     try {
+      let finalImageUrl = '';
+      let finalDownloadUrl = '';
+
+      if (imageFile) {
+        finalImageUrl = await uploadFile(imageFile, `products/images/${Date.now()}_${imageFile.name}`);
+      }
+
+      if (productFile) {
+        finalDownloadUrl = await uploadFile(productFile, `products/files/${Date.now()}_${productFile.name}`);
+      }
+
       await addDoc(collection(db, 'products'), {
         name,
         description,
         price: parseFloat(price),
-        imageUrl,
-        downloadUrl,
+        imageUrl: finalImageUrl,
+        downloadUrl: finalDownloadUrl,
         category,
         createdAt: Timestamp.now()
       });
@@ -57,8 +69,8 @@ export default function Dashboard() {
       setName('');
       setDescription('');
       setPrice('');
-      setImageUrl('');
-      setDownloadUrl('');
+      setImageFile(null);
+      setProductFile(null);
       alert("تم إضافة المنتج بنجاح!");
     } catch (err) {
       console.error(err);
@@ -148,27 +160,62 @@ export default function Dashboard() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-400">رابط الصورة</label>
-                <input 
-                  type="url" 
-                  value={imageUrl} 
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="https://..."
-                  className="bg-dark border-white/5 focus:border-primary outline-none transition-all"
-                  required
-                />
+                <label className="text-sm font-bold text-gray-400">صورة المنتج</label>
+                <div className="relative group">
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                    className="hidden"
+                    id="image-upload"
+                    required
+                  />
+                  <label 
+                    htmlFor="image-upload"
+                    className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all"
+                  >
+                    {imageFile ? (
+                      <div className="flex items-center gap-2 text-primary font-bold">
+                        <CheckCircle2 size={20} />
+                        <span>{imageFile.name}</span>
+                      </div>
+                    ) : (
+                      <>
+                        <Upload className="text-gray-500 mb-2" />
+                        <span className="text-xs text-gray-500">اختر صورة المنتج</span>
+                      </>
+                    )}
+                  </label>
+                </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-400">رابط التحميل (Google Drive/Dropbox)</label>
-                <input 
-                  type="url" 
-                  value={downloadUrl} 
-                  onChange={(e) => setDownloadUrl(e.target.value)}
-                  placeholder="https://..."
-                  className="bg-dark border-white/5 focus:border-primary outline-none transition-all"
-                  required
-                />
+                <label className="text-sm font-bold text-gray-400">ملف المنتج (الذي سيتم تحميله)</label>
+                <div className="relative group">
+                  <input 
+                    type="file" 
+                    onChange={(e) => setProductFile(e.target.files?.[0] || null)}
+                    className="hidden"
+                    id="file-upload"
+                    required
+                  />
+                  <label 
+                    htmlFor="file-upload"
+                    className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all"
+                  >
+                    {productFile ? (
+                      <div className="flex items-center gap-2 text-gold font-bold">
+                        <CheckCircle2 size={20} />
+                        <span>{productFile.name}</span>
+                      </div>
+                    ) : (
+                      <>
+                        <Upload className="text-gray-500 mb-2" />
+                        <span className="text-xs text-gray-500">اختر ملف المنتج</span>
+                      </>
+                    )}
+                  </label>
+                </div>
               </div>
 
               <div className="space-y-2">

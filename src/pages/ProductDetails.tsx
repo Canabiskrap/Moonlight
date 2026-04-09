@@ -75,6 +75,17 @@ export default function ProductDetails() {
               });
 
               setPaid(true);
+              
+              // Trigger automatic download
+              if (product.downloadUrl) {
+                const link = document.createElement('a');
+                link.href = product.downloadUrl;
+                link.target = '_blank';
+                link.download = product.name;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+              }
             },
             onError: (err: any) => {
               console.error("PayPal Error:", err);
