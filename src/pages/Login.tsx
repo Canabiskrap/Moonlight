@@ -16,9 +16,9 @@ export default function Login({ user }: LoginProps) {
   const handleLogin = async () => {
     try {
       await loginWithGoogle();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert("فشل تسجيل الدخول");
+      alert(`فشل تسجيل الدخول: ${err.message || "خطأ غير معروف"}`);
     }
   };
 
