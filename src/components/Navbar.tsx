@@ -1,7 +1,7 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { User } from 'firebase/auth';
 import { logout } from '../lib/firebase';
-import { ShoppingBag, LayoutDashboard, LogOut, LogIn, Moon } from 'lucide-react';
+import { ShoppingBag, LayoutDashboard, LogOut, LogIn, Moon, Home } from 'lucide-react';
 
 interface NavbarProps {
   user: User | null;
@@ -9,6 +9,9 @@ interface NavbarProps {
 }
 
 export default function Navbar({ user, isAdmin }: NavbarProps) {
+  const location = useLocation();
+  const isDashboard = location.pathname === '/dashboard';
+
   return (
     <nav className="fixed top-0 left-0 right-0 bg-[#0a0e1a]/95 backdrop-blur-md z-50 border-b border-white/5 px-6 py-4">
       <div className="max-w-7xl mx-auto flex justify-between items-center">
@@ -20,15 +23,24 @@ export default function Navbar({ user, isAdmin }: NavbarProps) {
         </Link>
 
         <div className="flex items-center gap-6">
-          <Link to="/" className="text-gray-400 hover:text-white font-medium transition-colors">المتجر</Link>
+          <Link to="/" className={`text-gray-400 hover:text-white font-medium transition-colors ${!isDashboard ? 'text-white' : ''}`}>المتجر</Link>
           
           {isAdmin && (
             <Link 
-              to="/dashboard" 
+              to={isDashboard ? "/" : "/dashboard"} 
               className="flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-lg font-bold border border-primary/20 hover:bg-primary/20 transition-all"
             >
-              <LayoutDashboard size={18} />
-              لوحة التحكم
+              {isDashboard ? (
+                <>
+                  <Home size={18} />
+                  العودة للمتجر
+                </>
+              ) : (
+                <>
+                  <LayoutDashboard size={18} />
+                  لوحة التحكم
+                </>
+              )}
             </Link>
           )}
 

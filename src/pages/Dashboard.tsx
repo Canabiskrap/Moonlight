@@ -20,6 +20,8 @@ export default function Dashboard() {
   const [uploadMethod, setUploadMethod] = useState<'direct' | 'link'>('direct');
   const [category, setCategory] = useState('cv');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
     const qProds = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
@@ -45,16 +47,23 @@ export default function Dashboard() {
     if (isSubmitting) return;
     
     setIsSubmitting(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
     try {
       let finalImageUrl = imageUrl;
       let finalDownloadUrl = downloadUrl;
 
       if (uploadMethod === 'direct') {
-        if (imageFile) {
-          finalImageUrl = await uploadFile(imageFile, `products/images/${Date.now()}_${imageFile.name}`);
+        if (!imageFile || !productFile) {
+          throw new Error("يرجى اختيار صورة الغلاف والملف الرقمي أولاً.");
         }
-        if (productFile) {
+        try {
+          finalImageUrl = await uploadFile(imageFile, `products/images/${Date.now()}_${imageFile.name}`);
           finalDownloadUrl = await uploadFile(productFile, `products/files/${Date.now()}_${productFile.name}`);
+        } catch (storageErr: any) {
+          console.error("Storage Error:", storageErr);
+          throw new Error("فشل رفع الملفات. يرجى التأكد من تفعيل Firebase Storage في إعدادات مشروعك وإضافة صلاحيات (Rules) تسمح بالرفع.");
         }
       }
 
@@ -80,10 +89,13 @@ export default function Dashboard() {
       setDownloadUrl('');
       setImageFile(null);
       setProductFile(null);
-      alert("تم إضافة المنتج بنجاح!");
+      setSuccessMessage("تم إضافة المنتج بنجاح!");
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err: any) {
       console.error(err);
-      alert(`حدث خطأ: ${err.message || "فشل إضافة المنتج"}`);
+      setErrorMessage(err.message || "فشل إضافة المنتج");
     } finally {
       setIsSubmitting(false);
     }
