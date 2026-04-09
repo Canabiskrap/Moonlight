@@ -47,9 +47,39 @@ export default function Home() {
           حوّل أفكارك إلى <br /> <span className="text-primary">هوية بصرية</span> تتكلم
         </h1>
         
-        <p className="text-gray-400 text-xl max-w-3xl mx-auto mb-12 leading-relaxed">
-          نحن لا نصمم فقط، نحن نصنع تجارب بصرية فريدة. من الشعارات المبتكرة إلى المواقع المتكاملة، متجر Monnlight هو وجهتك الأولى للتميز الرقمي.
-        </p>
+        <div className="max-w-4xl mx-auto mb-12 text-right space-y-6 bg-white/5 p-8 rounded-[2.5rem] border border-white/10 backdrop-blur-md relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-3xl rounded-full -mr-16 -mt-16 group-hover:bg-primary/20 transition-colors" />
+          
+          <h2 className="text-2xl font-black text-white flex items-center gap-3 justify-end">
+            ✨ وصف المتجر
+          </h2>
+          
+          <p className="text-gray-300 text-lg leading-relaxed font-medium">
+            متجر يقدم خدمات تصميم احترافية بأسعار تنافسية وجودة عالية، موجه للأفراد وأصحاب المشاريع الذين يبحثون عن هوية قوية وحضور رقمي مميز.
+          </p>
+
+          <div className="space-y-4">
+            <h3 className="text-primary font-black text-lg">نقدم مجموعة من الخدمات الرقمية تشمل:</h3>
+            <ul className="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-400 text-sm font-bold">
+              {[
+                "🎨 تصميم هوية بصرية كاملة تعكس هوية العلامة التجارية",
+                "💎 تصميم شعارات (لوجو) مميزة وبسيطة تعبر عن فكرة المشروع",
+                "📱 تصميم بوستات وريلز للسوشيال ميديا بأسلوب جذاب وحديث",
+                "🌐 تصميم وتطوير مواقع إلكترونية عصرية ومتجاوبة",
+                "🚀 تصميم تطبيقات أندرويد و iOS بواجهات احترافية",
+                "📂 إنشاء صفحات معرض أعمال (Portfolio) لعرض المشاريع"
+              ].map((item, i) => (
+                <li key={i} className="flex items-center gap-2 justify-end bg-white/5 p-3 rounded-xl border border-white/5 hover:border-primary/30 transition-all">
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <p className="text-primary-light font-bold text-center pt-4 border-t border-white/5">
+            نهدف إلى تقديم خدمات تصميم رقمية عالية الجودة تساعدك على بناء حضور قوي واحترافي في العالم الرقمي.
+          </p>
+        </div>
 
         <div className="flex flex-wrap justify-center gap-6 mb-16">
           <div className="flex items-center gap-3 text-sm font-bold text-gray-300 bg-white/5 px-6 py-3 rounded-2xl border border-white/10 backdrop-blur-md">

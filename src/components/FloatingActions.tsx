@@ -1,12 +1,58 @@
-import { motion } from 'motion/react';
-import { MessageCircle, Bot, X } from 'lucide-react';
-import { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { MessageCircle, Bot, X, Send, Loader2 } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { GoogleGenAI } from "@google/genai";
 
 export default function FloatingActions() {
   const [showBot, setShowBot] = useState(false);
+  const [input, setInput] = useState("");
+  const [messages, setMessages] = useState<{role: 'bot' | 'user', text: string}[]>([
+    { role: 'bot', text: 'مرحباً بك في متجر Monnlight! أنا مساعدك الذكي، كيف يمكنني مساعدتك اليوم؟' }
+  ]);
+  const [isTyping, setIsTyping] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const whatsappNumber = "96569929627"; 
   const whatsappUrl = `https://wa.me/${whatsappNumber}`;
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages, isTyping]);
+
+  const handleSendMessage = async () => {
+    if (!input.trim() || isTyping) return;
+
+    const userMessage = input.trim();
+    setInput("");
+    setMessages(prev => [...prev, { role: 'user', text: userMessage }]);
+    setIsTyping(true);
+
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: userMessage,
+        config: {
+          systemInstruction: `أنت مساعد ذكي لمتجر "Monnlight" المتخصص في خدمات التصميم الرقمي. 
+          خدماتنا تشمل: تصميم الهوية البصرية، الشعارات، بوستات السوشيال ميديا، المواقع الإلكترونية، تطبيقات الجوال، ومعارض الأعمال.
+          هدفنا هو تقديم جودة عالية بأسعار تنافسية.
+          كن ودوداً، احترافياً، وأجب باللغة العربية. 
+          إذا سألك العميل عن التواصل المباشر، أخبره أنه يمكنه الضغط على أيقونة الواتساب الخضراء.
+          إذا سألك عن الدفع، أخبره أن الدفع يتم عبر PayPal والتحميل فوري.`
+        }
+      });
+
+      const botResponse = response.text || "عذراً، واجهت مشكلة في فهم ذلك. هل يمكنك المحاولة مرة أخرى؟";
+      setMessages(prev => [...prev, { role: 'bot', text: botResponse }]);
+    } catch (error) {
+      console.error("Bot Error:", error);
+      setMessages(prev => [...prev, { role: 'bot', text: "عذراً، حدث خطأ تقني. يمكنك التواصل معنا عبر الواتساب مباشرة." }]);
+    } finally {
+      setIsTyping(false);
+    }
+  };
 
   return (
     <div className="fixed bottom-8 right-8 z-[100] flex flex-col gap-4">
@@ -38,39 +84,75 @@ export default function FloatingActions() {
         </span>
       </motion.button>
 
-      {/* Simple Bot UI (Placeholder) */}
-      {showBot && (
-        <motion.div
-          initial={{ opacity: 0, y: 20, scale: 0.9 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          className="absolute bottom-20 right-0 w-80 bg-dark-light border border-white/10 rounded-3xl shadow-2xl overflow-hidden"
-        >
-          <div className="bg-primary p-4 flex items-center gap-3">
-            <div className="bg-white/20 p-2 rounded-xl">
-              <Bot size={20} className="text-white" />
+      {/* Smart Bot UI */}
+      <AnimatePresence>
+        {showBot && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            className="absolute bottom-20 right-0 w-80 md:w-96 bg-dark-light border border-white/10 rounded-[2rem] shadow-2xl overflow-hidden flex flex-col"
+          >
+            <div className="bg-primary p-5 flex items-center gap-3">
+              <div className="bg-white/20 p-2 rounded-xl">
+                <Bot size={24} className="text-white" />
+              </div>
+              <div>
+                <p className="font-black text-sm">مساعد Monnlight الذكي</p>
+                <p className="text-[10px] text-white/70">مدعوم بالذكاء الاصطناعي</p>
+              </div>
             </div>
-            <div>
-              <p className="font-bold text-sm">المساعد الذكي</p>
-              <p className="text-[10px] text-white/70">متصل الآن</p>
+
+            <div 
+              ref={scrollRef}
+              className="p-6 space-y-4 h-80 overflow-y-auto scrollbar-hide bg-dark/30"
+            >
+              {messages.map((msg, i) => (
+                <motion.div
+                  initial={{ opacity: 0, x: msg.role === 'user' ? -10 : 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  key={i}
+                  className={`flex ${msg.role === 'user' ? 'justify-start' : 'justify-end'}`}
+                >
+                  <div className={`max-w-[80%] p-3 rounded-2xl text-xs leading-relaxed font-bold ${
+                    msg.role === 'user' 
+                    ? 'bg-white/10 text-white rounded-tl-none' 
+                    : 'bg-primary text-white rounded-tr-none shadow-lg shadow-primary/10'
+                  }`}>
+                    {msg.text}
+                  </div>
+                </motion.div>
+              ))}
+              {isTyping && (
+                <div className="flex justify-end">
+                  <div className="bg-primary/20 p-3 rounded-2xl rounded-tr-none flex items-center gap-2">
+                    <Loader2 size={14} className="animate-spin text-primary" />
+                    <span className="text-[10px] font-bold text-primary">يفكر...</span>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-          <div className="p-6 space-y-4 h-64 overflow-y-auto text-sm">
-            <div className="bg-white/5 p-3 rounded-2xl rounded-tr-none">
-              مرحباً بك في متجر Monnlight! كيف يمكنني مساعدتك اليوم؟
+
+            <div className="p-4 border-t border-white/5 bg-dark/50 flex gap-2">
+              <input 
+                type="text" 
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                placeholder="اسألني أي شيء..." 
+                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-primary transition-colors font-bold"
+              />
+              <button 
+                onClick={handleSendMessage}
+                disabled={isTyping}
+                className="bg-primary p-2 rounded-xl hover:bg-primary-dark transition-colors disabled:opacity-50"
+              >
+                <Send size={18} />
+              </button>
             </div>
-            <div className="bg-primary/10 p-3 rounded-2xl rounded-tr-none border border-primary/20">
-              يمكنك سؤالي عن المنتجات، طرق الدفع، أو كيفية التحميل.
-            </div>
-          </div>
-          <div className="p-4 border-t border-white/5 bg-dark/50">
-            <input 
-              type="text" 
-              placeholder="اكتب رسالتك هنا..." 
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-primary transition-colors"
-            />
-          </div>
-        </motion.div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
