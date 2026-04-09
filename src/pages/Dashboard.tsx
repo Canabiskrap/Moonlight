@@ -101,13 +101,15 @@ export default function Dashboard() {
     }
   };
 
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   const handleDelete = async (id: string) => {
-    if (!confirm("هل أنت متأكد من حذف هذا المنتج؟")) return;
     try {
       await deleteDoc(doc(db, 'products', id));
+      setDeletingId(null);
     } catch (err) {
       console.error(err);
-      alert("حدث خطأ أثناء الحذف");
+      setErrorMessage("حدث خطأ أثناء الحذف");
     }
   };
 
@@ -336,12 +338,20 @@ export default function Dashboard() {
                       <td className="p-4 text-sm text-gray-400">{p.category}</td>
                       <td className="p-4 font-black text-gold">${p.price}</td>
                       <td className="p-4">
-                        <button 
-                          onClick={() => handleDelete(p.id)}
-                          className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
-                        >
-                          <Trash2 size={18} />
-                        </button>
+                        {deletingId === p.id ? (
+                          <div className="flex items-center gap-2 justify-end">
+                            <span className="text-xs text-gray-400">تأكيد الحذف؟</span>
+                            <button onClick={() => handleDelete(p.id)} className="text-red-400 hover:text-red-300 font-bold text-sm">نعم</button>
+                            <button onClick={() => setDeletingId(null)} className="text-gray-400 hover:text-white font-bold text-sm">إلغاء</button>
+                          </div>
+                        ) : (
+                          <button 
+                            onClick={() => setDeletingId(p.id)}
+                            className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}

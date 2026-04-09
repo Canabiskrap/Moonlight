@@ -182,12 +182,15 @@ export default function Home() {
               >
                 <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
                 
-                <div className="aspect-video relative overflow-hidden">
+                <div className="aspect-video relative overflow-hidden bg-dark-light flex items-center justify-center">
                   <img 
                     src={product.imageUrl} 
                     alt={product.name}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                     referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop';
+                    }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-dark/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                   <div className="absolute top-4 right-4 bg-dark/80 backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-black text-gold border border-gold/20 shadow-lg">

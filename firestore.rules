@@ -10,18 +10,20 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isAuthenticated() && 
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' || 
-         (request.auth.token.email in ["canabiskrap07@gmail.com", "Esraa0badr@gmail.com"] && request.auth.token.email_verified == true));
+      return isAuthenticated() && (
+        (request.auth.token.email != null && request.auth.token.email.lower() in ["canabiskrap07@gmail.com", "esraa0badr@gmail.com"]) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
     }
 
     function isValidProduct(data) {
       return data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
-             data.description is string && data.description.size() < 1000 &&
+             data.description is string && data.description.size() < 2000 &&
              data.price is number && data.price >= 0 &&
              data.imageUrl is string && data.imageUrl.matches("^https?://.*") &&
              data.downloadUrl is string && data.downloadUrl.matches("^https?://.*") &&
-             data.category in ['cv', 'social', 'web', 'other'];
+             data.category in ['cv', 'social', 'web', 'other'] &&
+             data.createdAt is timestamp;
     }
 
     function isValidOrder(data) {

@@ -135,12 +135,15 @@ export default function ProductDetails() {
           العودة للمتجر
         </Link>
         
-        <div className="rounded-[2.5rem] overflow-hidden border border-white/5 shadow-2xl shadow-black/50">
+        <div className="rounded-[2.5rem] overflow-hidden border border-white/5 shadow-2xl shadow-black/50 aspect-video bg-dark-light flex items-center justify-center">
           <img 
             src={product.imageUrl} 
             alt={product.name} 
             className="w-full h-full object-cover"
             referrerPolicy="no-referrer"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop';
+            }}
           />
         </div>
       </div>
