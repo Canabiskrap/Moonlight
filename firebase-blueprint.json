@@ -1,0 +1,57 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "A digital product for sale",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Product name" },
+        "description": { "type": "string", "description": "Product description" },
+        "price": { "type": "number", "description": "Price in USD" },
+        "imageUrl": { "type": "string", "format": "uri", "description": "URL of the product image" },
+        "downloadUrl": { "type": "string", "format": "uri", "description": "URL to download the product" },
+        "category": { "type": "string", "enum": ["cv", "social", "web", "other"], "description": "Product category" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["name", "price", "imageUrl", "downloadUrl", "category"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "A purchase record",
+      "type": "object",
+      "properties": {
+        "productId": { "type": "string", "description": "ID of the product purchased" },
+        "customerEmail": { "type": "string", "format": "email", "description": "Email of the customer" },
+        "amount": { "type": "number", "description": "Amount paid" },
+        "status": { "type": "string", "enum": ["pending", "completed", "failed"], "description": "Payment status" },
+        "paypalOrderId": { "type": "string", "description": "PayPal Order ID" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Order timestamp" }
+      },
+      "required": ["productId", "customerEmail", "amount", "status"]
+    },
+    "User": {
+      "title": "User",
+      "description": "User profile and roles",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["admin", "user"] }
+      },
+      "required": ["email", "role"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Collection of digital products"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Collection of purchase orders"
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User roles and metadata"
+    }
+  }
+}
