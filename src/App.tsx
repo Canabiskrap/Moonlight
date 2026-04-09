@@ -13,7 +13,13 @@ import Home from './pages/Home';
 import ProductDetails from './pages/ProductDetails';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
+import FloatingActions from './components/FloatingActions';
 import { motion, AnimatePresence } from 'motion/react';
+
+const ADMIN_EMAILS = [
+  'canabiskrap07@gmail.com',
+  'Esraa0badr@gmail.com',
+];
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -28,7 +34,7 @@ export default function App() {
         const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
         if (userDoc.exists() && userDoc.data().role === 'admin') {
           setIsAdmin(true);
-        } else if (currentUser.email === 'canabiskrap07@gmail.com') {
+        } else if (currentUser.email && ADMIN_EMAILS.includes(currentUser.email)) {
           setIsAdmin(true);
         } else {
           setIsAdmin(false);
@@ -71,6 +77,7 @@ export default function App() {
             </Routes>
           </AnimatePresence>
         </main>
+        <FloatingActions />
       </div>
     </Router>
   );

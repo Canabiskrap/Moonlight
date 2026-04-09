@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { motion } from 'motion/react';
-import { ShoppingBag, Sparkles, ShieldCheck, Zap } from 'lucide-react';
+import { ShoppingBag, Sparkles, ShieldCheck, Zap, MessageCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function Home() {
@@ -31,32 +31,60 @@ export default function Home() {
       className="space-y-12"
     >
       {/* Hero Section */}
-      <section className="text-center py-12 relative overflow-hidden">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-radial-gradient from-primary/10 to-transparent pointer-events-none" />
+      <section className="text-center py-20 relative overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-radial-gradient from-primary/20 to-transparent pointer-events-none blur-3xl" />
         
-        <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 text-primary-light px-4 py-2 rounded-full text-sm font-bold mb-6">
-          <Sparkles size={16} />
-          خدمات تصميم احترافية بجودة عالمية
-        </div>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 text-primary-light px-6 py-2 rounded-full text-sm font-bold mb-8 backdrop-blur-sm"
+        >
+          <Sparkles size={16} className="animate-pulse" />
+          نصمم مستقبلك الرقمي باحترافية
+        </motion.div>
         
-        <h1 className="text-5xl md:text-7xl font-black mb-6 bg-gradient-to-r from-white via-white to-primary bg-clip-text text-transparent leading-tight">
-          حوّل أفكارك إلى <br /> هوية بصرية تتكلم
+        <h1 className="text-6xl md:text-8xl font-black mb-8 bg-gradient-to-b from-white via-white to-gray-500 bg-clip-text text-transparent leading-tight tracking-tighter">
+          حوّل أفكارك إلى <br /> <span className="text-primary">هوية بصرية</span> تتكلم
         </h1>
         
-        <p className="text-gray-400 text-lg max-w-2xl mx-auto mb-10">
-          نصمم بإبداع ونسلم باحترافية — من اللوجو والهوية البصرية إلى المواقع والتطبيقات. احصل على قوالبك الجاهزة الآن.
+        <p className="text-gray-400 text-xl max-w-3xl mx-auto mb-12 leading-relaxed">
+          نحن لا نصمم فقط، نحن نصنع تجارب بصرية فريدة. من الشعارات المبتكرة إلى المواقع المتكاملة، متجر Monnlight هو وجهتك الأولى للتميز الرقمي.
         </p>
 
-        <div className="flex flex-wrap justify-center gap-4">
-          <div className="flex items-center gap-2 text-sm text-gray-500 bg-white/5 px-4 py-2 rounded-xl border border-white/5">
-            <ShieldCheck className="text-gold" size={18} />
-            دفع آمن عبر PayPal
+        <div className="flex flex-wrap justify-center gap-6 mb-16">
+          <div className="flex items-center gap-3 text-sm font-bold text-gray-300 bg-white/5 px-6 py-3 rounded-2xl border border-white/10 backdrop-blur-md">
+            <ShieldCheck className="text-gold" size={20} />
+            دفع آمن 100%
           </div>
-          <div className="flex items-center gap-2 text-sm text-gray-500 bg-white/5 px-4 py-2 rounded-xl border border-white/5">
-            <Zap className="text-primary" size={18} />
-            تسليم فوري للملفات
+          <div className="flex items-center gap-3 text-sm font-bold text-gray-300 bg-white/5 px-6 py-3 rounded-2xl border border-white/10 backdrop-blur-md">
+            <Zap className="text-primary" size={20} />
+            تحميل فوري وآلي
           </div>
         </div>
+
+        <motion.div
+          animate={{ y: [0, 10, 0] }}
+          transition={{ duration: 2, repeat: Infinity }}
+          className="text-gray-600 flex flex-col items-center gap-2"
+        >
+          <span className="text-xs font-bold uppercase tracking-widest">اكتشف منتجاتنا</span>
+          <div className="w-px h-12 bg-gradient-to-b from-primary to-transparent" />
+        </motion.div>
+      </section>
+
+      {/* Features Section */}
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-6 py-12">
+        {[
+          { title: "جودة عالمية", desc: "تصاميم عصرية تتماشى مع أحدث التوجهات العالمية", icon: Sparkles, color: "text-gold" },
+          { title: "دعم فني", desc: "فريقنا متواجد دائماً لمساعدتك في أي استفسار", icon: MessageCircle, color: "text-green-400" },
+          { title: "تنوع فريد", desc: "تشكيلة واسعة من القوالب التي تغطي كافة احتياجاتك", icon: ShoppingBag, color: "text-primary" }
+        ].map((feature, i) => (
+          <div key={i} className="p-8 bg-dark-light rounded-[2rem] border border-white/5 hover:border-white/10 transition-all group">
+            <feature.icon className={`${feature.color} mb-4 group-hover:scale-110 transition-transform`} size={32} />
+            <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
+            <p className="text-gray-500 text-sm leading-relaxed">{feature.desc}</p>
+          </div>
+        ))}
       </section>
 
       {/* Products Grid */}
