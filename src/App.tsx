@@ -9,6 +9,7 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, db } from './lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import Navbar from './components/Navbar';
+import Footer from './components/Footer';
 import Home from './pages/Home';
 import ProductDetails from './pages/ProductDetails';
 import Dashboard from './pages/Dashboard';
@@ -30,15 +31,25 @@ export default function App() {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
-        // Check if user is admin
-        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-        if (userDoc.exists() && userDoc.data().role === 'admin') {
-          setIsAdmin(true);
-        } else if (currentUser.email && ADMIN_EMAILS.includes(currentUser.email)) {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
+        let isUserAdmin = false;
+
+        // 1. Check by email first (safest, doesn't require Firestore permissions)
+        if (currentUser.email && ADMIN_EMAILS.map(e => e.toLowerCase()).includes(currentUser.email.toLowerCase())) {
+          isUserAdmin = true;
+        } 
+        // 2. Fallback to Firestore check if not in the hardcoded list
+        else {
+          try {
+            const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+            if (userDoc.exists() && userDoc.data().role === 'admin') {
+              isUserAdmin = true;
+            }
+          } catch (error) {
+            console.error("Firestore permission error or user doc doesn't exist:", error);
+          }
         }
+        
+        setIsAdmin(isUserAdmin);
       } else {
         setIsAdmin(false);
       }
@@ -62,9 +73,9 @@ export default function App() {
 
   return (
     <Router>
-      <div className="min-h-screen bg-[#0a0e1a] text-white font-['Cairo']">
+      <div className="min-h-screen bg-[#0a0e1a] text-white font-['Cairo'] flex flex-col">
         <Navbar user={user} isAdmin={isAdmin} />
-        <main className="pt-20 pb-10 px-4 max-w-7xl mx-auto">
+        <main className="pt-20 pb-10 px-4 max-w-7xl mx-auto flex-1 w-full">
           <AnimatePresence mode="wait">
             <Routes>
               <Route path="/" element={<Home />} />
@@ -77,6 +88,7 @@ export default function App() {
             </Routes>
           </AnimatePresence>
         </main>
+        <Footer />
         <FloatingActions />
       </div>
     </Router>

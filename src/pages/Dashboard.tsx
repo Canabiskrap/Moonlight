@@ -163,7 +163,7 @@ export default function Dashboard() {
                   step="0.01"
                   value={price} 
                   onChange={(e) => setPrice(e.target.value)}
-                  className="bg-dark border-white/5 focus:border-primary outline-none transition-all"
+                  className="bg-dark border-white/5 focus:border-primary outline-none transition-all w-full p-4 rounded-2xl"
                   required
                 />
               </div>
@@ -172,23 +172,23 @@ export default function Dashboard() {
                 <button 
                   type="button"
                   onClick={() => setUploadMethod('direct')}
-                  className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${uploadMethod === 'direct' ? 'bg-primary text-white' : 'text-gray-500 hover:text-white'}`}
+                  className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all ${uploadMethod === 'direct' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-gray-500 hover:text-white'}`}
                 >
                   رفع مباشر
                 </button>
                 <button 
                   type="button"
                   onClick={() => setUploadMethod('link')}
-                  className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${uploadMethod === 'link' ? 'bg-primary text-white' : 'text-gray-500 hover:text-white'}`}
+                  className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all ${uploadMethod === 'link' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-gray-500 hover:text-white'}`}
                 >
                   استخدام روابط
                 </button>
               </div>
 
               {uploadMethod === 'direct' ? (
-                <>
+                <div className="grid grid-cols-1 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-gray-400">صورة المنتج</label>
+                    <label className="text-sm font-bold text-gray-400">1. صورة الغلاف (تظهر للزوار)</label>
                     <div className="relative group">
                       <input 
                         type="file" 
@@ -199,17 +199,17 @@ export default function Dashboard() {
                       />
                       <label 
                         htmlFor="image-upload"
-                        className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all"
+                        className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all"
                       >
                         {imageFile ? (
-                          <div className="flex items-center gap-2 text-primary font-bold text-xs">
-                            <CheckCircle2 size={16} />
-                            <span className="truncate max-w-[150px]">{imageFile.name}</span>
+                          <div className="flex flex-col items-center gap-2 text-primary font-bold text-xs p-4 text-center">
+                            <CheckCircle2 size={24} />
+                            <span className="break-all">{imageFile.name}</span>
                           </div>
                         ) : (
                           <>
-                            <Upload className="text-gray-500 mb-1" size={20} />
-                            <span className="text-[10px] text-gray-500">اختر صورة</span>
+                            <Upload className="text-gray-500 mb-2" size={24} />
+                            <span className="text-xs text-gray-500">اختر صورة المعرض</span>
                           </>
                         )}
                       </label>
@@ -217,7 +217,7 @@ export default function Dashboard() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-gray-400">ملف المنتج</label>
+                    <label className="text-sm font-bold text-gray-400">2. الملف الرقمي (الذي سيتم بيعه)</label>
                     <div className="relative group">
                       <input 
                         type="file" 
@@ -227,55 +227,56 @@ export default function Dashboard() {
                       />
                       <label 
                         htmlFor="file-upload"
-                        className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all"
+                        className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all"
                       >
                         {productFile ? (
-                          <div className="flex items-center gap-2 text-gold font-bold text-xs">
-                            <CheckCircle2 size={16} />
-                            <span className="truncate max-w-[150px]">{productFile.name}</span>
+                          <div className="flex flex-col items-center gap-2 text-gold font-bold text-xs p-4 text-center">
+                            <CheckCircle2 size={24} />
+                            <span className="break-all">{productFile.name}</span>
                           </div>
                         ) : (
                           <>
-                            <Upload className="text-gray-500 mb-1" size={20} />
-                            <span className="text-[10px] text-gray-500">اختر ملف</span>
+                            <Upload className="text-gray-500 mb-2" size={24} />
+                            <span className="text-xs text-gray-500">اختر الملف (PDF, ZIP, etc)</span>
                           </>
                         )}
                       </label>
                     </div>
                   </div>
-                </>
+                </div>
               ) : (
-                <>
+                <div className="space-y-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-gray-400">رابط الصورة</label>
+                    <label className="text-sm font-bold text-gray-400">رابط صورة الغلاف</label>
                     <input 
                       type="url" 
                       value={imageUrl} 
                       onChange={(e) => setImageUrl(e.target.value)}
                       placeholder="https://..."
-                      className="bg-dark border-white/5 focus:border-primary outline-none transition-all"
+                      className="bg-dark border-white/5 focus:border-primary outline-none transition-all w-full p-4 rounded-2xl"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-gray-400">رابط التحميل</label>
+                    <label className="text-sm font-bold text-gray-400">رابط تحميل الملف</label>
                     <input 
                       type="url" 
                       value={downloadUrl} 
                       onChange={(e) => setDownloadUrl(e.target.value)}
                       placeholder="https://..."
-                      className="bg-dark border-white/5 focus:border-primary outline-none transition-all"
+                      className="bg-dark border-white/5 focus:border-primary outline-none transition-all w-full p-4 rounded-2xl"
                     />
                   </div>
-                </>
+                </div>
               )}
 
               <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-400">الوصف</label>
+                <label className="text-sm font-bold text-gray-400">وصف المنتج</label>
                 <textarea 
                   value={description} 
                   onChange={(e) => setDescription(e.target.value)}
-                  className="bg-dark border-white/5 focus:border-primary outline-none transition-all min-h-[100px]"
+                  placeholder="اكتب تفاصيل المنتج هنا..."
+                  className="bg-dark border-white/5 focus:border-primary outline-none transition-all w-full p-4 rounded-2xl min-h-[120px]"
                   required
                 />
               </div>
