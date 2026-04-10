@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, Timestamp } from 'firebase/firestore';
 import { ref, uploadBytesResumable, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage, deleteFile } from '../lib/firebase';
+import { db, storage, auth, deleteFile } from '../lib/firebase';
 import { motion } from 'motion/react';
 import { Plus, Trash2, Package, DollarSign, Image as ImageIcon, Link as LinkIcon, FileText, Upload, CheckCircle2, Globe } from 'lucide-react';
 
@@ -56,8 +56,18 @@ export default function Dashboard() {
     setUploadProgress(0);
 
     try {
-      let finalImageUrl = imageUrl;
-      let finalDownloadUrl = downloadUrl;
+      // Check if user is logged in
+      if (!auth.currentUser) {
+        throw new Error("يجب تسجيل الدخول كمسؤول للقيام بهذه العملية.");
+      }
+
+      setStatus('uploading');
+      setErrorMessage('');
+      setShowToast(false);
+      setUploadProgress(0);
+
+      let finalImageUrl = "";
+      let finalDownloadUrl = "";
 
       if (uploadMethod === 'direct') {
         if (!imageFile || !productFile) {
@@ -65,14 +75,29 @@ export default function Dashboard() {
         }
         try {
           console.log("Starting image upload...");
-          setUploadProgress(5); // Show some initial progress
           const imageRef = ref(storage, `products/images/${Date.now()}_${imageFile.name}`);
+          const imageUploadTask = uploadBytesResumable(imageRef, imageFile);
           
-          // Use uploadBytes for images as they are small and less prone to hanging
-          const imageSnapshot = await uploadBytes(imageRef, imageFile);
-          finalImageUrl = await getDownloadURL(imageSnapshot.ref);
-          setUploadProgress(10);
-          console.log("Image upload successful:", finalImageUrl);
+          finalImageUrl = await new Promise((resolve, reject) => {
+            imageUploadTask.on('state_changed', 
+              (snapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 10;
+                setUploadProgress(Math.round(progress));
+              },
+              (error) => {
+                console.error("Image upload error:", error);
+                reject(new Error("فشل رفع صورة الغلاف: " + error.message));
+              },
+              async () => {
+                try {
+                  const url = await getDownloadURL(imageUploadTask.snapshot.ref);
+                  resolve(url);
+                } catch (err) {
+                  reject(err);
+                }
+              }
+            );
+          });
           
           console.log("Starting product file upload...");
           const fileRef = ref(storage, `products/files/${Date.now()}_${productFile.name}`);
@@ -86,23 +111,20 @@ export default function Dashboard() {
               },
               (error) => {
                 console.error("File upload error:", error);
-                reject(error);
+                reject(new Error("فشل رفع الملف الرقمي: " + error.message));
               },
               async () => {
                 try {
                   const url = await getDownloadURL(fileUploadTask.snapshot.ref);
                   resolve(url);
                 } catch (err) {
-                  console.error("Error getting file URL:", err);
                   reject(err);
                 }
               }
             );
           });
-          console.log("Product file upload successful:", finalDownloadUrl);
         } catch (storageErr: any) {
-          console.error("Storage Error:", storageErr);
-          throw new Error("فشل رفع الملفات. يرجى التأكد من اتصالك بالإنترنت والمحاولة مجدداً.");
+          throw storageErr;
         }
       } else if (uploadMethod === 'link') {
         if (!imageFile) {
@@ -113,20 +135,32 @@ export default function Dashboard() {
         }
         try {
           console.log("Starting image upload for link method...");
-          setUploadProgress(10);
           const imageRef = ref(storage, `products/images/${Date.now()}_${imageFile.name}`);
+          const imageUploadTask = uploadBytesResumable(imageRef, imageFile);
           
-          // Use uploadBytes for images
-          const imageSnapshot = await uploadBytes(imageRef, imageFile);
-          setUploadProgress(50);
-          finalImageUrl = await getDownloadURL(imageSnapshot.ref);
-          setUploadProgress(100);
-          
-          console.log("Image upload successful:", finalImageUrl);
+          finalImageUrl = await new Promise((resolve, reject) => {
+            imageUploadTask.on('state_changed', 
+              (snapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                setUploadProgress(Math.round(progress));
+              },
+              (error) => {
+                console.error("Image upload error:", error);
+                reject(new Error("فشل رفع الصورة: " + error.message));
+              },
+              async () => {
+                try {
+                  const url = await getDownloadURL(imageUploadTask.snapshot.ref);
+                  resolve(url);
+                } catch (err) {
+                  reject(err);
+                }
+              }
+            );
+          });
           finalDownloadUrl = downloadUrl;
         } catch (storageErr: any) {
-          console.error("Storage Error:", storageErr);
-          throw new Error("فشل رفع الصورة. يرجى التأكد من اتصالك بالإنترنت والمحاولة مجدداً.");
+          throw storageErr;
         }
       }
 
@@ -169,10 +203,21 @@ export default function Dashboard() {
       setStatus('success');
       setShowToast(true);
       
-      // Redirect to home after short delay to show success state
+      // Reset form fields
+      setName('');
+      setDescription('');
+      setPrice('');
+      setImageFile(null);
+      setProductFile(null);
+      setImageUrl('');
+      setDownloadUrl('');
+      
+      // Reset status after a few seconds
       setTimeout(() => {
-        navigate('/');
-      }, 1500);
+        setStatus('idle');
+        setUploadProgress(0);
+        setShowToast(false);
+      }, 3000);
       
     } catch (err: any) {
       console.error(err);
@@ -415,11 +460,24 @@ export default function Dashboard() {
 
               <div className="space-y-4">
                 {status === 'uploading' && (
-                  <div className="w-full bg-dark rounded-full h-2.5 overflow-hidden border border-white/10">
-                    <div 
-                      className="bg-primary h-2.5 rounded-full transition-all duration-300" 
-                      style={{ width: `${Math.max(uploadProgress, 2)}%` }}
-                    ></div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs font-bold text-gray-400">
+                      <span>حالة الرفع</span>
+                      <span>{uploadProgress}%</span>
+                    </div>
+                    <div className="w-full bg-dark rounded-full h-4 overflow-hidden border border-white/10">
+                      <div 
+                        className="bg-primary h-4 rounded-full transition-all duration-300" 
+                        style={{ width: `${Math.max(uploadProgress, 2)}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                )}
+
+                {errorMessage && (
+                  <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-2xl text-sm font-bold flex items-center gap-2">
+                    <span className="flex-shrink-0">⚠️</span>
+                    <span>{errorMessage}</span>
                   </div>
                 )}
                 

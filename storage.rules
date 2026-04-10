@@ -2,13 +2,14 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     match /products/{allPaths=**} {
-      // Allow everyone to read product images and files (files are protected by the app logic/payment)
-      // In a production app, files should be restricted, but for this simple setup we allow read
+      // Allow everyone to read product images and files
       allow read: if true;
       
-      // Only admins can upload/delete
+      // Allow specific admin emails to upload and delete
+      // We check for authentication and email match
       allow write: if request.auth != null && 
-        (request.auth.token.email in ["canabiskrap07@gmail.com", "Esraa0badr@gmail.com"] && request.auth.token.email_verified == true);
+        (request.auth.token.email == "canabiskrap07@gmail.com" || 
+         request.auth.token.email == "Esraa0badr@gmail.com");
     }
   }
 }

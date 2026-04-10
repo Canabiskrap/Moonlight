@@ -42,7 +42,7 @@ export default function ProductDetails() {
 
   useEffect(() => {
     if (product && !paid && !loading) {
-      const clientId = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AcbwuN16XVq7P_HKhjbHRTegmSRXI0DoFOoLw2pn-LilZUuf1FRl0v888wjPvs428lM5sdf97LUNcvT5';
+      const clientId = (import.meta as any).env.VITE_PAYPAL_CLIENT_ID || 'AcbwuN16XVq7P_HKhjbHRTegmSRXI0DoFOoLw2pn-LilZUuf1FRl0v888wjPvs428lM5sdf97LUNcvT5';
       const script = document.createElement('script');
       script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD`;
       script.async = true;
