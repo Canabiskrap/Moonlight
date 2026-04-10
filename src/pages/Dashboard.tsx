@@ -259,7 +259,7 @@ export default function Dashboard() {
                     <div className="relative group">
                       <input 
                         type="file" 
-                        accept="*/*"
+                        accept=".zip,application/zip,application/x-zip-compressed,application/octet-stream,multipart/x-zip,*/*"
                         onChange={(e) => setProductFile(e.target.files?.[0] || null)}
                         className="hidden"
                         id="file-upload"
