@@ -765,7 +765,12 @@ export default function Dashboard() {
                                 className="w-full h-full object-cover" 
                                 referrerPolicy="no-referrer" 
                                 alt="Preview"
-                                onError={(e) => (e.target as HTMLImageElement).src = 'https://via.placeholder.com/150?text=Invalid+Link'}
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  if (!target.src.includes('placeholder')) {
+                                    target.src = 'https://via.placeholder.com/150?text=Invalid+Link';
+                                  }
+                                }}
                               />
                             </div>
                           )}
@@ -910,7 +915,17 @@ export default function Dashboard() {
                     <tr key={p.id} className={`border-b border-white/5 hover:bg-white/5 transition-colors ${editingId === p.id ? 'bg-primary/5 border-primary/20' : ''}`}>
                       <td className="p-4">
                         <div className="flex items-center gap-3">
-                          <img src={p.imageUrl} className="w-10 h-10 rounded-lg object-cover" referrerPolicy="no-referrer" />
+                          <img 
+                            src={convertDriveLink(p.imageUrl)} 
+                            className="w-10 h-10 rounded-lg object-cover" 
+                            referrerPolicy="no-referrer" 
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              if (!target.src.includes('placeholder')) {
+                                target.src = 'https://via.placeholder.com/150?text=Error';
+                              }
+                            }}
+                          />
                           <span className="font-bold">{p.name}</span>
                         </div>
                       </td>
