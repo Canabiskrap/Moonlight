@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, Timestamp } from 'firebase/firestore';
-import { db, uploadFile, deleteFile } from '../lib/firebase';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { db, storage, deleteFile } from '../lib/firebase';
 import { motion } from 'motion/react';
 import { Plus, Trash2, Package, DollarSign, Image as ImageIcon, Link as LinkIcon, FileText, Upload, CheckCircle2, Globe } from 'lucide-react';
 
@@ -20,6 +21,7 @@ export default function Dashboard() {
   const [uploadMethod, setUploadMethod] = useState<'direct' | 'link'>('direct');
   const [category, setCategory] = useState('cv');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -49,6 +51,7 @@ export default function Dashboard() {
     setIsSubmitting(true);
     setErrorMessage('');
     setSuccessMessage('');
+    setUploadProgress(0);
 
     try {
       let finalImageUrl = imageUrl;
@@ -60,11 +63,42 @@ export default function Dashboard() {
         }
         try {
           console.log("Starting image upload...");
-          finalImageUrl = await uploadFile(imageFile, `products/images/${Date.now()}_${imageFile.name}`);
+          // Image upload (usually fast, no need for detailed progress, but we can give it 10%)
+          const imageRef = ref(storage, `products/images/${Date.now()}_${imageFile.name}`);
+          const imageUploadTask = uploadBytesResumable(imageRef, imageFile);
+          
+          finalImageUrl = await new Promise((resolve, reject) => {
+            imageUploadTask.on('state_changed', 
+              (snapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 10; // Image is 10% of total progress
+                setUploadProgress(progress);
+              },
+              (error) => reject(error),
+              async () => {
+                const url = await getDownloadURL(imageUploadTask.snapshot.ref);
+                resolve(url);
+              }
+            );
+          });
           console.log("Image upload successful:", finalImageUrl);
           
           console.log("Starting product file upload...");
-          finalDownloadUrl = await uploadFile(productFile, `products/files/${Date.now()}_${productFile.name}`);
+          const fileRef = ref(storage, `products/files/${Date.now()}_${productFile.name}`);
+          const fileUploadTask = uploadBytesResumable(fileRef, productFile);
+          
+          finalDownloadUrl = await new Promise((resolve, reject) => {
+            fileUploadTask.on('state_changed', 
+              (snapshot) => {
+                const progress = 10 + ((snapshot.bytesTransferred / snapshot.totalBytes) * 90); // File is 90% of total progress
+                setUploadProgress(progress);
+              },
+              (error) => reject(error),
+              async () => {
+                const url = await getDownloadURL(fileUploadTask.snapshot.ref);
+                resolve(url);
+              }
+            );
+          });
           console.log("Product file upload successful:", finalDownloadUrl);
         } catch (storageErr: any) {
           console.error("Storage Error:", storageErr);
@@ -329,13 +363,30 @@ export default function Dashboard() {
                 />
               </div>
 
-              <button 
-                type="submit" 
-                disabled={isSubmitting}
-                className="w-full bg-primary text-white py-4 rounded-xl font-black text-lg hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
-              >
-                {isSubmitting ? "جاري النشر..." : "نشر المنتج الآن"}
-              </button>
+              <div className="space-y-4">
+                {isSubmitting && uploadProgress > 0 && (
+                  <div className="w-full bg-dark rounded-full h-2.5 overflow-hidden">
+                    <div 
+                      className="bg-primary h-2.5 rounded-full transition-all duration-300" 
+                      style={{ width: `${uploadProgress}%` }}
+                    ></div>
+                  </div>
+                )}
+                
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className="w-full bg-primary text-white py-4 rounded-xl font-black text-lg hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 disabled:opacity-50 relative overflow-hidden"
+                >
+                  {isSubmitting ? (
+                    <span className="relative z-10">
+                      {uploadProgress > 0 ? `جاري الرفع... ${Math.round(uploadProgress)}%` : "جاري النشر..."}
+                    </span>
+                  ) : (
+                    "نشر المنتج الآن"
+                  )}
+                </button>
+              </div>
             </form>
           </div>
         </div>
