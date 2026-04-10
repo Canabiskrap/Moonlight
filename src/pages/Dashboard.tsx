@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, Timestamp } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { db, storage, deleteFile } from '../lib/firebase';
@@ -20,10 +21,11 @@ export default function Dashboard() {
   const [downloadUrl, setDownloadUrl] = useState('');
   const [uploadMethod, setUploadMethod] = useState<'direct' | 'link'>('direct');
   const [category, setCategory] = useState('cv');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [status, setStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+  const [showToast, setShowToast] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const qProds = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
@@ -46,11 +48,11 @@ export default function Dashboard() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isSubmitting) return;
+    if (status === 'uploading') return;
     
-    setIsSubmitting(true);
+    setStatus('uploading');
     setErrorMessage('');
-    setSuccessMessage('');
+    setShowToast(false);
     setUploadProgress(0);
 
     try {
@@ -156,23 +158,18 @@ export default function Dashboard() {
       });
       console.log("Product saved successfully!");
       
-      // Reset form
-      setName('');
-      setDescription('');
-      setPrice('');
-      setImageUrl('');
-      setDownloadUrl('');
-      setImageFile(null);
-      setProductFile(null);
-      setSuccessMessage("تم إضافة المنتج بنجاح!");
+      setStatus('success');
+      setShowToast(true);
       
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccessMessage(''), 3000);
+      // Redirect to home after short delay to show success state
+      setTimeout(() => {
+        navigate('/');
+      }, 1500);
+      
     } catch (err: any) {
       console.error(err);
+      setStatus('error');
       setErrorMessage(err.message || "فشل إضافة المنتج");
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -231,9 +228,10 @@ export default function Dashboard() {
                   {errorMessage}
                 </div>
               )}
-              {successMessage && (
-                <div className="bg-green-500/10 border border-green-500/20 text-green-500 p-4 rounded-xl text-sm font-bold">
-                  {successMessage}
+              {showToast && (
+                <div className="bg-green-500/10 border border-green-500/20 text-green-500 p-4 rounded-xl text-sm font-bold flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5" />
+                  تم إضافة المنتج بنجاح! سيتم تحويلك للمتجر...
                 </div>
               )}
               
@@ -389,7 +387,7 @@ export default function Dashboard() {
               </div>
 
               <div className="space-y-4">
-                {isSubmitting && (
+                {status === 'uploading' && (
                   <div className="w-full bg-dark rounded-full h-2.5 overflow-hidden border border-white/10">
                     <div 
                       className="bg-primary h-2.5 rounded-full transition-all duration-300" 
@@ -400,15 +398,28 @@ export default function Dashboard() {
                 
                 <button 
                   type="submit" 
-                  disabled={isSubmitting}
-                  className="w-full bg-primary text-white py-4 rounded-xl font-black text-lg hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 disabled:opacity-50 relative overflow-hidden"
+                  disabled={status === 'uploading' || status === 'success'}
+                  className={`w-full text-white py-4 rounded-xl font-black text-lg transition-all shadow-lg relative overflow-hidden ${
+                    status === 'success' ? 'bg-green-500 shadow-green-500/20' :
+                    status === 'error' ? 'bg-red-500 shadow-red-500/20 hover:bg-red-600' :
+                    'bg-primary hover:bg-primary-dark shadow-primary/20 disabled:opacity-50'
+                  }`}
                 >
-                  {isSubmitting ? (
+                  {status === 'uploading' ? (
                     <span className="relative z-10 flex items-center justify-center gap-2">
                       <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
                       {uploadProgress > 0 
                         ? `جاري الرفع... ${Math.round(uploadProgress)}%` 
                         : "جاري تحضير الملفات للرفع..."}
+                    </span>
+                  ) : status === 'success' ? (
+                    <span className="relative z-10 flex items-center justify-center gap-2">
+                      <CheckCircle2 className="w-5 h-5" />
+                      تم الرفع بنجاح
+                    </span>
+                  ) : status === 'error' ? (
+                    <span className="relative z-10 flex items-center justify-center gap-2">
+                      فشل الرفع، حاول مجدداً
                     </span>
                   ) : (
                     "نشر المنتج الآن"
