@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
 import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, onSnapshot, orderBy, Timestamp } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
@@ -29,6 +29,20 @@ export const uploadFile = async (file: File, path: string) => {
   const storageRef = ref(storage, path);
   await uploadBytes(storageRef, file);
   return getDownloadURL(storageRef);
+};
+
+// Helper for File Deletion
+export const deleteFile = async (url: string) => {
+  try {
+    // Only attempt to delete if it's a Firebase Storage URL
+    if (url.includes('firebasestorage.googleapis.com')) {
+      const storageRef = ref(storage, url);
+      await deleteObject(storageRef);
+    }
+  } catch (error) {
+    console.error("Error deleting file:", error);
+    // We don't throw here to prevent blocking document deletion if file is already gone
+  }
 };
 
 // Error handling for Firestore

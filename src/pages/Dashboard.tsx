@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, Timestamp } from 'firebase/firestore';
-import { db, uploadFile } from '../lib/firebase';
+import { db, uploadFile, deleteFile } from '../lib/firebase';
 import { motion } from 'motion/react';
 import { Plus, Trash2, Package, DollarSign, Image as ImageIcon, Link as LinkIcon, FileText, Upload, CheckCircle2, Globe } from 'lucide-react';
 
@@ -103,9 +103,15 @@ export default function Dashboard() {
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, imageUrl: string, downloadUrl: string) => {
     try {
+      // First delete the document
       await deleteDoc(doc(db, 'products', id));
+      
+      // Then attempt to delete associated files if they are in Firebase Storage
+      if (imageUrl) await deleteFile(imageUrl);
+      if (downloadUrl) await deleteFile(downloadUrl);
+      
       setDeletingId(null);
     } catch (err) {
       console.error(err);
@@ -341,7 +347,7 @@ export default function Dashboard() {
                         {deletingId === p.id ? (
                           <div className="flex items-center gap-2 justify-end flex-wrap min-w-[120px]">
                             <span className="text-xs text-gray-400 w-full text-right mb-1">تأكيد؟</span>
-                            <button onClick={() => handleDelete(p.id)} className="bg-red-500/20 text-red-400 hover:bg-red-500/30 px-3 py-1.5 rounded-lg font-bold text-xs transition-colors">نعم</button>
+                            <button onClick={() => handleDelete(p.id, p.imageUrl, p.downloadUrl)} className="bg-red-500/20 text-red-400 hover:bg-red-500/30 px-3 py-1.5 rounded-lg font-bold text-xs transition-colors">نعم</button>
                             <button onClick={() => setDeletingId(null)} className="bg-white/10 text-gray-300 hover:bg-white/20 px-3 py-1.5 rounded-lg font-bold text-xs transition-colors">لا</button>
                           </div>
                         ) : (
