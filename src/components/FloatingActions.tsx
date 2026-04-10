@@ -82,9 +82,19 @@ export default function FloatingActions() {
         onClick={() => setShowBot(!showBot)}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
-        className="bg-primary text-white p-4 rounded-full shadow-2xl shadow-primary/30 flex items-center justify-center group relative"
+        className="bg-primary text-white w-16 h-16 rounded-full shadow-2xl shadow-primary/30 flex items-center justify-center group relative"
       >
-        {showBot ? <X size={28} /> : <Bot size={28} />}
+        {showBot ? <X size={28} /> : (
+          <div className="relative w-full h-full rounded-full overflow-hidden flex items-center justify-center">
+            <Bot size={28} className="absolute z-0" />
+            <img 
+              src="/bot-avatar.png" 
+              alt="Bot Avatar" 
+              className="w-full h-full object-cover absolute inset-0 z-10 transition-opacity duration-300" 
+              onError={(e) => e.currentTarget.style.opacity = '0'} 
+            />
+          </div>
+        )}
         <span className="absolute right-full mr-4 bg-white text-dark px-3 py-1 rounded-lg text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl">
           المساعد الذكي
         </span>
@@ -108,8 +118,14 @@ export default function FloatingActions() {
                 >
                   <RefreshCw size={16} />
                 </button>
-                <div className="bg-white/20 p-2 rounded-xl">
-                  <Bot size={24} className="text-white" />
+                <div className="bg-white/20 w-10 h-10 rounded-xl relative overflow-hidden flex items-center justify-center">
+                  <Bot size={24} className="text-white absolute z-0" />
+                  <img 
+                    src="/bot-avatar.png" 
+                    alt="Bot Avatar" 
+                    className="w-full h-full object-cover absolute inset-0 z-10 transition-opacity duration-300" 
+                    onError={(e) => e.currentTarget.style.opacity = '0'} 
+                  />
                 </div>
               </div>
               <div>
