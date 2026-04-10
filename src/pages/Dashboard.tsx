@@ -59,8 +59,13 @@ export default function Dashboard() {
           throw new Error("يرجى اختيار صورة الغلاف والملف الرقمي أولاً.");
         }
         try {
+          console.log("Starting image upload...");
           finalImageUrl = await uploadFile(imageFile, `products/images/${Date.now()}_${imageFile.name}`);
+          console.log("Image upload successful:", finalImageUrl);
+          
+          console.log("Starting product file upload...");
           finalDownloadUrl = await uploadFile(productFile, `products/files/${Date.now()}_${productFile.name}`);
+          console.log("Product file upload successful:", finalDownloadUrl);
         } catch (storageErr: any) {
           console.error("Storage Error:", storageErr);
           throw new Error("فشل رفع الملفات. يرجى التأكد من تفعيل Firebase Storage في إعدادات مشروعك وإضافة صلاحيات (Rules) تسمح بالرفع.");
@@ -71,6 +76,7 @@ export default function Dashboard() {
         throw new Error("يرجى التأكد من رفع الملفات أو وضع الروابط");
       }
 
+      console.log("Encrypting download URL...");
       // Encrypt the downloadUrl via server API
       let encryptedDownloadUrl = finalDownloadUrl;
       try {
@@ -82,6 +88,7 @@ export default function Dashboard() {
         if (encryptRes.ok) {
           const data = await encryptRes.json();
           encryptedDownloadUrl = data.encryptedUrl;
+          console.log("Encryption successful.");
         } else {
           console.error("Failed to encrypt URL, saving as plain text");
         }
@@ -89,6 +96,7 @@ export default function Dashboard() {
         console.error("Encryption API error:", err);
       }
 
+      console.log("Saving product to Firestore...");
       await addDoc(collection(db, 'products'), {
         name,
         description,
@@ -98,6 +106,7 @@ export default function Dashboard() {
         category,
         createdAt: Timestamp.now()
       });
+      console.log("Product saved successfully!");
       
       // Reset form
       setName('');
