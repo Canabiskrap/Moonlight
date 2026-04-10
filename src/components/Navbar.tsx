@@ -47,7 +47,7 @@ export default function Navbar({ user, isAdmin }: NavbarProps) {
           {user ? (
             <div className="flex items-center gap-4">
               <div className="hidden md:block text-right">
-                <p className="text-sm font-bold text-white leading-none">{user.displayName}</p>
+                <p className="text-sm font-bold text-white leading-none mb-1">{user.displayName}</p>
                 <p className="text-xs text-gray-500">{user.email}</p>
               </div>
               <button 

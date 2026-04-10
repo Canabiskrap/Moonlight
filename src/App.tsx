@@ -14,6 +14,8 @@ import Home from './pages/Home';
 import ProductDetails from './pages/ProductDetails';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
+import Privacy from './pages/Privacy';
+import Terms from './pages/Terms';
 import FloatingActions from './components/FloatingActions';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -81,6 +83,8 @@ export default function App() {
               <Route path="/" element={<Home />} />
               <Route path="/product/:id" element={<ProductDetails />} />
               <Route path="/login" element={<Login user={user} />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/terms" element={<Terms />} />
               <Route 
                 path="/dashboard" 
                 element={isAdmin ? <Dashboard /> : <Navigate to="/login" />} 

@@ -340,7 +340,7 @@ export default function Dashboard() {
                       <td className="p-4">
                         {deletingId === p.id ? (
                           <div className="flex items-center gap-2 justify-end flex-wrap min-w-[120px]">
-                            <span className="text-xs text-gray-400 w-full text-left mb-1">تأكيد؟</span>
+                            <span className="text-xs text-gray-400 w-full text-right mb-1">تأكيد؟</span>
                             <button onClick={() => handleDelete(p.id)} className="bg-red-500/20 text-red-400 hover:bg-red-500/30 px-3 py-1.5 rounded-lg font-bold text-xs transition-colors">نعم</button>
                             <button onClick={() => setDeletingId(null)} className="bg-white/10 text-gray-300 hover:bg-white/20 px-3 py-1.5 rounded-lg font-bold text-xs transition-colors">لا</button>
                           </div>

@@ -167,10 +167,19 @@ export default function Home() {
             ))}
           </div>
         ) : products.length === 0 ? (
-          <div className="text-center py-20 bg-dark-light rounded-3xl border border-dashed border-white/10">
-            <ShoppingBag className="mx-auto text-gray-600 mb-4" size={48} />
-            <p className="text-gray-500 font-bold text-xl">لا توجد منتجات حالياً</p>
-            <p className="text-gray-600">سيتم إضافة منتجات جديدة قريباً، ابقَ على اطلاع!</p>
+          <div className="text-center py-24 bg-dark-light/50 rounded-[3rem] border border-white/5 backdrop-blur-sm relative overflow-hidden group">
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-primary/10 rounded-full blur-3xl -mt-32 group-hover:bg-primary/20 transition-colors duration-700" />
+            <div className="relative z-10 flex flex-col items-center space-y-6">
+              <div className="w-24 h-24 bg-dark border border-white/10 rounded-full flex items-center justify-center shadow-[0_0_50px_rgba(139,92,246,0.15)] group-hover:scale-110 transition-transform duration-500">
+                <Sparkles className="text-primary w-12 h-12 animate-pulse" />
+              </div>
+              <div className="space-y-3">
+                <h3 className="text-3xl font-black text-white">قريباً: معرض أعمالنا الحصري قيد التحديث</h3>
+                <p className="text-gray-400 font-medium max-w-md mx-auto leading-relaxed">
+                  نعمل حالياً على تجهيز مجموعة مميزة من القوالب والأعمال الرقمية التي سترتقي بمشاريعك. ابقَ على اطلاع!
+                </p>
+              </div>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">

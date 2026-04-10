@@ -57,8 +57,8 @@ export default function Footer() {
             جميع الحقوق محفوظة © {new Date().getFullYear()} Monnlight
           </p>
           <div className="flex gap-4 text-sm text-gray-500 font-medium">
-            <a href="#" className="hover:text-white transition-colors">سياسة الخصوصية</a>
-            <a href="#" className="hover:text-white transition-colors">الشروط والأحكام</a>
+            <Link to="/privacy" className="hover:text-white transition-colors">سياسة الخصوصية</Link>
+            <Link to="/terms" className="hover:text-white transition-colors">الشروط والأحكام</Link>
           </div>
         </div>
       </div>
