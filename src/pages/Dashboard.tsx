@@ -217,7 +217,10 @@ export default function Dashboard() {
       className="space-y-10"
     >
       <div className="flex justify-between items-center">
-        <h1 className="text-4xl font-black">لوحة التحكم</h1>
+        <div className="flex flex-col">
+          <h1 className="text-4xl font-black">لوحة التحكم</h1>
+          <span className="text-[10px] text-gray-600 mt-1">Cloudinary System Active v2</span>
+        </div>
         <div className="flex gap-4">
           <div className="bg-dark-light px-6 py-3 rounded-2xl border border-white/5 text-center">
             <p className="text-xs text-gray-500">إجمالي المبيعات</p>
