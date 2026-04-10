@@ -30,15 +30,28 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Handle redirect result
-    getRedirectResult(auth).catch((error) => {
-      console.error("Redirect Login Error:", error);
-      if (error.code === 'auth/unauthorized-domain') {
-        alert("هذا النطاق (Domain) غير مصرح به في إعدادات Firebase. يرجى إضافة رابط الموقع إلى Authorized Domains في Firebase Console.");
+    // Handle redirect result explicitly
+    const handleRedirect = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result?.user) {
+          console.log("Redirect login success:", result.user.email);
+          setUser(result.user);
+        }
+      } catch (error: any) {
+        console.error("Redirect Login Error:", error);
+        if (error.code === 'auth/unauthorized-domain') {
+          alert("هذا النطاق (Domain) غير مصرح به في إعدادات Firebase. يرجى إضافة رابط الموقع إلى Authorized Domains في Firebase Console.");
+        } else if (error.code === 'auth/account-exists-with-different-credential') {
+          alert("هذا الحساب موجود مسبقاً بطريقة تسجيل دخول مختلفة.");
+        }
       }
-    });
+    };
+
+    handleRedirect();
 
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      console.log("Auth state changed:", currentUser?.email || "No user");
       setUser(currentUser);
       if (currentUser) {
         let isUserAdmin = false;

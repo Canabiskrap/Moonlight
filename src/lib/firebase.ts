@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, signOut } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, signOut, setPersistence, browserLocalPersistence, getRedirectResult } from 'firebase/auth';
 import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, onSnapshot, orderBy, Timestamp } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 
@@ -16,40 +16,39 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);
+
+// Set persistence to local to ensure session survives redirects and refreshes
+setPersistence(auth, browserLocalPersistence).catch(err => console.error("Persistence Error:", err));
+
 export const storage = getStorage(app);
 export const googleProvider = new GoogleAuthProvider();
+// Force select account to avoid silent failures
+googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 // Helper for Google Login
 export const loginWithGoogle = async () => {
   try {
-    // Check if we are on mobile AND on Vercel (or not localhost)
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const isVercel = window.location.hostname.includes('vercel.app');
     
-    // Force redirect on mobile devices when deployed, as popups are often blocked
-    // or fail due to cross-origin isolation policies in mobile browsers.
-    if (isMobile && !isLocalhost) {
-      console.log("Mobile device detected on production, forcing redirect method...");
+    // On mobile and production, redirect is often the only way that works
+    // but it requires third-party cookies.
+    if (isMobile && isVercel) {
+      console.log("Mobile/Production detected: using redirect");
       await signInWithRedirect(auth, googleProvider);
       return null;
     }
 
-    // Try popup first for desktop or local development
+    // Default to popup for better UX where supported
     const result = await signInWithPopup(auth, googleProvider);
     return result.user;
   } catch (error: any) {
-    console.error("Login Error (Popup):", error);
+    console.error("Login Error:", error);
     
-    // Fallback to redirect if popup fails
-    if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user' || error.message.includes('Cross-Origin')) {
-      console.log("Falling back to redirect method...");
-      try {
-        await signInWithRedirect(auth, googleProvider);
-        return null; 
-      } catch (redirectError) {
-        console.error("Login Error (Redirect Fallback):", redirectError);
-        throw redirectError;
-      }
+    // If popup fails, try redirect as a last resort
+    if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
+      await signInWithRedirect(auth, googleProvider);
+      return null;
     }
     
     throw error;
