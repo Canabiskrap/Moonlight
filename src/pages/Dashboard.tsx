@@ -26,9 +26,20 @@ export default function Dashboard() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
   const navigate = useNavigate();
 
+  const addLog = (msg: string) => {
+    console.log(`[Dashboard] ${msg}`);
+    setDebugLogs(prev => [msg, ...prev].slice(0, 5));
+  };
+
   useEffect(() => {
+    const unsubAuth = auth.onAuthStateChanged((user) => {
+      setCurrentUser(user);
+    });
+
     const qProds = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
     const qOrders = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
 
@@ -54,10 +65,15 @@ export default function Dashboard() {
     );
 
     return () => {
+      unsubAuth();
       unsubProds();
       unsubOrders();
     };
   }, []);
+
+  const isAdminUser = currentUser && 
+    currentUser.emailVerified && 
+    ["canabiskrap07@gmail.com", "esraa0badr@gmail.com"].includes(currentUser.email?.toLowerCase() || "");
 
   const handleEdit = (product: any) => {
     setEditingId(product.id);
@@ -92,10 +108,15 @@ export default function Dashboard() {
     setErrorMessage('');
     setShowToast(false);
     setUploadProgress(1); // Start at 1% to show "Saving..." instead of "Preparing..."
+    addLog("بدء عملية الحفظ...");
 
     try {
       if (!auth.currentUser) {
         throw new Error("يجب تسجيل الدخول كمسؤول للقيام بهذه العملية.");
+      }
+
+      if (!isAdminUser) {
+        throw new Error(`حسابك (${currentUser?.email}) ليس لديه صلاحيات المسؤول. تأكد من تأكيد البريد الإلكتروني.`);
       }
 
       // URL Validation helper
@@ -113,7 +134,7 @@ export default function Dashboard() {
 
       if (uploadMethod === 'direct') {
         if (imageFile) {
-          console.log("Starting image upload to Firebase...");
+          addLog("جاري رفع الصورة...");
           const imageRef = ref(storage, `products/images/${Date.now()}_${imageFile.name}`);
           const imageUploadTask = uploadBytesResumable(imageRef, imageFile);
           
@@ -125,15 +146,15 @@ export default function Dashboard() {
           try {
             await imageUploadTask;
             finalImageUrl = await getDownloadURL(imageRef);
-            console.log("Image upload success:", finalImageUrl);
+            addLog("تم رفع الصورة بنجاح");
           } catch (imgErr: any) {
-            console.error("Firebase Image Error:", imgErr);
+            addLog(`خطأ في رفع الصورة: ${imgErr.message}`);
             throw new Error("فشل رفع الصورة: " + imgErr.message);
           }
         }
         
         if (productFile) {
-          console.log("Starting product file upload to Firebase...");
+          addLog("جاري رفع الملف الرقمي...");
           const fileRef = ref(storage, `products/files/${Date.now()}_${productFile.name}`);
           const fileUploadTask = uploadBytesResumable(fileRef, productFile);
           
@@ -146,16 +167,16 @@ export default function Dashboard() {
           try {
             await fileUploadTask;
             finalDownloadUrl = await getDownloadURL(fileRef);
-            console.log("Product file upload success:", finalDownloadUrl);
+            addLog("تم رفع الملف بنجاح");
           } catch (uploadErr: any) {
-            console.error("Firebase Storage Error:", uploadErr);
+            addLog(`خطأ في رفع الملف: ${uploadErr.message}`);
             throw new Error("فشل رفع الملف الرقمي: " + uploadErr.message);
           }
         }
       } else {
         // Validation for link method
         if (imageFile) {
-          console.log("Starting image upload to Firebase...");
+          addLog("جاري رفع الصورة (طريقة الرابط)...");
           const imageRef = ref(storage, `products/images/${Date.now()}_${imageFile.name}`);
           const imageUploadTask = uploadBytesResumable(imageRef, imageFile);
           
@@ -167,9 +188,9 @@ export default function Dashboard() {
           try {
             await imageUploadTask;
             finalImageUrl = await getDownloadURL(imageRef);
-            console.log("Image upload success:", finalImageUrl);
+            addLog("تم رفع الصورة بنجاح");
           } catch (imgErr: any) {
-            console.error("Firebase Image Error:", imgErr);
+            addLog(`خطأ في رفع الصورة: ${imgErr.message}`);
             throw new Error("فشل رفع الصورة: " + imgErr.message);
           }
         } else if (imageUrl && !isValidUrl(imageUrl)) {
@@ -211,14 +232,19 @@ export default function Dashboard() {
 
       try {
         if (editingId) {
+          addLog("جاري تحديث البيانات في قاعدة البيانات...");
           await updateDoc(doc(db, 'products', editingId), productData);
+          addLog("تم التحديث بنجاح");
         } else {
+          addLog("جاري إضافة المنتج لقاعدة البيانات...");
           await addDoc(collection(db, 'products'), {
             ...productData,
             createdAt: Timestamp.now()
           });
+          addLog("تمت الإضافة بنجاح");
         }
       } catch (firestoreErr) {
+        addLog(`خطأ في قاعدة البيانات: ${firestoreErr instanceof Error ? firestoreErr.message : 'خطأ غير معروف'}`);
         console.error("Firestore Save Error:", firestoreErr);
         handleFirestoreError(firestoreErr, editingId ? OperationType.UPDATE : OperationType.CREATE, 'products');
       }
@@ -348,7 +374,30 @@ export default function Dashboard() {
                 </button>
               )}
             </div>
+
+            {/* Admin Debug Info */}
+            {!isAdminUser && currentUser && (
+              <div className="mb-6 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl text-xs text-yellow-500">
+                <p className="font-bold mb-1">تنبيه الصلاحيات:</p>
+                <p>أنت مسجل دخول بـ: {currentUser.email}</p>
+                <p>حالة التأكيد: {currentUser.emailVerified ? 'مؤكد ✅' : 'غير مؤكد ❌'}</p>
+                <p className="mt-2">يجب أن يكون البريد مؤكداً وموجوداً في قائمة المسؤولين.</p>
+              </div>
+            )}
             
+            {/* Debug Logs */}
+            {debugLogs.length > 0 && (
+              <div className="mb-6 p-4 bg-black/50 border border-white/5 rounded-xl font-mono text-[10px] text-gray-400">
+                <p className="text-gray-500 mb-2 uppercase tracking-widest">سجل العمليات (Debug):</p>
+                {debugLogs.map((log, i) => (
+                  <div key={i} className="mb-1">
+                    <span className="text-primary mr-2">›</span>
+                    {log}
+                  </div>
+                ))}
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-4">
               {errorMessage && (
                 <div className="space-y-2">
