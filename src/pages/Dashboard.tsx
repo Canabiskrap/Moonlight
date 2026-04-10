@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, Timestamp } from 'firebase/firestore';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytesResumable, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage, deleteFile } from '../lib/firebase';
 import { motion } from 'motion/react';
 import { Plus, Trash2, Package, DollarSign, Image as ImageIcon, Link as LinkIcon, FileText, Upload, CheckCircle2, Globe } from 'lucide-react';
@@ -65,31 +65,13 @@ export default function Dashboard() {
         }
         try {
           console.log("Starting image upload...");
-          // Image upload (usually fast, no need for detailed progress, but we can give it 10%)
+          setUploadProgress(5); // Show some initial progress
           const imageRef = ref(storage, `products/images/${Date.now()}_${imageFile.name}`);
-          const imageUploadTask = uploadBytesResumable(imageRef, imageFile);
           
-          finalImageUrl = await new Promise((resolve, reject) => {
-            imageUploadTask.on('state_changed', 
-              (snapshot) => {
-                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 10;
-                setUploadProgress(Math.round(progress));
-              },
-              (error) => {
-                console.error("Image upload error:", error);
-                reject(error);
-              },
-              async () => {
-                try {
-                  const url = await getDownloadURL(imageUploadTask.snapshot.ref);
-                  resolve(url);
-                } catch (err) {
-                  console.error("Error getting image URL:", err);
-                  reject(err);
-                }
-              }
-            );
-          });
+          // Use uploadBytes for images as they are small and less prone to hanging
+          const imageSnapshot = await uploadBytes(imageRef, imageFile);
+          finalImageUrl = await getDownloadURL(imageSnapshot.ref);
+          setUploadProgress(10);
           console.log("Image upload successful:", finalImageUrl);
           
           console.log("Starting product file upload...");
@@ -120,7 +102,7 @@ export default function Dashboard() {
           console.log("Product file upload successful:", finalDownloadUrl);
         } catch (storageErr: any) {
           console.error("Storage Error:", storageErr);
-          throw new Error("فشل رفع الملفات. يرجى التأكد من تفعيل Firebase Storage في إعدادات مشروعك وإضافة صلاحيات (Rules) تسمح بالرفع.");
+          throw new Error("فشل رفع الملفات. يرجى التأكد من اتصالك بالإنترنت والمحاولة مجدداً.");
         }
       } else if (uploadMethod === 'link') {
         if (!imageFile) {
@@ -131,35 +113,20 @@ export default function Dashboard() {
         }
         try {
           console.log("Starting image upload for link method...");
+          setUploadProgress(10);
           const imageRef = ref(storage, `products/images/${Date.now()}_${imageFile.name}`);
-          const imageUploadTask = uploadBytesResumable(imageRef, imageFile);
           
-          finalImageUrl = await new Promise((resolve, reject) => {
-            imageUploadTask.on('state_changed', 
-              (snapshot) => {
-                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                setUploadProgress(Math.round(progress));
-              },
-              (error) => {
-                console.error("Image upload error:", error);
-                reject(error);
-              },
-              async () => {
-                try {
-                  const url = await getDownloadURL(imageUploadTask.snapshot.ref);
-                  resolve(url);
-                } catch (err) {
-                  console.error("Error getting image URL:", err);
-                  reject(err);
-                }
-              }
-            );
-          });
+          // Use uploadBytes for images
+          const imageSnapshot = await uploadBytes(imageRef, imageFile);
+          setUploadProgress(50);
+          finalImageUrl = await getDownloadURL(imageSnapshot.ref);
+          setUploadProgress(100);
+          
           console.log("Image upload successful:", finalImageUrl);
           finalDownloadUrl = downloadUrl;
         } catch (storageErr: any) {
           console.error("Storage Error:", storageErr);
-          throw new Error("فشل رفع الصورة. يرجى المحاولة مرة أخرى.");
+          throw new Error("فشل رفع الصورة. يرجى التأكد من اتصالك بالإنترنت والمحاولة مجدداً.");
         }
       }
 
