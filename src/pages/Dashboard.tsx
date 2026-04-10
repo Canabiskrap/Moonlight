@@ -22,7 +22,7 @@ import {
 import { convertDriveLink, isValidUrl } from '../lib/utils';
 import { SmartDiagnosticService } from '../lib/smartDiagnostic';
 import { motion } from 'motion/react';
-import { Plus, Trash2, Package, DollarSign, Image as ImageIcon, Link as LinkIcon, FileText, Upload, CheckCircle2, Globe, Search, RefreshCw, Sparkles } from 'lucide-react';
+import { Plus, Trash2, Package, DollarSign, Image as ImageIcon, Link as LinkIcon, FileText, Upload, CheckCircle2, Globe, Search, RefreshCw, Sparkles, ShoppingBag, AlertCircle, Settings, Activity } from 'lucide-react';
 
 export default function Dashboard() {
   const [products, setProducts] = useState<any[]>([]);
@@ -435,65 +435,98 @@ export default function Dashboard() {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-10 pb-32"
     >
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
         <div className="flex flex-col">
-          <h1 className="text-4xl font-black">لوحة التحكم</h1>
-          <span className="text-[10px] text-gray-600 mt-1 uppercase tracking-widest">Cloudinary & Firebase Integrated System</span>
+          <h1 className="text-4xl font-black text-white tracking-tight">لوحة التحكم</h1>
+          <div className="flex items-center gap-2 mt-2">
+            <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+            <span className="text-[10px] text-gray-500 uppercase tracking-[0.2em] font-bold">Moonlight Management System</span>
+          </div>
         </div>
-        <div className="flex gap-4 w-full md:w-auto">
-          <div className="flex-1 md:flex-none bg-dark-light px-6 py-3 rounded-2xl border border-white/5 text-center">
-            <p className="text-xs text-gray-500">إجمالي المبيعات</p>
-            <p className="text-xl font-black text-gold">${totalRevenue.toFixed(2)}</p>
-          </div>
-          <div className="flex-1 md:flex-none bg-dark-light px-6 py-3 rounded-2xl border border-white/5 text-center">
-            <p className="text-xs text-gray-500">عدد الطلبات</p>
-            <p className="text-xl font-black text-primary">{orders.length}</p>
-          </div>
+        
+        <div className="grid grid-cols-2 gap-4 w-full md:w-auto">
+          <motion.div 
+            whileHover={{ y: -5 }}
+            className="bg-dark-light/50 backdrop-blur-xl px-8 py-5 rounded-[2rem] border border-white/5 text-right relative overflow-hidden group"
+          >
+            <div className="absolute top-0 left-0 w-1 h-full bg-gold opacity-50" />
+            <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">إجمالي الأرباح</p>
+            <p className="text-2xl font-black text-gold tracking-tighter">${totalRevenue.toFixed(2)}</p>
+            <DollarSign className="absolute -bottom-2 -left-2 w-16 h-16 text-gold/5 -rotate-12 group-hover:scale-110 transition-transform duration-500" />
+          </motion.div>
+          
+          <motion.div 
+            whileHover={{ y: -5 }}
+            className="bg-dark-light/50 backdrop-blur-xl px-8 py-5 rounded-[2rem] border border-white/5 text-right relative overflow-hidden group"
+          >
+            <div className="absolute top-0 left-0 w-1 h-full bg-primary opacity-50" />
+            <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">إجمالي الطلبات</p>
+            <p className="text-2xl font-black text-primary tracking-tighter">{orders.length}</p>
+            <ShoppingBag className="absolute -bottom-2 -left-2 w-16 h-16 text-primary/5 -rotate-12 group-hover:scale-110 transition-transform duration-500" />
+          </motion.div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         {/* Add/Edit Product Form */}
-        <div className="lg:col-span-1">
-          <div className="bg-dark-light p-8 rounded-[2rem] border border-white/5 sticky top-24">
-            {/* Smart Fix & System Health */}
-            <div className="mb-8 p-5 bg-primary/5 border border-primary/10 rounded-[2rem] space-y-4">
+        <div className="lg:col-span-1 space-y-8">
+          <div className="bg-dark-light/30 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-white/10 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16" />
+            
+            <div className="flex justify-between items-center mb-8 relative z-10">
+              <h2 className="text-2xl font-black flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${editingId ? 'bg-gold/20 text-gold' : 'bg-primary/20 text-primary'}`}>
+                  {editingId ? <CheckCircle2 size={20} /> : <Plus size={20} />}
+                </div>
+                {editingId ? 'تعديل المنتج' : 'إضافة منتج'}
+              </h2>
+              {editingId && (
+                <button 
+                  onClick={resetForm}
+                  className="text-xs font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1"
+                >
+                  إلغاء
+                </button>
+              )}
+            </div>
+
+            {/* Smart Fix & System Health - Collapsible or Integrated */}
+            <div className="mb-8 p-6 bg-white/5 rounded-3xl border border-white/5 space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-black text-primary uppercase tracking-widest">حالة النظام الذكية</h3>
+                <div className="flex items-center gap-2">
+                  <Activity size={14} className="text-primary" />
+                  <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">حالة النظام</h3>
+                </div>
                 <div className="flex gap-1">
-                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                  <div className="w-2 h-2 rounded-full bg-green-500/50"></div>
+                  <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+                  <div className="w-1.5 h-1.5 rounded-full bg-green-500/30"></div>
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-2">
-                <div className="bg-dark/50 p-3 rounded-2xl border border-white/5 text-center">
-                  <p className="text-[8px] text-gray-500 mb-1">قاعدة البيانات</p>
-                  <p className="text-[10px] font-bold text-green-400">متصل ✅</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-dark/40 p-3 rounded-2xl border border-white/5 text-center group hover:border-primary/30 transition-colors">
+                  <p className="text-[8px] text-gray-500 mb-1 font-bold uppercase">Database</p>
+                  <p className="text-[10px] font-black text-green-400">ONLINE</p>
                 </div>
-                <div className="bg-dark/50 p-3 rounded-2xl border border-white/5 text-center">
-                  <p className="text-[8px] text-gray-500 mb-1">التخزين</p>
-                  <p className="text-[10px] font-bold text-green-400">نشط ✅</p>
+                <div className="bg-dark/40 p-3 rounded-2xl border border-white/5 text-center group hover:border-primary/30 transition-colors">
+                  <p className="text-[8px] text-gray-500 mb-1 font-bold uppercase">Storage</p>
+                  <p className="text-[10px] font-black text-green-400">ACTIVE</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-2">
+              <div className="flex gap-2">
                 <button 
                   onClick={async () => {
-                    addLog("بدء الإصلاح التلقائي الذكي...");
+                    addLog("بدء الفحص...");
                     const results = await SmartDiagnosticService.runFullDiagnostic();
                     if (results.firestore.status === 'ok' && results.storage.status === 'ok') {
-                      addLog("✅ تم فحص جميع الأنظمة، كل شيء يعمل بشكل مثالي.");
-                      alert("تم فحص النظام: جميع الاتصالات سليمة والروابط تعمل.");
-                    } else {
-                      addLog("⚠️ تم اكتشاف بعض التنبيهات، راجع سجل العمليات.");
-                      alert("تم اكتشاف بعض المشاكل، يرجى مراجعة سجل العمليات (Debug) أسفل الصفحة.");
+                      alert("النظام يعمل بكفاءة عالية ✅");
                     }
                   }}
-                  className="w-full py-3 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl text-[11px] font-black transition-all flex items-center justify-center gap-2"
+                  className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-xl text-[10px] font-bold transition-all flex items-center justify-center gap-2"
                 >
-                  <RefreshCw size={14} className="animate-spin-slow" />
-                  فحص حالة النظام
+                  <RefreshCw size={12} />
+                  فحص
                 </button>
 
                 <button 
@@ -520,10 +553,10 @@ export default function Dashboard() {
                       alert("جميع المنتجات سليمة ولا تحتاج لإصلاح.");
                     }
                   }}
-                  className="w-full py-3 bg-gold/10 hover:bg-gold/20 text-gold border border-gold/20 rounded-xl text-[11px] font-black transition-all flex items-center justify-center gap-2"
+                  className="flex-1 py-3 bg-gold/10 hover:bg-gold/20 text-gold border border-gold/20 rounded-xl text-[10px] font-bold transition-all flex items-center justify-center gap-2"
                 >
-                  <Sparkles size={14} />
-                  إصلاح جميع المنتجات تلقائياً
+                  <Sparkles size={12} />
+                  إصلاح
                 </button>
               </div>
             </div>
@@ -545,19 +578,41 @@ export default function Dashboard() {
 
             {/* Admin Debug Info */}
             {currentUser && !isAdminUser && (
-              <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-500">
-                <p className="font-bold mb-1">تنبيه الصلاحيات:</p>
-                <p>أنت مسجل دخول بـ: {currentUser.email}</p>
-                <p className="mt-2 font-bold">هذا الحساب ليس مسجلاً كمسؤول. يرجى تسجيل الدخول بالحساب الصحيح.</p>
-              </div>
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="mb-8 p-6 bg-red-500/10 border border-red-500/20 rounded-[2rem] text-center space-y-3"
+              >
+                <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center mx-auto">
+                  <AlertCircle className="text-red-500" size={24} />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-black text-red-500">تنبيه الصلاحيات</p>
+                  <p className="text-[10px] text-gray-400">أنت مسجل دخول بـ: <span className="text-white">{currentUser.email}</span></p>
+                </div>
+                <p className="text-[11px] text-gray-500 font-medium leading-relaxed">
+                  هذا الحساب ليس مسجلاً كمسؤول. يرجى تسجيل الدخول بالحساب الصحيح للتحكم في المتجر.
+                </p>
+              </motion.div>
             )}
 
             {currentUser && isAdminUser && !isEmailVerified && (
-              <div className="mb-6 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl text-xs text-yellow-500">
-                <p className="font-bold mb-1">تأكيد البريد:</p>
-                <p>بريدك {currentUser.email} غير مؤكد.</p>
-                <p className="mt-2">يرجى تأكيد بريدك في إعدادات جوجل لتتمكن من النشر.</p>
-              </div>
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="mb-8 p-6 bg-gold/10 border border-gold/20 rounded-[2rem] text-center space-y-3"
+              >
+                <div className="w-12 h-12 bg-gold/20 rounded-full flex items-center justify-center mx-auto">
+                  <AlertCircle className="text-gold" size={24} />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-black text-gold">تأكيد البريد الإلكتروني</p>
+                  <p className="text-[10px] text-gray-400">بريدك <span className="text-white">{currentUser.email}</span> غير مؤكد</p>
+                </div>
+                <p className="text-[11px] text-gray-500 font-medium leading-relaxed">
+                  يرجى تأكيد بريدك في إعدادات جوجل لتتمكن من نشر المنتجات.
+                </p>
+              </motion.div>
             )}
             
             {/* Debug Logs */}
@@ -606,87 +661,101 @@ export default function Dashboard() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
               {errorMessage && (
-                <div className="space-y-2">
-                  <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-xl text-sm font-bold flex flex-col gap-2">
-                    <span>{errorMessage}</span>
+                <motion.div 
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="space-y-2"
+                >
+                  <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-2xl text-xs font-bold flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle size={14} />
+                      <span>{errorMessage}</span>
+                    </div>
                     <button 
                       type="button"
                       onClick={() => {
                         setStatus('idle');
                         setErrorMessage('');
                       }}
-                      className="text-[10px] bg-red-500/20 hover:bg-red-500/30 px-3 py-1 rounded-lg self-start transition-all"
+                      className="text-[10px] bg-red-500/20 hover:bg-red-500/30 px-3 py-1.5 rounded-lg self-start transition-all"
                     >
-                      إعادة المحاولة / تنظيف الخطأ
+                      إعادة المحاولة
                     </button>
                   </div>
-                  <button 
-                    type="button"
-                    onClick={() => setStatus('idle')}
-                    className="w-full text-[10px] text-gray-500 hover:text-white underline"
-                  >
-                    إعادة تعيين الحالة (إذا تعطل الرفع)
-                  </button>
-                </div>
-              )}
-              {showToast && (
-                <div className="bg-green-500/10 border border-green-500/20 text-green-500 p-4 rounded-xl text-sm font-bold flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5" />
-                  تم {editingId ? 'تحديث' : 'إضافة'} المنتج بنجاح!
-                </div>
+                </motion.div>
               )}
               
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-400">اسم المنتج</label>
-                <input 
-                  type="text" 
-                  value={name} 
-                  onChange={(e) => setName(e.target.value)}
-                  className="bg-dark border-white/5 focus:border-primary outline-none transition-all w-full p-4 rounded-2xl"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-400">الفئة</label>
-                <select 
-                  value={category} 
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="bg-dark border-white/5 focus:border-primary outline-none transition-all w-full p-4 rounded-2xl appearance-none"
+              {showToast && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="bg-green-500/10 border border-green-500/20 text-green-500 p-4 rounded-2xl text-xs font-bold flex items-center gap-2"
                 >
-                  <option value="cv">سيرة ذاتية</option>
-                  <option value="social">سوشيال ميديا</option>
-                  <option value="web">قالب ويب</option>
-                  <option value="other">أخرى</option>
-                </select>
+                  <CheckCircle2 className="w-5 h-5" />
+                  تم {editingId ? 'تحديث' : 'إضافة'} المنتج بنجاح!
+                </motion.div>
+              )}
+              
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-1">اسم المنتج</label>
+                  <input 
+                    type="text" 
+                    value={name} 
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="مثال: قالب سيرة ذاتية احترافي"
+                    className="bg-white/5 border border-white/5 focus:border-primary/50 focus:bg-white/10 outline-none transition-all w-full p-4 rounded-2xl text-sm"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-1">الفئة</label>
+                    <div className="relative">
+                      <select 
+                        value={category} 
+                        onChange={(e) => setCategory(e.target.value)}
+                        className="bg-white/5 border border-white/5 focus:border-primary/50 focus:bg-white/10 outline-none transition-all w-full p-4 rounded-2xl text-sm appearance-none cursor-pointer"
+                      >
+                        <option value="cv">سيرة ذاتية</option>
+                        <option value="social">سوشيال ميديا</option>
+                        <option value="web">قالب ويب</option>
+                        <option value="other">أخرى</option>
+                      </select>
+                      <Settings className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={14} />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-1">السعر ($)</label>
+                    <input 
+                      type="number" 
+                      step="0.01"
+                      value={price} 
+                      onChange={(e) => setPrice(e.target.value)}
+                      placeholder="0.00"
+                      className="bg-white/5 border border-white/5 focus:border-primary/50 focus:bg-white/10 outline-none transition-all w-full p-4 rounded-2xl text-sm"
+                      required
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-400">السعر ($)</label>
-                <input 
-                  type="number" 
-                  step="0.01"
-                  value={price} 
-                  onChange={(e) => setPrice(e.target.value)}
-                  className="bg-dark border-white/5 focus:border-primary outline-none transition-all w-full p-4 rounded-2xl"
-                  required
-                />
-              </div>
-
-              <div className="flex bg-dark p-1 rounded-xl border border-white/5 mb-6">
+              <div className="p-1 bg-white/5 rounded-2xl border border-white/5 flex">
                 <button 
                   type="button"
                   onClick={() => setUploadMethod('direct')}
-                  className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all ${uploadMethod === 'direct' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-gray-500 hover:text-white'}`}
+                  className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${uploadMethod === 'direct' ? 'bg-primary text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}
                 >
                   رفع ملفات
                 </button>
                 <button 
                   type="button"
                   onClick={() => setUploadMethod('link')}
-                  className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all ${uploadMethod === 'link' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-gray-500 hover:text-white'}`}
+                  className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${uploadMethod === 'link' ? 'bg-primary text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}
                 >
                   روابط خارجية
                 </button>
@@ -888,53 +957,48 @@ export default function Dashboard() {
               )}
 
               <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-400">وصف المنتج</label>
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-1">وصف المنتج</label>
                 <textarea 
                   value={description} 
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="اكتب تفاصيل المنتج هنا..."
-                  className="bg-dark border-white/5 focus:border-primary outline-none transition-all w-full p-4 rounded-2xl min-h-[120px]"
+                  className="bg-white/5 border border-white/5 focus:border-primary/50 focus:bg-white/10 outline-none transition-all w-full p-4 rounded-2xl min-h-[120px] text-sm resize-none"
                   required
                 />
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-4 pt-4">
                 {status === 'uploading' && (
-                  <div className="space-y-3">
+                  <div className="space-y-3 p-4 bg-primary/5 rounded-2xl border border-primary/10">
                     <div className="space-y-2">
-                      <div className="flex justify-between text-xs font-bold text-gray-400">
-                        <span>حالة الرفع</span>
+                      <div className="flex justify-between text-[10px] font-black text-primary uppercase tracking-widest">
+                        <span>جاري المعالجة</span>
                         <span>{uploadProgress}%</span>
                       </div>
-                      <div className="w-full bg-dark rounded-full h-4 overflow-hidden border border-white/10">
-                        <div 
-                          className="bg-primary h-4 rounded-full transition-all duration-300" 
-                          style={{ width: `${Math.max(uploadProgress, 2)}%` }}
-                        ></div>
+                      <div className="w-full bg-dark/50 rounded-full h-2 overflow-hidden border border-white/5">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.max(uploadProgress, 5)}%` }}
+                          className="bg-primary h-full rounded-full shadow-[0_0_10px_rgba(139,92,246,0.5)]"
+                        />
                       </div>
                     </div>
-                    <button 
-                      type="button"
-                      onClick={() => setStatus('idle')}
-                      className="w-full py-2 text-[10px] text-gray-500 hover:text-white border border-white/5 rounded-lg transition-all"
-                    >
-                      إلغاء العملية / إعادة تعيين
-                    </button>
                   </div>
                 )}
                 
                 <button 
                   type="submit" 
                   disabled={status === 'uploading' || status === 'success'}
-                  className={`w-full text-white py-4 rounded-xl font-black text-lg transition-all shadow-lg relative overflow-hidden ${
-                    status === 'success' ? 'bg-green-500 shadow-green-500/20' :
-                    status === 'error' ? 'bg-red-500 shadow-red-500/20 hover:bg-red-600' :
-                    'bg-primary hover:bg-primary-dark shadow-primary/20 disabled:opacity-50'
+                  className={`w-full py-5 rounded-2xl font-black text-sm transition-all shadow-2xl relative overflow-hidden group ${
+                    status === 'success' ? 'bg-green-500 text-white' :
+                    status === 'error' ? 'bg-red-500 text-white hover:bg-red-600' :
+                    'bg-primary text-white hover:bg-primary-dark disabled:opacity-50'
                   }`}
                 >
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
                   {status === 'uploading' ? (
-                    <span className="relative z-10 flex items-center justify-center gap-2">
-                      <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
+                    <span className="relative z-10 flex items-center justify-center gap-3">
+                      <RefreshCw size={18} className="animate-spin" />
                       {uploadProgress > 0 
                         ? `جاري الحفظ... ${Math.round(uploadProgress)}%` 
                         : "جاري التحضير..."}
@@ -942,10 +1006,13 @@ export default function Dashboard() {
                   ) : status === 'success' ? (
                     <span className="relative z-10 flex items-center justify-center gap-2">
                       <CheckCircle2 className="w-5 h-5" />
-                      تم بنجاح
+                      تم الحفظ بنجاح
                     </span>
                   ) : (
-                    editingId ? "تحديث المنتج" : "نشر المنتج الآن"
+                    <span className="relative z-10 flex items-center justify-center gap-2">
+                      {editingId ? <CheckCircle2 size={18} /> : <Plus size={18} />}
+                      {editingId ? "تحديث التغييرات" : "نشر المنتج الآن"}
+                    </span>
                   )}
                 </button>
               </div>
@@ -956,85 +1023,110 @@ export default function Dashboard() {
         {/* Products List & Orders */}
         <div className="lg:col-span-2 space-y-10">
           {/* Products Table */}
-          <div className="bg-dark-light rounded-[2rem] border border-white/5 overflow-hidden">
-            <div className="p-8 border-b border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
-              <h2 className="text-2xl font-black flex items-center gap-2">
-                <Package className="text-gold" />
-                المنتجات الحالية ({products.length})
-              </h2>
-              <div className="relative w-full md:w-64">
-                <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+          <div className="bg-dark-light/30 backdrop-blur-2xl rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl">
+            <div className="p-8 border-b border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-gold/10 rounded-2xl flex items-center justify-center text-gold">
+                  <Package size={24} />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black text-white">المنتجات</h2>
+                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">إدارة المخزون ({products.length})</p>
+                </div>
+              </div>
+              
+              <div className="relative w-full md:w-80">
+                <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
                 <input 
                   type="text"
                   placeholder="بحث عن منتج..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-dark border-white/5 focus:border-primary outline-none p-3 pr-12 rounded-xl text-sm"
+                  className="w-full bg-white/5 border border-white/5 focus:border-primary/50 outline-none p-4 pr-12 rounded-2xl text-sm transition-all"
                 />
               </div>
             </div>
+            
             <div className="overflow-x-auto">
-              <table className="w-full text-right">
+              <table className="w-full text-right border-collapse">
                 <thead>
-                  <tr className="bg-white/5 text-gray-400 text-sm">
-                    <th className="p-4">المنتج</th>
-                    <th className="p-4">الفئة</th>
-                    <th className="p-4">السعر</th>
-                    <th className="p-4">إجراء</th>
+                  <tr className="bg-white/5 text-gray-500 text-[10px] font-black uppercase tracking-widest">
+                    <th className="p-6">المنتج</th>
+                    <th className="p-6">الفئة</th>
+                    <th className="p-6">السعر</th>
+                    <th className="p-6 text-left">الإجراءات</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {filteredProductsList.map((p) => (
-                    <tr key={p.id} className={`border-b border-white/5 hover:bg-white/5 transition-colors ${editingId === p.id ? 'bg-primary/5 border-primary/20' : ''}`}>
-                      <td className="p-4">
-                        <div className="flex items-center gap-3">
-                          <img 
-                            src={convertDriveLink(p.imageUrl)} 
-                            className="w-10 h-10 rounded-lg object-cover" 
-                            referrerPolicy="no-referrer" 
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              if (!target.src.includes('placeholder')) {
-                                target.src = 'https://via.placeholder.com/150?text=Error';
-                              }
-                            }}
-                          />
-                          <span className="font-bold">{p.name}</span>
+                <tbody className="divide-y divide-white/5">
+                  {filteredProductsList.map((p, index) => (
+                    <motion.tr 
+                      key={p.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      className={`group hover:bg-white/[0.02] transition-colors ${editingId === p.id ? 'bg-primary/5' : ''}`}
+                    >
+                      <td className="p-6">
+                        <div className="flex items-center gap-4">
+                          <div className="w-14 h-14 rounded-2xl overflow-hidden border border-white/10 group-hover:border-primary/30 transition-colors bg-dark relative">
+                            <img 
+                              src={convertDriveLink(p.imageUrl)} 
+                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                              referrerPolicy="no-referrer" 
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                if (!target.src.includes('placeholder')) {
+                                  target.src = 'https://via.placeholder.com/150?text=Error';
+                                }
+                              }}
+                            />
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="font-black text-white group-hover:text-primary transition-colors">{p.name}</span>
+                            <span className="text-[10px] text-gray-500 line-clamp-1 max-w-[200px]">{p.description}</span>
+                          </div>
                         </div>
                       </td>
-                      <td className="p-4 text-sm text-gray-400">
-                        {p.category === 'cv' ? 'سيرة ذاتية' : p.category === 'social' ? 'سوشيال ميديا' : 'قالب ويب'}
+                      <td className="p-6">
+                        <span className="px-3 py-1 bg-white/5 rounded-full text-[10px] font-bold text-gray-400 border border-white/5">
+                          {p.category === 'cv' ? 'سيرة ذاتية' : p.category === 'social' ? 'سوشيال ميديا' : 'قالب ويب'}
+                        </span>
                       </td>
-                      <td className="p-4 font-black text-gold">${p.price}</td>
-                      <td className="p-4">
+                      <td className="p-6 font-black text-gold tracking-tighter text-lg">${p.price}</td>
+                      <td className="p-6">
                         <div className="flex items-center gap-2 justify-end">
                           <button 
                             onClick={() => handleEdit(p)}
-                            className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                            className="w-10 h-10 flex items-center justify-center bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-xl transition-all"
                             title="تعديل"
                           >
                             <FileText size={18} />
                           </button>
+                          
                           {deletingId === p.id ? (
-                            <div className="flex items-center gap-2 bg-red-500/10 p-1 rounded-lg border border-red-500/20">
-                              <span className="text-[10px] font-bold text-red-500 px-2">متأكد؟</span>
+                            <motion.div 
+                              initial={{ opacity: 0, scale: 0.9 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              className="flex items-center gap-2 bg-red-500/10 p-1.5 rounded-xl border border-red-500/20"
+                            >
+                              <span className="text-[9px] font-black text-red-500 px-2 uppercase">تأكيد؟</span>
                               <button 
                                 onClick={() => handleDelete(p.id, p.imageUrl, p.downloadUrl)} 
-                                className="bg-red-500 text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-red-600 transition-colors"
+                                className="bg-red-500 text-white px-4 py-1.5 rounded-lg text-[10px] font-black hover:bg-red-600 transition-colors shadow-lg shadow-red-500/20"
                               >
                                 نعم
                               </button>
                               <button 
                                 onClick={() => setDeletingId(null)} 
-                                className="bg-white/10 text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-white/20 transition-colors"
+                                className="bg-white/10 text-white px-4 py-1.5 rounded-lg text-[10px] font-black hover:bg-white/20 transition-colors"
                               >
                                 لا
                               </button>
-                            </div>
+                            </motion.div>
                           ) : (
                             <button 
                               onClick={() => setDeletingId(p.id)}
-                              className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                              className="w-10 h-10 flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition-all"
                               title="حذف"
                             >
                               <Trash2 size={18} />
@@ -1042,7 +1134,7 @@ export default function Dashboard() {
                           )}
                         </div>
                       </td>
-                    </tr>
+                    </motion.tr>
                   ))}
                 </tbody>
               </table>
@@ -1050,41 +1142,112 @@ export default function Dashboard() {
           </div>
 
           {/* Orders Table */}
-          <div className="bg-dark-light rounded-[2rem] border border-white/5 overflow-hidden">
+          <div className="bg-dark-light/30 backdrop-blur-2xl rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl">
             <div className="p-8 border-b border-white/5">
-              <h2 className="text-2xl font-black flex items-center gap-2">
-                <DollarSign className="text-green-400" />
-                آخر الطلبات ({orders.length})
-              </h2>
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-green-500/10 rounded-2xl flex items-center justify-center text-green-500">
+                  <DollarSign size={24} />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black text-white">آخر الطلبات</h2>
+                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">سجل المبيعات ({orders.length})</p>
+                </div>
+              </div>
             </div>
+            
             <div className="overflow-x-auto">
-              <table className="w-full text-right">
+              <table className="w-full text-right border-collapse">
                 <thead>
-                  <tr className="bg-white/5 text-gray-400 text-sm">
-                    <th className="p-4">المنتج</th>
-                    <th className="p-4">العميل</th>
-                    <th className="p-4">المبلغ</th>
-                    <th className="p-4">رقم الطلب (PayPal)</th>
-                    <th className="p-4">التاريخ</th>
+                  <tr className="bg-white/5 text-gray-500 text-[10px] font-black uppercase tracking-widest">
+                    <th className="p-6">المنتج</th>
+                    <th className="p-6">العميل</th>
+                    <th className="p-6">المبلغ</th>
+                    <th className="p-6">رقم الطلب</th>
+                    <th className="p-6">التاريخ</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {orders.map((o) => (
-                    <tr key={o.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                      <td className="p-4 font-bold">{o.productName}</td>
-                      <td className="p-4 text-sm text-gray-400">{o.customerEmail}</td>
-                      <td className="p-4 font-black text-green-400">${o.amount}</td>
-                      <td className="p-4 text-xs font-mono text-gray-500">{o.paypalOrderId || '---'}</td>
-                      <td className="p-4 text-xs text-gray-500">
+                <tbody className="divide-y divide-white/5">
+                  {orders.map((o, index) => (
+                    <motion.tr 
+                      key={o.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="group hover:bg-white/[0.02] transition-colors"
+                    >
+                      <td className="p-6 font-black text-white">{o.productName}</td>
+                      <td className="p-6 text-sm text-gray-400 font-medium">{o.customerEmail}</td>
+                      <td className="p-6 font-black text-green-400 tracking-tighter text-lg">${o.amount}</td>
+                      <td className="p-6 text-[10px] font-mono text-gray-500">{o.paypalOrderId || '---'}</td>
+                      <td className="p-6 text-[10px] text-gray-500 font-bold">
                         {o.createdAt?.toDate().toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' })}
                       </td>
-                    </tr>
+                    </motion.tr>
                   ))}
                 </tbody>
               </table>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Debug Logs - Collapsible at bottom */}
+      <div className="mt-20">
+        <details className="group bg-dark-light/20 rounded-[2rem] border border-white/5 overflow-hidden">
+          <summary className="p-6 cursor-pointer flex items-center justify-between list-none">
+            <div className="flex items-center gap-3">
+              <Activity size={18} className="text-primary" />
+              <span className="text-xs font-black text-gray-500 uppercase tracking-widest">سجل العمليات التقني (Debug Logs)</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <span className="text-[8px] text-primary/50">Bucket: {storage.app.options.storageBucket || 'غير محدد'}</span>
+              <Settings size={14} className="text-gray-600 group-open:rotate-90 transition-transform" />
+            </div>
+          </summary>
+          
+          <div className="p-8 pt-0 space-y-6">
+            <div className="bg-black/40 rounded-2xl p-6 font-mono text-[10px] text-gray-500 space-y-1 max-h-64 overflow-auto border border-white/5">
+              {debugLogs.length > 0 ? (
+                debugLogs.map((log, i) => (
+                  <div key={i} className="flex gap-3">
+                    <span className="text-primary/50 shrink-0">[{i}]</span>
+                    <span className="break-all">{log}</span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-center py-4 italic">لا توجد سجلات حالياً</p>
+              )}
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1 flex gap-2">
+                <input 
+                  type="text"
+                  placeholder="تغيير الـ Bucket (مثلاً: project.appspot.com)"
+                  value={customBucket}
+                  onChange={(e) => setCustomBucket(e.target.value)}
+                  className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-[10px] outline-none focus:border-primary text-white"
+                />
+                <button 
+                  onClick={testConnection}
+                  disabled={isTestingConnection}
+                  className="px-6 py-3 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl text-[10px] font-black transition-all disabled:opacity-50"
+                >
+                  {isTestingConnection ? 'جاري الفحص...' : 'فحص شامل'}
+                </button>
+              </div>
+              <button 
+                onClick={() => setDebugLogs([])}
+                className="px-6 py-3 bg-white/5 hover:bg-white/10 text-gray-500 border border-white/10 rounded-xl text-[10px] font-black transition-all"
+              >
+                مسح السجل
+              </button>
+            </div>
+            <p className="text-[9px] text-gray-600 text-center">
+              * ملاحظة: تغيير الـ Bucket يؤثر فقط على الجلسة الحالية لأغراض الاختبار.
+            </p>
+          </div>
+        </details>
       </div>
     </motion.div>
   );

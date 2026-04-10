@@ -3,7 +3,8 @@ import { useParams, Link } from 'react-router-dom';
 import { doc, getDoc, addDoc, collection, Timestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { motion } from 'motion/react';
-import { ArrowRight, ShieldCheck, Download, ExternalLink, CreditCard } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Download, ExternalLink, CreditCard, Sparkles } from 'lucide-react';
+import { convertDriveLink } from '../lib/utils';
 
 declare global {
   interface Window {
@@ -171,11 +172,12 @@ export default function ProductDetails() {
           العودة للمتجر
         </Link>
         
-        <div className="rounded-[2.5rem] overflow-hidden border border-white/5 shadow-2xl shadow-black/50 aspect-video bg-dark-light flex items-center justify-center">
+        <div className="rounded-[2.5rem] overflow-hidden border border-white/5 shadow-2xl shadow-black/50 aspect-video bg-dark-light flex items-center justify-center group relative">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10" />
           <img 
-            src={product.imageUrl} 
+            src={convertDriveLink(product.imageUrl)} 
             alt={product.name} 
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
             referrerPolicy="no-referrer"
             onError={(e) => {
               (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop';
@@ -193,8 +195,11 @@ export default function ProductDetails() {
 
         <div className="bg-dark-light p-8 rounded-3xl border border-white/5 space-y-6">
           <div className="flex justify-between items-center">
-            <span className="text-gray-500 font-bold">السعر</span>
-            <span className="text-4xl font-black text-gold">${product.price}</span>
+            <span className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">السعر الحالي</span>
+            <div className="relative">
+              <span className="text-4xl font-black text-gold tracking-tighter drop-shadow-[0_0_15px_rgba(255,215,0,0.3)]">${product.price}</span>
+              <Sparkles className="absolute -top-2 -right-4 text-gold/40 animate-pulse" size={14} />
+            </div>
           </div>
 
           <div className="flex items-center gap-3 text-green-400 bg-green-400/10 p-4 rounded-2xl border border-green-400/20">
