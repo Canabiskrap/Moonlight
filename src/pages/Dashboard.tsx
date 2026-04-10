@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, Timestamp } from 'firebase/firestore';
 import { ref, uploadBytesResumable, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage, auth, deleteFile } from '../lib/firebase';
+import { db, storage, auth, deleteFile, handleFirestoreError, OperationType } from '../lib/firebase';
 import { uploadToCloudinary } from '../lib/cloudinary';
 import { motion } from 'motion/react';
-import { Plus, Trash2, Package, DollarSign, Image as ImageIcon, Link as LinkIcon, FileText, Upload, CheckCircle2, Globe } from 'lucide-react';
+import { Plus, Trash2, Package, DollarSign, Image as ImageIcon, Link as LinkIcon, FileText, Upload, CheckCircle2, Globe, Search } from 'lucide-react';
 
 export default function Dashboard() {
   const [products, setProducts] = useState<any[]>([]);
@@ -13,6 +13,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   
   // Form State
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
@@ -32,20 +33,57 @@ export default function Dashboard() {
     const qProds = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
     const qOrders = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
 
-    const unsubProds = onSnapshot(qProds, (snapshot) => {
-      setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      setLoading(false);
-    });
+    const unsubProds = onSnapshot(qProds, 
+      (snapshot) => {
+        setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Products Snapshot Error:", error);
+        setErrorMessage("فشل تحميل المنتجات: " + error.message);
+        setLoading(false);
+      }
+    );
 
-    const unsubOrders = onSnapshot(qOrders, (snapshot) => {
-      setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
+    const unsubOrders = onSnapshot(qOrders, 
+      (snapshot) => {
+        setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      },
+      (error) => {
+        console.error("Orders Snapshot Error:", error);
+      }
+    );
 
     return () => {
       unsubProds();
       unsubOrders();
     };
   }, []);
+
+  const handleEdit = (product: any) => {
+    setEditingId(product.id);
+    setName(product.name);
+    setDescription(product.description);
+    setPrice(product.price.toString());
+    setCategory(product.category);
+    setImageUrl(product.imageUrl);
+    setDownloadUrl(product.downloadUrl);
+    setUploadMethod('link'); // Default to link when editing to avoid re-uploading unless needed
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const resetForm = () => {
+    setEditingId(null);
+    setName('');
+    setDescription('');
+    setPrice('');
+    setImageFile(null);
+    setProductFile(null);
+    setImageUrl('');
+    setDownloadUrl('');
+    setStatus('idle');
+    setUploadProgress(0);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,154 +95,190 @@ export default function Dashboard() {
     setUploadProgress(0);
 
     try {
-      // Check if user is logged in
       if (!auth.currentUser) {
         throw new Error("يجب تسجيل الدخول كمسؤول للقيام بهذه العملية.");
       }
 
-      setStatus('uploading');
-      setErrorMessage('');
-      setShowToast(false);
-      setUploadProgress(0);
+      // URL Validation helper
+      const isValidUrl = (url: string) => {
+        try {
+          new URL(url);
+          return true;
+        } catch {
+          return false;
+        }
+      };
 
-      let finalImageUrl = "";
-      let finalDownloadUrl = "";
+      let finalImageUrl = imageUrl;
+      let finalDownloadUrl = downloadUrl;
 
       if (uploadMethod === 'direct') {
-        if (!imageFile || !productFile) {
-          throw new Error("يرجى اختيار صورة الغلاف والملف الرقمي أولاً.");
-        }
-        try {
+        if (imageFile) {
           console.log("Starting image upload to Cloudinary...");
-          finalImageUrl = await uploadToCloudinary(imageFile, (progress) => {
-            // Image is 10% of total progress
-            setUploadProgress(Math.round(progress * 0.1));
-          });
-          console.log("Image uploaded to Cloudinary:", finalImageUrl);
-          
+          try {
+            finalImageUrl = await uploadToCloudinary(imageFile, (progress) => {
+              setUploadProgress(Math.round(progress * 0.1));
+            });
+            console.log("Image upload success:", finalImageUrl);
+          } catch (imgErr: any) {
+            console.error("Cloudinary Error:", imgErr);
+            throw new Error("فشل رفع الصورة: " + imgErr.message);
+          }
+        }
+        
+        if (productFile) {
           console.log("Starting product file upload to Firebase...");
           const fileRef = ref(storage, `products/files/${Date.now()}_${productFile.name}`);
           const fileUploadTask = uploadBytesResumable(fileRef, productFile);
           
-          finalDownloadUrl = await new Promise((resolve, reject) => {
-            fileUploadTask.on('state_changed', 
-              (snapshot) => {
-                const progress = 10 + ((snapshot.bytesTransferred / snapshot.totalBytes) * 90);
-                setUploadProgress(Math.round(progress));
-              },
-              (error) => {
-                console.error("File upload error:", error);
-                reject(new Error("فشل رفع الملف الرقمي: " + error.message));
-              },
-              async () => {
-                try {
-                  const url = await getDownloadURL(fileUploadTask.snapshot.ref);
-                  resolve(url);
-                } catch (err) {
-                  reject(err);
-                }
-              }
-            );
+          // Track progress
+          fileUploadTask.on('state_changed', (snapshot) => {
+            const progress = 10 + ((snapshot.bytesTransferred / snapshot.totalBytes) * 90);
+            setUploadProgress(Math.round(progress));
           });
-        } catch (storageErr: any) {
-          throw storageErr;
+
+          try {
+            await fileUploadTask;
+            finalDownloadUrl = await getDownloadURL(fileRef);
+            console.log("Product file upload success:", finalDownloadUrl);
+          } catch (uploadErr: any) {
+            console.error("Firebase Storage Error:", uploadErr);
+            throw new Error("فشل رفع الملف الرقمي: " + uploadErr.message);
+          }
         }
-      } else if (uploadMethod === 'link') {
-        if (!imageFile) {
-          throw new Error("يرجى اختيار صورة الغلاف أولاً.");
-        }
-        if (!downloadUrl) {
-          throw new Error("يرجى وضع رابط التحميل.");
-        }
-        try {
-          console.log("Starting image upload to Cloudinary for link method...");
+      } else {
+        // Validation for link method
+        if (imageFile) {
           finalImageUrl = await uploadToCloudinary(imageFile, (progress) => {
             setUploadProgress(Math.round(progress));
           });
-          console.log("Image uploaded to Cloudinary:", finalImageUrl);
-          finalDownloadUrl = downloadUrl;
-        } catch (storageErr: any) {
-          throw storageErr;
+        } else if (imageUrl && !isValidUrl(imageUrl)) {
+          // Try to fix common missing https://
+          if (imageUrl.includes('.') && !imageUrl.startsWith('http')) {
+            finalImageUrl = `https://${imageUrl}`;
+          } else {
+            throw new Error("رابط الصورة غير صالح. يجب أن يبدأ بـ http:// أو https://");
+          }
+        }
+
+        if (downloadUrl && !isValidUrl(downloadUrl)) {
+          if (downloadUrl.includes('.') && !downloadUrl.startsWith('http')) {
+            finalDownloadUrl = `https://${downloadUrl}`;
+          } else {
+            throw new Error("رابط التحميل غير صالح. يجب أن يبدأ بـ http:// أو https://");
+          }
         }
       }
 
       if (!finalImageUrl || !finalDownloadUrl) {
-        throw new Error("يرجى التأكد من رفع الملفات أو وضع الروابط");
+        throw new Error("يرجى التأكد من رفع الملفات أو وضع الروابط الصحيحة");
       }
 
-      console.log("Encrypting download URL...");
-      // Encrypt the downloadUrl via server API
-      let encryptedDownloadUrl = finalDownloadUrl;
-      try {
-        const encryptRes = await fetch('/api/encrypt', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: finalDownloadUrl })
-        });
-        if (encryptRes.ok) {
-          const data = await encryptRes.json();
-          encryptedDownloadUrl = data.encryptedUrl;
-          console.log("Encryption successful.");
-        } else {
-          console.error("Failed to encrypt URL, saving as plain text");
-        }
-      } catch (err) {
-        console.error("Encryption API error:", err);
+      const numericPrice = parseFloat(price);
+      if (isNaN(numericPrice)) {
+        throw new Error("يرجى إدخال سعر صحيح");
       }
 
-      console.log("Saving product to Firestore...");
-      await addDoc(collection(db, 'products'), {
+      const productData = {
         name,
         description,
-        price: parseFloat(price),
+        price: numericPrice,
         imageUrl: finalImageUrl,
-        downloadUrl: encryptedDownloadUrl,
+        downloadUrl: finalDownloadUrl,
         category,
-        createdAt: Timestamp.now()
-      });
-      console.log("Product saved successfully!");
+        updatedAt: Timestamp.now()
+      };
+
+      try {
+        if (editingId) {
+          await updateDoc(doc(db, 'products', editingId), productData);
+        } else {
+          await addDoc(collection(db, 'products'), {
+            ...productData,
+            createdAt: Timestamp.now()
+          });
+        }
+      } catch (firestoreErr) {
+        console.error("Firestore Save Error:", firestoreErr);
+        handleFirestoreError(firestoreErr, editingId ? OperationType.UPDATE : OperationType.CREATE, 'products');
+      }
       
       setStatus('success');
       setShowToast(true);
+      resetForm();
       
-      // Reset form fields
-      setName('');
-      setDescription('');
-      setPrice('');
-      setImageFile(null);
-      setProductFile(null);
-      setImageUrl('');
-      setDownloadUrl('');
-      
-      // Reset status after a few seconds
       setTimeout(() => {
         setStatus('idle');
-        setUploadProgress(0);
         setShowToast(false);
       }, 3000);
       
     } catch (err: any) {
-      console.error(err);
+      console.error("Submit Error:", err);
       setStatus('error');
-      setErrorMessage(err.message || "فشل إضافة المنتج");
+      // If the error is a JSON string from handleFirestoreError, try to parse it
+      try {
+        const parsed = JSON.parse(err.message);
+        setErrorMessage(`خطأ: ${parsed.error}`);
+      } catch {
+        setErrorMessage(err.message || "فشل حفظ المنتج");
+      }
+    } finally {
+      // Ensure we don't stay in uploading state if something unexpected happens
+      // but only if we didn't succeed (success sets it to success then idle)
+      if (status === 'uploading') {
+        // We don't set to idle immediately if it's success/error to let the UI show the result
+      }
     }
   };
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredProductsList = products.filter(p => 
+    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.description.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleDelete = async (id: string, imageUrl: string, downloadUrl: string) => {
+    console.log("Attempting to delete product:", id);
     try {
-      // First delete the document
-      await deleteDoc(doc(db, 'products', id));
+      setDeletingId(id);
       
-      // Then attempt to delete associated files if they are in Firebase Storage
-      if (imageUrl) await deleteFile(imageUrl);
-      if (downloadUrl) await deleteFile(downloadUrl);
+      // 1. Delete from Firestore first - this is the most important part
+      console.log("Deleting Firestore document...");
+      try {
+        await deleteDoc(doc(db, 'products', id));
+        console.log("Firestore document deleted successfully");
+      } catch (firestoreErr) {
+        console.error("Firestore Delete Error:", firestoreErr);
+        handleFirestoreError(firestoreErr, OperationType.DELETE, `products/${id}`);
+      }
+      
+      // 2. Delete files (don't let file deletion failure block the process)
+      if (imageUrl && imageUrl.includes('cloudinary')) {
+        console.log("Image is on Cloudinary, skipping storage delete...");
+      } else if (imageUrl) {
+        console.log("Deleting image from Storage...");
+        await deleteFile(imageUrl).catch(e => console.warn("Image delete failed:", e));
+      }
+
+      if (downloadUrl) {
+        console.log("Deleting product file from Storage...");
+        await deleteFile(downloadUrl).catch(e => console.warn("File delete failed:", e));
+      }
       
       setDeletingId(null);
-    } catch (err) {
-      console.error(err);
-      setErrorMessage("حدث خطأ أثناء الحذف");
+      setErrorMessage('');
+      console.log("Delete process finished");
+    } catch (err: any) {
+      console.error("Overall Delete Error:", err);
+      setDeletingId(null);
+      try {
+        const parsed = JSON.parse(err.message);
+        setErrorMessage(`خطأ في الحذف: ${parsed.error}`);
+      } catch {
+        setErrorMessage(err.message || "حدث خطأ أثناء الحذف. تأكد من صلاحياتك.");
+      }
     }
   };
 
@@ -214,19 +288,19 @@ export default function Dashboard() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-10"
+      className="space-y-10 pb-32"
     >
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="flex flex-col">
           <h1 className="text-4xl font-black">لوحة التحكم</h1>
-          <span className="text-[10px] text-gray-600 mt-1">Cloudinary System Active v2</span>
+          <span className="text-[10px] text-gray-600 mt-1 uppercase tracking-widest">Cloudinary & Firebase Integrated System</span>
         </div>
-        <div className="flex gap-4">
-          <div className="bg-dark-light px-6 py-3 rounded-2xl border border-white/5 text-center">
+        <div className="flex gap-4 w-full md:w-auto">
+          <div className="flex-1 md:flex-none bg-dark-light px-6 py-3 rounded-2xl border border-white/5 text-center">
             <p className="text-xs text-gray-500">إجمالي المبيعات</p>
             <p className="text-xl font-black text-gold">${totalRevenue.toFixed(2)}</p>
           </div>
-          <div className="bg-dark-light px-6 py-3 rounded-2xl border border-white/5 text-center">
+          <div className="flex-1 md:flex-none bg-dark-light px-6 py-3 rounded-2xl border border-white/5 text-center">
             <p className="text-xs text-gray-500">عدد الطلبات</p>
             <p className="text-xl font-black text-primary">{orders.length}</p>
           </div>
@@ -234,13 +308,23 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        {/* Add Product Form */}
+        {/* Add/Edit Product Form */}
         <div className="lg:col-span-1">
           <div className="bg-dark-light p-8 rounded-[2rem] border border-white/5 sticky top-24">
-            <h2 className="text-2xl font-black mb-6 flex items-center gap-2">
-              <Plus className="text-primary" />
-              إضافة منتج جديد
-            </h2>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-black flex items-center gap-2">
+                {editingId ? <CheckCircle2 className="text-gold" /> : <Plus className="text-primary" />}
+                {editingId ? 'تعديل المنتج' : 'إضافة منتج جديد'}
+              </h2>
+              {editingId && (
+                <button 
+                  onClick={resetForm}
+                  className="text-xs font-bold text-gray-500 hover:text-white underline"
+                >
+                  إلغاء التعديل
+                </button>
+              )}
+            </div>
             
             <form onSubmit={handleSubmit} className="space-y-4">
               {errorMessage && (
@@ -251,7 +335,7 @@ export default function Dashboard() {
               {showToast && (
                 <div className="bg-green-500/10 border border-green-500/20 text-green-500 p-4 rounded-xl text-sm font-bold flex items-center gap-2">
                   <CheckCircle2 className="w-5 h-5" />
-                  تم إضافة المنتج بنجاح! سيتم تحويلك للمتجر...
+                  تم {editingId ? 'تحديث' : 'إضافة'} المنتج بنجاح!
                 </div>
               )}
               
@@ -261,7 +345,7 @@ export default function Dashboard() {
                   type="text" 
                   value={name} 
                   onChange={(e) => setName(e.target.value)}
-                  className="bg-dark border-white/5 focus:border-primary outline-none transition-all"
+                  className="bg-dark border-white/5 focus:border-primary outline-none transition-all w-full p-4 rounded-2xl"
                   required
                 />
               </div>
@@ -271,7 +355,7 @@ export default function Dashboard() {
                 <select 
                   value={category} 
                   onChange={(e) => setCategory(e.target.value)}
-                  className="bg-dark border-white/5 focus:border-primary outline-none transition-all"
+                  className="bg-dark border-white/5 focus:border-primary outline-none transition-all w-full p-4 rounded-2xl appearance-none"
                 >
                   <option value="cv">سيرة ذاتية</option>
                   <option value="social">سوشيال ميديا</option>
@@ -298,21 +382,21 @@ export default function Dashboard() {
                   onClick={() => setUploadMethod('direct')}
                   className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all ${uploadMethod === 'direct' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-gray-500 hover:text-white'}`}
                 >
-                  رفع مباشر
+                  رفع ملفات
                 </button>
                 <button 
                   type="button"
                   onClick={() => setUploadMethod('link')}
                   className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all ${uploadMethod === 'link' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-gray-500 hover:text-white'}`}
                 >
-                  استخدام روابط
+                  روابط خارجية
                 </button>
               </div>
 
               {uploadMethod === 'direct' ? (
                 <div className="grid grid-cols-1 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-gray-400">1. صورة الغلاف (تظهر للزوار)</label>
+                    <label className="text-sm font-bold text-gray-400">1. صورة الغلاف</label>
                     <div className="relative group">
                       <input 
                         type="file" 
@@ -330,6 +414,11 @@ export default function Dashboard() {
                             <CheckCircle2 size={24} />
                             <span className="break-all">{imageFile.name}</span>
                           </div>
+                        ) : imageUrl ? (
+                          <div className="flex flex-col items-center gap-2 text-primary font-bold text-xs p-4 text-center">
+                            <ImageIcon size={24} />
+                            <span>صورة موجودة مسبقاً</span>
+                          </div>
                         ) : (
                           <>
                             <Upload className="text-gray-500 mb-2" size={24} />
@@ -341,7 +430,7 @@ export default function Dashboard() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-gray-400">2. الملف الرقمي (الذي سيتم بيعه)</label>
+                    <label className="text-sm font-bold text-gray-400">2. الملف الرقمي</label>
                     <div className="relative group">
                       <input 
                         type="file" 
@@ -359,6 +448,11 @@ export default function Dashboard() {
                             <CheckCircle2 size={24} />
                             <span className="break-all">{productFile.name}</span>
                           </div>
+                        ) : downloadUrl ? (
+                          <div className="flex flex-col items-center gap-2 text-gold font-bold text-xs p-4 text-center">
+                            <LinkIcon size={24} />
+                            <span>ملف موجود مسبقاً</span>
+                          </div>
                         ) : (
                           <>
                             <Upload className="text-gray-500 mb-2" size={24} />
@@ -372,36 +466,18 @@ export default function Dashboard() {
               ) : (
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-gray-400">1. صورة الغلاف (تظهر للزوار)</label>
-                    <div className="relative group">
-                      <input 
-                        type="file" 
-                        accept="image/*"
-                        onChange={(e) => setImageFile(e.target.files?.[0] || null)}
-                        className="hidden"
-                        id="image-upload-link"
-                      />
-                      <label 
-                        htmlFor="image-upload-link"
-                        className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all"
-                      >
-                        {imageFile ? (
-                          <div className="flex flex-col items-center gap-2 text-primary font-bold text-xs p-4 text-center">
-                            <CheckCircle2 size={24} />
-                            <span className="break-all">{imageFile.name}</span>
-                          </div>
-                        ) : (
-                          <>
-                            <Upload className="text-gray-500 mb-2" size={24} />
-                            <span className="text-xs text-gray-500">اختر صورة المعرض</span>
-                          </>
-                        )}
-                      </label>
-                    </div>
+                    <label className="text-sm font-bold text-gray-400">رابط صورة الغلاف</label>
+                    <input 
+                      type="url" 
+                      value={imageUrl} 
+                      onChange={(e) => setImageUrl(e.target.value)}
+                      placeholder="https://..."
+                      className="bg-dark border-white/5 focus:border-primary outline-none transition-all w-full p-4 rounded-2xl"
+                    />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-gray-400">2. رابط تحميل الملف</label>
+                    <label className="text-sm font-bold text-gray-400">رابط تحميل الملف</label>
                     <input 
                       type="url" 
                       value={downloadUrl} 
@@ -440,13 +516,6 @@ export default function Dashboard() {
                     </div>
                   </div>
                 )}
-
-                {errorMessage && (
-                  <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-2xl text-sm font-bold flex items-center gap-2">
-                    <span className="flex-shrink-0">⚠️</span>
-                    <span>{errorMessage}</span>
-                  </div>
-                )}
                 
                 <button 
                   type="submit" 
@@ -461,20 +530,16 @@ export default function Dashboard() {
                     <span className="relative z-10 flex items-center justify-center gap-2">
                       <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
                       {uploadProgress > 0 
-                        ? `جاري الرفع... ${Math.round(uploadProgress)}%` 
-                        : "جاري تحضير الملفات للرفع..."}
+                        ? `جاري الحفظ... ${Math.round(uploadProgress)}%` 
+                        : "جاري التحضير..."}
                     </span>
                   ) : status === 'success' ? (
                     <span className="relative z-10 flex items-center justify-center gap-2">
                       <CheckCircle2 className="w-5 h-5" />
-                      تم الرفع بنجاح
-                    </span>
-                  ) : status === 'error' ? (
-                    <span className="relative z-10 flex items-center justify-center gap-2">
-                      فشل الرفع، حاول مجدداً
+                      تم بنجاح
                     </span>
                   ) : (
-                    "نشر المنتج الآن"
+                    editingId ? "تحديث المنتج" : "نشر المنتج الآن"
                   )}
                 </button>
               </div>
@@ -486,11 +551,21 @@ export default function Dashboard() {
         <div className="lg:col-span-2 space-y-10">
           {/* Products Table */}
           <div className="bg-dark-light rounded-[2rem] border border-white/5 overflow-hidden">
-            <div className="p-8 border-b border-white/5">
+            <div className="p-8 border-b border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
               <h2 className="text-2xl font-black flex items-center gap-2">
                 <Package className="text-gold" />
                 المنتجات الحالية ({products.length})
               </h2>
+              <div className="relative w-full md:w-64">
+                <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+                <input 
+                  type="text"
+                  placeholder="بحث عن منتج..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full bg-dark border-white/5 focus:border-primary outline-none p-3 pr-12 rounded-xl text-sm"
+                />
+              </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-right">
@@ -503,31 +578,53 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {products.map((p) => (
-                    <tr key={p.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                  {filteredProductsList.map((p) => (
+                    <tr key={p.id} className={`border-b border-white/5 hover:bg-white/5 transition-colors ${editingId === p.id ? 'bg-primary/5 border-primary/20' : ''}`}>
                       <td className="p-4">
                         <div className="flex items-center gap-3">
                           <img src={p.imageUrl} className="w-10 h-10 rounded-lg object-cover" referrerPolicy="no-referrer" />
                           <span className="font-bold">{p.name}</span>
                         </div>
                       </td>
-                      <td className="p-4 text-sm text-gray-400">{p.category}</td>
+                      <td className="p-4 text-sm text-gray-400">
+                        {p.category === 'cv' ? 'سيرة ذاتية' : p.category === 'social' ? 'سوشيال ميديا' : 'قالب ويب'}
+                      </td>
                       <td className="p-4 font-black text-gold">${p.price}</td>
                       <td className="p-4">
-                        {deletingId === p.id ? (
-                          <div className="flex items-center gap-2 justify-end flex-wrap min-w-[120px]">
-                            <span className="text-xs text-gray-400 w-full text-right mb-1">تأكيد؟</span>
-                            <button onClick={() => handleDelete(p.id, p.imageUrl, p.downloadUrl)} className="bg-red-500/20 text-red-400 hover:bg-red-500/30 px-3 py-1.5 rounded-lg font-bold text-xs transition-colors">نعم</button>
-                            <button onClick={() => setDeletingId(null)} className="bg-white/10 text-gray-300 hover:bg-white/20 px-3 py-1.5 rounded-lg font-bold text-xs transition-colors">لا</button>
-                          </div>
-                        ) : (
+                        <div className="flex items-center gap-2 justify-end">
                           <button 
-                            onClick={() => setDeletingId(p.id)}
-                            className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                            onClick={() => handleEdit(p)}
+                            className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                            title="تعديل"
                           >
-                            <Trash2 size={18} />
+                            <FileText size={18} />
                           </button>
-                        )}
+                          {deletingId === p.id ? (
+                            <div className="flex items-center gap-2 bg-red-500/10 p-1 rounded-lg border border-red-500/20">
+                              <span className="text-[10px] font-bold text-red-500 px-2">متأكد؟</span>
+                              <button 
+                                onClick={() => handleDelete(p.id, p.imageUrl, p.downloadUrl)} 
+                                className="bg-red-500 text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-red-600 transition-colors"
+                              >
+                                نعم
+                              </button>
+                              <button 
+                                onClick={() => setDeletingId(null)} 
+                                className="bg-white/10 text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-white/20 transition-colors"
+                              >
+                                لا
+                              </button>
+                            </div>
+                          ) : (
+                            <button 
+                              onClick={() => setDeletingId(p.id)}
+                              className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                              title="حذف"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -551,17 +648,19 @@ export default function Dashboard() {
                     <th className="p-4">المنتج</th>
                     <th className="p-4">العميل</th>
                     <th className="p-4">المبلغ</th>
+                    <th className="p-4">رقم الطلب (PayPal)</th>
                     <th className="p-4">التاريخ</th>
                   </tr>
                 </thead>
                 <tbody>
                   {orders.map((o) => (
-                    <tr key={o.id} className="border-b border-white/5">
+                    <tr key={o.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                       <td className="p-4 font-bold">{o.productName}</td>
                       <td className="p-4 text-sm text-gray-400">{o.customerEmail}</td>
                       <td className="p-4 font-black text-green-400">${o.amount}</td>
+                      <td className="p-4 text-xs font-mono text-gray-500">{o.paypalOrderId || '---'}</td>
                       <td className="p-4 text-xs text-gray-500">
-                        {o.createdAt?.toDate().toLocaleDateString('ar-EG')}
+                        {o.createdAt?.toDate().toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' })}
                       </td>
                     </tr>
                   ))}

@@ -8,6 +8,7 @@ import { Link } from 'react-router-dom';
 export default function Home() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState('all');
 
   useEffect(() => {
     const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
@@ -22,6 +23,18 @@ export default function Home() {
 
     return () => unsubscribe();
   }, []);
+
+  const filteredProducts = selectedCategory === 'all' 
+    ? products 
+    : products.filter(p => p.category === selectedCategory);
+
+  const categories = [
+    { id: 'all', name: 'الكل' },
+    { id: 'cv', name: 'سيرة ذاتية' },
+    { id: 'social', name: 'سوشيال ميديا' },
+    { id: 'web', name: 'قوالب ويب' },
+    { id: 'other', name: 'أخرى' }
+  ];
 
   return (
     <motion.div
@@ -108,55 +121,28 @@ export default function Home() {
         </motion.div>
       </section>
 
-      {/* Features Section */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
-        {[
-          { title: "جودة عالمية", desc: "تصاميم عصرية تتماشى مع أحدث التوجهات العالمية", icon: Sparkles, color: "text-gold" },
-          { title: "دعم فني", desc: "فريقنا متواجد دائماً لمساعدتك في أي استفسار", icon: MessageCircle, color: "text-green-400" },
-          { title: "تنوع فريد", desc: "تشكيلة واسعة من القوالب التي تغطي كافة احتياجاتك", icon: ShoppingBag, color: "text-primary" }
-        ].map((feature, i) => (
-          <div key={i} className="p-8 bg-white/5 backdrop-blur-xl rounded-[2rem] border border-white/10 hover:border-white/20 hover:bg-white/10 transition-all duration-500 group relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-white/10 transition-colors" />
-            <feature.icon className={`${feature.color} mb-6 group-hover:scale-110 transition-transform duration-500`} size={36} />
-            <h3 className="text-xl font-black mb-3 text-white">{feature.title}</h3>
-            <p className="text-gray-400 text-sm leading-relaxed font-medium">{feature.desc}</p>
-          </div>
-        ))}
-      </section>
-
-      {/* How it Works Section */}
-      <section className="py-12 relative z-10">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-5xl font-black mb-4">كيف نعمل؟</h2>
-          <p className="text-gray-400 font-medium">خطوات بسيطة للحصول على تصميمك الاحترافي</p>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-          {/* Connecting Line */}
-          <div className="hidden md:block absolute top-1/2 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-y-1/2 z-0" />
-          
-          {[
-            { step: "01", title: "اختر الخدمة", desc: "تصفح خدماتنا واختر ما يناسب مشروعك وادفع بأمان." },
-            { step: "02", title: "نتواصل معك", desc: "سنتواصل معك فوراً لفهم تفاصيل ورؤية مشروعك." },
-            { step: "03", title: "استلم تصميمك", desc: "احصل على تصميمك النهائي بأعلى جودة وفي وقت قياسي." }
-          ].map((item, i) => (
-            <div key={i} className="relative z-10 flex flex-col items-center text-center group">
-              <div className="w-20 h-20 rounded-full bg-dark border-2 border-primary/30 flex items-center justify-center text-2xl font-black text-primary mb-6 shadow-[0_0_30px_rgba(139,92,246,0.2)] group-hover:scale-110 group-hover:border-primary transition-all duration-500">
-                {item.step}
-              </div>
-              <h3 className="text-xl font-black mb-3 text-white">{item.title}</h3>
-              <p className="text-gray-400 text-sm leading-relaxed max-w-[250px]">{item.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* Products Grid */}
-      <section id="products" className="space-y-8">
-        <div className="flex justify-between items-end">
-          <div>
-            <h2 className="text-3xl font-black">أحدث المنتجات</h2>
+      <section id="products" className="space-y-12">
+        <div className="flex flex-col md:flex-row justify-between items-center gap-8">
+          <div className="text-center md:text-right">
+            <h2 className="text-4xl font-black">معرض المنتجات</h2>
             <p className="text-gray-500">تصفح مجموعتنا المختارة من القوالب الرقمية</p>
+          </div>
+          
+          <div className="flex flex-wrap justify-center gap-3 bg-white/5 p-2 rounded-2xl border border-white/5 backdrop-blur-md">
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
+                  selectedCategory === cat.id 
+                    ? 'bg-primary text-white shadow-lg shadow-primary/20' 
+                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                {cat.name}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -166,7 +152,7 @@ export default function Home() {
               <div key={i} className="bg-dark-light h-[400px] rounded-3xl animate-pulse border border-white/5" />
             ))}
           </div>
-        ) : products.length === 0 ? (
+        ) : filteredProducts.length === 0 ? (
           <div className="text-center py-24 bg-dark-light/50 rounded-[3rem] border border-white/5 backdrop-blur-sm relative overflow-hidden group">
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-primary/10 rounded-full blur-3xl -mt-32 group-hover:bg-primary/20 transition-colors duration-700" />
             <div className="relative z-10 flex flex-col items-center space-y-6">
@@ -183,9 +169,12 @@ export default function Home() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
-            {products.map((product) => (
+            {filteredProducts.map((product) => (
               <motion.div
                 key={product.id}
+                layout
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
                 whileHover={{ y: -10 }}
                 className="bg-white/5 backdrop-blur-xl rounded-[2rem] overflow-hidden border border-white/10 hover:border-primary/50 transition-all duration-500 group shadow-2xl hover:shadow-[0_20px_40px_-15px_rgba(139,92,246,0.3)] relative"
               >
@@ -203,7 +192,7 @@ export default function Home() {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-dark/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                   <div className="absolute top-4 right-4 bg-dark/80 backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-black text-gold border border-gold/20 shadow-lg">
-                    {product.category === 'cv' ? 'سيرة ذاتية' : product.category === 'social' ? 'سوشيال ميديا' : 'قالب ويب'}
+                    {product.category === 'cv' ? 'سيرة ذاتية' : product.category === 'social' ? 'سوشيال ميديا' : product.category === 'web' ? 'قالب ويب' : 'أخرى'}
                   </div>
                 </div>
                 
