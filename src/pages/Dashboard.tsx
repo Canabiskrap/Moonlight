@@ -73,19 +73,20 @@ export default function Dashboard() {
             imageUploadTask.on('state_changed', 
               (snapshot) => {
                 const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 10;
-                setUploadProgress(progress);
+                setUploadProgress(Math.round(progress));
               },
               (error) => {
                 console.error("Image upload error:", error);
                 reject(error);
               },
-              () => {
-                getDownloadURL(imageUploadTask.snapshot.ref)
-                  .then(resolve)
-                  .catch((err) => {
-                    console.error("Error getting image URL:", err);
-                    reject(err);
-                  });
+              async () => {
+                try {
+                  const url = await getDownloadURL(imageUploadTask.snapshot.ref);
+                  resolve(url);
+                } catch (err) {
+                  console.error("Error getting image URL:", err);
+                  reject(err);
+                }
               }
             );
           });
@@ -99,19 +100,20 @@ export default function Dashboard() {
             fileUploadTask.on('state_changed', 
               (snapshot) => {
                 const progress = 10 + ((snapshot.bytesTransferred / snapshot.totalBytes) * 90);
-                setUploadProgress(progress);
+                setUploadProgress(Math.round(progress));
               },
               (error) => {
                 console.error("File upload error:", error);
                 reject(error);
               },
-              () => {
-                getDownloadURL(fileUploadTask.snapshot.ref)
-                  .then(resolve)
-                  .catch((err) => {
-                    console.error("Error getting file URL:", err);
-                    reject(err);
-                  });
+              async () => {
+                try {
+                  const url = await getDownloadURL(fileUploadTask.snapshot.ref);
+                  resolve(url);
+                } catch (err) {
+                  console.error("Error getting file URL:", err);
+                  reject(err);
+                }
               }
             );
           });
