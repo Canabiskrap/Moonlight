@@ -122,6 +122,45 @@ export default function Dashboard() {
           console.error("Storage Error:", storageErr);
           throw new Error("فشل رفع الملفات. يرجى التأكد من تفعيل Firebase Storage في إعدادات مشروعك وإضافة صلاحيات (Rules) تسمح بالرفع.");
         }
+      } else if (uploadMethod === 'link') {
+        if (!imageFile) {
+          throw new Error("يرجى اختيار صورة الغلاف أولاً.");
+        }
+        if (!downloadUrl) {
+          throw new Error("يرجى وضع رابط التحميل.");
+        }
+        try {
+          console.log("Starting image upload for link method...");
+          const imageRef = ref(storage, `products/images/${Date.now()}_${imageFile.name}`);
+          const imageUploadTask = uploadBytesResumable(imageRef, imageFile);
+          
+          finalImageUrl = await new Promise((resolve, reject) => {
+            imageUploadTask.on('state_changed', 
+              (snapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                setUploadProgress(Math.round(progress));
+              },
+              (error) => {
+                console.error("Image upload error:", error);
+                reject(error);
+              },
+              async () => {
+                try {
+                  const url = await getDownloadURL(imageUploadTask.snapshot.ref);
+                  resolve(url);
+                } catch (err) {
+                  console.error("Error getting image URL:", err);
+                  reject(err);
+                }
+              }
+            );
+          });
+          console.log("Image upload successful:", finalImageUrl);
+          finalDownloadUrl = downloadUrl;
+        } catch (storageErr: any) {
+          console.error("Storage Error:", storageErr);
+          throw new Error("فشل رفع الصورة. يرجى المحاولة مرة أخرى.");
+        }
       }
 
       if (!finalImageUrl || !finalDownloadUrl) {
@@ -354,24 +393,43 @@ export default function Dashboard() {
               ) : (
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-gray-400">رابط صورة الغلاف</label>
-                    <input 
-                      type="url" 
-                      value={imageUrl} 
-                      onChange={(e) => setImageUrl(e.target.value)}
-                      placeholder="https://..."
-                      className="bg-dark border-white/5 focus:border-primary outline-none transition-all w-full p-4 rounded-2xl"
-                    />
+                    <label className="text-sm font-bold text-gray-400">1. صورة الغلاف (تظهر للزوار)</label>
+                    <div className="relative group">
+                      <input 
+                        type="file" 
+                        accept="image/*"
+                        onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                        className="hidden"
+                        id="image-upload-link"
+                      />
+                      <label 
+                        htmlFor="image-upload-link"
+                        className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all"
+                      >
+                        {imageFile ? (
+                          <div className="flex flex-col items-center gap-2 text-primary font-bold text-xs p-4 text-center">
+                            <CheckCircle2 size={24} />
+                            <span className="break-all">{imageFile.name}</span>
+                          </div>
+                        ) : (
+                          <>
+                            <Upload className="text-gray-500 mb-2" size={24} />
+                            <span className="text-xs text-gray-500">اختر صورة المعرض</span>
+                          </>
+                        )}
+                      </label>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-gray-400">رابط تحميل الملف</label>
+                    <label className="text-sm font-bold text-gray-400">2. رابط تحميل الملف</label>
                     <input 
                       type="url" 
                       value={downloadUrl} 
                       onChange={(e) => setDownloadUrl(e.target.value)}
                       placeholder="https://..."
                       className="bg-dark border-white/5 focus:border-primary outline-none transition-all w-full p-4 rounded-2xl"
+                      required={uploadMethod === 'link'}
                     />
                   </div>
                 </div>
