@@ -2,19 +2,10 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, signOut, setPersistence, browserLocalPersistence, getRedirectResult } from 'firebase/auth';
 import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, onSnapshot, orderBy, Timestamp } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
-
-const firebaseConfig = {
-  apiKey: "AIzaSyDhlzA_YrixUXD6deyLX-_u0ksLS_97DgM",
-  authDomain: "monnlight-store.firebaseapp.com",
-  projectId: "monnlight-store",
-  storageBucket: "monnlight-store.firebasestorage.app",
-  messagingSenderId: "1069132651620",
-  appId: "1:1069132651620:web:1608b1d3264ca750f01371",
-  measurementId: "G-PYQZRV8603"
-};
+import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+export const db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId);
 export const auth = getAuth(app);
 
 // Set persistence to local to ensure session survives redirects and refreshes
@@ -29,17 +20,9 @@ googleProvider.setCustomParameters({ prompt: 'select_account' });
 export const loginWithGoogle = async () => {
   try {
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    const isVercel = window.location.hostname.includes('vercel.app');
     
-    // On mobile and production, redirect is often the only way that works
-    // but it requires third-party cookies.
-    if (isMobile && isVercel) {
-      console.log("Mobile/Production detected: using redirect");
-      await signInWithRedirect(auth, googleProvider);
-      return null;
-    }
-
-    // Default to popup for better UX where supported
+    // Use popup by default as it was working before
+    // Only fallback to redirect if popup fails
     const result = await signInWithPopup(auth, googleProvider);
     return result.user;
   } catch (error: any) {
