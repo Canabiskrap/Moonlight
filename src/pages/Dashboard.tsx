@@ -28,11 +28,34 @@ export default function Dashboard() {
   const [showToast, setShowToast] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [debugLogs, setDebugLogs] = useState<string[]>([]);
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
   const navigate = useNavigate();
 
   const addLog = (msg: string) => {
     console.log(`[Dashboard] ${msg}`);
-    setDebugLogs(prev => [msg, ...prev].slice(0, 5));
+    const time = new Date().toLocaleTimeString();
+    setDebugLogs(prev => [`[${time}] ${msg}`, ...prev].slice(0, 10));
+  };
+
+  const testConnection = async () => {
+    setIsTestingConnection(true);
+    addLog("بدء اختبار الاتصال...");
+    try {
+      const testRef = doc(db, 'test_connection', 'status');
+      await setDoc(testRef, { 
+        lastTest: Timestamp.now(),
+        user: auth.currentUser?.email,
+        status: 'ok'
+      });
+      addLog("✅ تم الاتصال بقاعدة البيانات بنجاح!");
+      alert("تم الاتصال بنجاح! قاعدة البيانات تعمل.");
+    } catch (err: any) {
+      addLog(`❌ فشل الاتصال: ${err.message}`);
+      console.error("Connection Test Error:", err);
+      alert(`فشل الاتصال: ${err.message}`);
+    } finally {
+      setIsTestingConnection(false);
+    }
   };
 
   useEffect(() => {
@@ -72,8 +95,9 @@ export default function Dashboard() {
   }, []);
 
   const isAdminUser = currentUser && 
-    currentUser.emailVerified && 
     ["canabiskrap07@gmail.com", "esraa0badr@gmail.com"].includes(currentUser.email?.toLowerCase() || "");
+
+  const isEmailVerified = currentUser?.emailVerified;
 
   const handleEdit = (product: any) => {
     setEditingId(product.id);
@@ -116,7 +140,11 @@ export default function Dashboard() {
       }
 
       if (!isAdminUser) {
-        throw new Error(`حسابك (${currentUser?.email}) ليس لديه صلاحيات المسؤول. تأكد من تأكيد البريد الإلكتروني.`);
+        throw new Error(`حسابك (${currentUser?.email}) ليس لديه صلاحيات المسؤول.`);
+      }
+
+      if (!isEmailVerified) {
+        throw new Error("يرجى تأكيد بريدك الإلكتروني في جوجل لتتمكن من النشر.");
       }
 
       // URL Validation helper
@@ -376,25 +404,47 @@ export default function Dashboard() {
             </div>
 
             {/* Admin Debug Info */}
-            {!isAdminUser && currentUser && (
-              <div className="mb-6 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl text-xs text-yellow-500">
+            {currentUser && !isAdminUser && (
+              <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-500">
                 <p className="font-bold mb-1">تنبيه الصلاحيات:</p>
                 <p>أنت مسجل دخول بـ: {currentUser.email}</p>
-                <p>حالة التأكيد: {currentUser.emailVerified ? 'مؤكد ✅' : 'غير مؤكد ❌'}</p>
-                <p className="mt-2">يجب أن يكون البريد مؤكداً وموجوداً في قائمة المسؤولين.</p>
+                <p className="mt-2 font-bold">هذا الحساب ليس مسجلاً كمسؤول. يرجى تسجيل الدخول بالحساب الصحيح.</p>
+              </div>
+            )}
+
+            {currentUser && isAdminUser && !isEmailVerified && (
+              <div className="mb-6 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl text-xs text-yellow-500">
+                <p className="font-bold mb-1">تأكيد البريد:</p>
+                <p>بريدك {currentUser.email} غير مؤكد.</p>
+                <p className="mt-2">يرجى تأكيد بريدك في إعدادات جوجل لتتمكن من النشر.</p>
               </div>
             )}
             
             {/* Debug Logs */}
             {debugLogs.length > 0 && (
               <div className="mb-6 p-4 bg-black/50 border border-white/5 rounded-xl font-mono text-[10px] text-gray-400">
-                <p className="text-gray-500 mb-2 uppercase tracking-widest">سجل العمليات (Debug):</p>
+                <div className="flex justify-between items-center mb-2">
+                  <p className="text-gray-500 uppercase tracking-widest">سجل العمليات (Debug):</p>
+                  <button 
+                    onClick={() => setDebugLogs([])}
+                    className="text-[8px] hover:text-white underline"
+                  >
+                    مسح السجل
+                  </button>
+                </div>
                 {debugLogs.map((log, i) => (
                   <div key={i} className="mb-1">
                     <span className="text-primary mr-2">›</span>
                     {log}
                   </div>
                 ))}
+                <button 
+                  onClick={testConnection}
+                  disabled={isTestingConnection}
+                  className="mt-4 w-full py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[10px] font-bold transition-all disabled:opacity-50"
+                >
+                  {isTestingConnection ? 'جاري الاختبار...' : 'اختبار الاتصال بقاعدة البيانات'}
+                </button>
               </div>
             )}
 
@@ -591,17 +641,26 @@ export default function Dashboard() {
 
               <div className="space-y-4">
                 {status === 'uploading' && (
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-xs font-bold text-gray-400">
-                      <span>حالة الرفع</span>
-                      <span>{uploadProgress}%</span>
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-xs font-bold text-gray-400">
+                        <span>حالة الرفع</span>
+                        <span>{uploadProgress}%</span>
+                      </div>
+                      <div className="w-full bg-dark rounded-full h-4 overflow-hidden border border-white/10">
+                        <div 
+                          className="bg-primary h-4 rounded-full transition-all duration-300" 
+                          style={{ width: `${Math.max(uploadProgress, 2)}%` }}
+                        ></div>
+                      </div>
                     </div>
-                    <div className="w-full bg-dark rounded-full h-4 overflow-hidden border border-white/10">
-                      <div 
-                        className="bg-primary h-4 rounded-full transition-all duration-300" 
-                        style={{ width: `${Math.max(uploadProgress, 2)}%` }}
-                      ></div>
-                    </div>
+                    <button 
+                      type="button"
+                      onClick={() => setStatus('idle')}
+                      className="w-full py-2 text-[10px] text-gray-500 hover:text-white border border-white/5 rounded-lg transition-all"
+                    >
+                      إلغاء العملية / إعادة تعيين
+                    </button>
                   </div>
                 )}
                 

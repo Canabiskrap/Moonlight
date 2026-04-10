@@ -23,7 +23,7 @@ service cloud.firestore {
              data.imageUrl is string && data.imageUrl.matches("^https?://.*") &&
              data.downloadUrl is string && data.downloadUrl.matches("^https?://.*") &&
              data.category in ['cv', 'social', 'web', 'other'] &&
-             data.createdAt is timestamp;
+             (data.createdAt == null || data.createdAt is timestamp);
     }
 
     function isValidOrder(data) {
@@ -57,6 +57,11 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
       allow create, update: if isAdmin();
+    }
+
+    // Test Connection
+    match /test_connection/{docId} {
+      allow read, write: if isAdmin();
     }
   }
 }
