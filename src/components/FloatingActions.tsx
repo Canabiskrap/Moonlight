@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { MessageCircle, Bot, X, Send, Loader2 } from 'lucide-react';
+import { MessageCircle, Bot, X, Send, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
-import { GoogleGenAI } from "@google/genai";
+import { chatWithBot } from '../services/geminiService';
 
 export default function FloatingActions() {
   const [showBot, setShowBot] = useState(false);
@@ -29,39 +29,29 @@ export default function FloatingActions() {
     setMessages(prev => [...prev, { role: 'user', text: userMessage }]);
     setIsTyping(true);
 
+    console.log("Bot: Sending message...", userMessage);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: userMessage,
-        config: {
-          systemInstruction: `أنت "المساعد الخبير" لمتجر Monnlight. أنت لست مجرد بوت، بل خبير في التصميم الرقمي والدعم الفني.
-          
-          قواعدك الذهبية:
-          1. الهوية: اسمك "مساعد Monnlight الذكي".
-          2. الخبرة الفنية (إصلاحات المتجر):
-             - إذا واجه العميل مشكلة في التحميل: أخبره أن يتأكد من استقرار الإنترنت، أو يراسلنا عبر واتساب لإرسال الملف يدوياً فوراً.
-             - إذا سأل عن الدفع: أكد له أن PayPal وسيلة آمنة عالمياً، وبمجرد الدفع سيظهر زر "تحميل" تلقائياً.
-             - إذا لم تظهر الصور: اطلب منه تحديث الصفحة (Refresh).
-          3. خبرة المبيعات:
-             - إذا كان العميل متردداً، اقترح عليه خدماتنا (لوجو، هوية بصرية، مواقع، تطبيقات).
-             - اشرح له أن تصاميمنا "عصرية" و"تزيد من مبيعاته".
-          4. التواصل:
-             - كن ودوداً جداً واحترافياً.
-             - لغتك هي العربية بلهجة مهذبة.
-             - دائماً ذكّره بوجود أيقونة الواتساب الخضراء للتحدث مع الإدارة مباشرة لأي طلبات خاصة.
-          
-          معلومات المتجر:
-          - نحن نقدم: تصميم شعارات، هوية بصرية، بوستات ريلز، مواقع ويب، تطبيقات أندرويد و iOS، ومعارض أعمال.
-          - الأسعار: تنافسية جداً مقابل الجودة العالية.`
-        }
-      });
+      // Map history to Gemini format
+      const history = messages.slice(1).map(m => ({
+        role: m.role === 'user' ? 'user' as const : 'model' as const,
+        parts: [{ text: m.text }]
+      }));
 
-      const botResponse = response.text || "عذراً، واجهت مشكلة في فهم ذلك. هل يمكنك المحاولة مرة أخرى؟";
+      const botResponse = await chatWithBot(userMessage, history);
       setMessages(prev => [...prev, { role: 'bot', text: botResponse }]);
-    } catch (error) {
-      console.error("Bot Error:", error);
-      setMessages(prev => [...prev, { role: 'bot', text: "عذراً، حدث خطأ تقني. يمكنك التواصل معنا عبر الواتساب مباشرة." }]);
+    } catch (error: any) {
+      console.error("Bot Error Details:", error);
+      let errorMsg = "عذراً، حدث خطأ تقني. يمكنك التواصل معنا عبر الواتساب مباشرة.";
+      
+      if (error?.message?.includes('API_KEY_INVALID') || error?.message?.includes('API key')) {
+        errorMsg = "خطأ: مفتاح API الخاص بالذكاء الاصطناعي غير صالح أو مفقود.";
+      } else if (error?.message?.includes('quota')) {
+        errorMsg = "عذراً، تم تجاوز حصة الاستخدام اليومية للذكاء الاصطناعي.";
+      } else if (error?.message) {
+        errorMsg = `خطأ تقني: ${error.message.substring(0, 100)}`;
+      }
+
+      setMessages(prev => [...prev, { role: 'bot', text: errorMsg }]);
     } finally {
       setIsTyping(false);
     }
@@ -107,8 +97,17 @@ export default function FloatingActions() {
             className="absolute bottom-20 right-0 w-80 md:w-96 bg-dark-light border border-white/10 rounded-[2rem] shadow-2xl overflow-hidden flex flex-col"
           >
             <div className="bg-primary p-5 flex items-center gap-3">
-              <div className="bg-white/20 p-2 rounded-xl">
-                <Bot size={24} className="text-white" />
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setMessages([{ role: 'bot', text: 'مرحباً بك في متجر Monnlight! أنا مساعدك الذكي، كيف يمكنني مساعدتك اليوم؟' }])}
+                  className="p-1.5 hover:bg-white/10 rounded-lg text-white/50 hover:text-white transition-colors"
+                  title="مسح المحادثة"
+                >
+                  <RefreshCw size={16} />
+                </button>
+                <div className="bg-white/20 p-2 rounded-xl">
+                  <Bot size={24} className="text-white" />
+                </div>
               </div>
               <div>
                 <p className="font-black text-sm">مساعد Monnlight الذكي</p>

@@ -50,7 +50,7 @@ export default function Navbar({ user, isAdmin }: NavbarProps) {
             </div>
           )}
 
-          {user ? (
+          {user && !isDashboard ? (
             <div className="flex items-center gap-4">
               <div className="hidden md:block text-right">
                 <p className="text-sm font-bold text-white leading-none mb-1">{user.displayName}</p>

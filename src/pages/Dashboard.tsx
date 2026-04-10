@@ -5,6 +5,7 @@ import {
   db, 
   storage, 
   auth, 
+  logout,
   deleteFile, 
   handleFirestoreError, 
   OperationType,
@@ -21,8 +22,10 @@ import {
 } from '../lib/firebase';
 import { convertDriveLink, isValidUrl } from '../lib/utils';
 import { SmartDiagnosticService } from '../lib/smartDiagnostic';
-import { motion } from 'motion/react';
-import { Plus, Trash2, Package, DollarSign, Image as ImageIcon, Link as LinkIcon, FileText, Upload, CheckCircle2, Globe, Search, RefreshCw, Sparkles, ShoppingBag, AlertCircle, Settings, Activity } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Plus, Trash2, Package, DollarSign, Image as ImageIcon, Link as LinkIcon, FileText, Upload, CheckCircle2, Globe, Search, RefreshCw, Sparkles, ShoppingBag, AlertCircle, Settings, Activity, LogOut } from 'lucide-react';
+
+import { getProductInsights } from '../services/geminiService';
 
 export default function Dashboard() {
   const [products, setProducts] = useState<any[]>([]);
@@ -107,10 +110,7 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    const unsubAuth = auth.onAuthStateChanged((user) => {
-      setCurrentUser(user);
-    });
-
+    setCurrentUser(auth.currentUser);
     const qProds = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
     const qOrders = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
 
@@ -136,7 +136,6 @@ export default function Dashboard() {
     );
 
     return () => {
-      unsubAuth();
       unsubProds();
       unsubOrders();
     };
@@ -429,15 +428,53 @@ export default function Dashboard() {
 
   const totalRevenue = orders.reduce((sum, order) => sum + (order.amount || 0), 0);
 
+  const [isTestingAI, setIsTestingAI] = useState(false);
+
+  const testAI = async () => {
+    setIsTestingAI(true);
+    addLog("جاري اختبار الذكاء الاصطناعي...");
+    try {
+      const result = await getProductInsights({
+        name: "منتج تجريبي",
+        description: "وصف تجريبي لاختبار النظام",
+        category: "test",
+        price: 10
+      });
+      addLog("✅ نجح اختبار الذكاء الاصطناعي: " + result.creativeSummary.substring(0, 50) + "...");
+      alert("الذكاء الاصطناعي يعمل بنجاح! ✅");
+    } catch (err: any) {
+      addLog("❌ فشل اختبار الذكاء الاصطناعي: " + err.message);
+      console.error("AI Test Error:", err);
+      alert("فشل اختبار الذكاء الاصطناعي: " + err.message);
+    } finally {
+      setIsTestingAI(false);
+    }
+  };
+
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  const handleSmartLogout = async () => {
+    try {
+      addLog("جاري تسجيل الخروج...");
+      await logout();
+      navigate('/login');
+    } catch (err: any) {
+      console.error("Logout Error:", err);
+      addLog("❌ فشل تسجيل الخروج: " + err.message);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-10 pb-32"
+      className="space-y-10 pb-64"
     >
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
         <div className="flex flex-col">
-          <h1 className="text-4xl font-black text-white tracking-tight">لوحة التحكم</h1>
+          <div className="flex items-center gap-4">
+            <h1 className="text-4xl font-black text-white tracking-tight">لوحة التحكم</h1>
+          </div>
           <div className="flex items-center gap-2 mt-2">
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
             <span className="text-[10px] text-gray-500 uppercase tracking-[0.2em] font-bold">Moonlight Management System</span>
@@ -646,6 +683,13 @@ export default function Dashboard() {
                       onChange={(e) => setCustomBucket(e.target.value)}
                       className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-[10px] outline-none focus:border-primary"
                     />
+                    <button 
+                      onClick={testAI}
+                      disabled={isTestingAI}
+                      className="px-4 py-2 bg-primary/10 hover:bg-primary/20 border border-primary/20 rounded-lg text-[10px] font-bold transition-all disabled:opacity-50 text-primary"
+                    >
+                      {isTestingAI ? 'جاري الاختبار...' : 'اختبار الذكاء الاصطناعي'}
+                    </button>
                     <button 
                       onClick={testConnection}
                       disabled={isTestingConnection}
@@ -1248,6 +1292,69 @@ export default function Dashboard() {
             </p>
           </div>
         </details>
+      </div>
+
+      {/* Final Logout Section at the very bottom */}
+      <div className="mt-40 pt-20 border-t border-white/5 flex flex-col items-center gap-8 pb-20 relative z-10">
+        <div className="text-center space-y-3">
+          <div className="bg-red-500/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/20">
+            <LogOut className="text-red-500 w-8 h-8" />
+          </div>
+          <h3 className="text-xl font-black text-white">إنهاء جلسة الإدارة</h3>
+          <p className="text-gray-500 text-sm max-w-xs mx-auto">
+            سيتم إغلاق لوحة التحكم وتسجيل خروجك بأمان من النظام.
+          </p>
+        </div>
+        
+        <div className="flex flex-col items-center gap-6 w-full max-w-sm">
+          <AnimatePresence mode="wait">
+            {!showLogoutConfirm ? (
+              <motion.button
+                key="logout-btn"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                whileHover={{ scale: 1.05, boxShadow: "0 20px 40px -10px rgba(239, 68, 68, 0.2)" }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setShowLogoutConfirm(true)}
+                className="w-full py-6 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-[2.5rem] border border-red-500/20 transition-all font-black text-xl flex items-center justify-center gap-4 shadow-2xl"
+              >
+                <LogOut size={24} />
+                تسجيل الخروج الآمن
+              </motion.button>
+            ) : (
+              <motion.div
+                key="confirm-box"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="w-full p-6 bg-red-500 rounded-3xl shadow-2xl shadow-red-500/20 text-center space-y-4"
+              >
+                <p className="font-black text-white">هل أنت متأكد حقاً؟</p>
+                <div className="flex gap-3">
+                  <button 
+                    onClick={handleSmartLogout}
+                    className="flex-1 py-3 bg-white text-red-500 rounded-2xl font-black hover:bg-gray-100 transition-colors"
+                  >
+                    نعم، خروج
+                  </button>
+                  <button 
+                    onClick={() => setShowLogoutConfirm(false)}
+                    className="flex-1 py-3 bg-black/20 text-white rounded-2xl font-black hover:bg-black/30 transition-colors"
+                  >
+                    تراجع
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+        
+        <div className="flex items-center gap-4 opacity-30">
+          <div className="h-[1px] w-12 bg-gray-500"></div>
+          <p className="text-[8px] text-gray-500 uppercase tracking-[0.5em] font-black">Moonlight Security Protocol</p>
+          <div className="h-[1px] w-12 bg-gray-500"></div>
+        </div>
       </div>
     </motion.div>
   );
