@@ -674,20 +674,36 @@ export default function Dashboard() {
               ) : (
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-gray-400">رابط صورة الغلاف</label>
-                    <div className="flex gap-2">
+                    <label className="text-sm font-bold text-gray-400">1. صورة الغلاف (رفع مباشر)</label>
+                    <div className="relative group">
                       <input 
-                        type="url" 
-                        value={imageUrl} 
-                        onChange={(e) => setImageUrl(e.target.value)}
-                        placeholder="https://..."
-                        className="bg-dark border-white/5 focus:border-primary outline-none transition-all flex-1 p-4 rounded-2xl"
+                        type="file" 
+                        accept="image/*"
+                        onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                        className="hidden"
+                        id="image-upload-link"
                       />
-                      {imageUrl && (
-                        <div className="w-16 h-16 rounded-xl overflow-hidden border border-white/10 flex-shrink-0">
-                          <img src={imageUrl} className="w-full h-full object-cover" referrerPolicy="no-referrer" alt="Preview" />
-                        </div>
-                      )}
+                      <label 
+                        htmlFor="image-upload-link"
+                        className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all"
+                      >
+                        {imageFile ? (
+                          <div className="flex flex-col items-center gap-2 text-primary font-bold text-xs p-4 text-center">
+                            <CheckCircle2 size={24} />
+                            <span className="break-all">{imageFile.name}</span>
+                          </div>
+                        ) : imageUrl ? (
+                          <div className="flex flex-col items-center gap-2 text-primary font-bold text-xs p-4 text-center">
+                            <ImageIcon size={24} />
+                            <span>صورة موجودة مسبقاً</span>
+                          </div>
+                        ) : (
+                          <>
+                            <Upload className="text-gray-500 mb-2" size={24} />
+                            <span className="text-xs text-gray-500">اختر صورة المعرض</span>
+                          </>
+                        )}
+                      </label>
                     </div>
                   </div>
 
