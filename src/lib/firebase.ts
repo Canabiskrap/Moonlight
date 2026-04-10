@@ -13,15 +13,10 @@ export const googleProvider = new GoogleAuthProvider();
 // Helper for Google Login
 export const loginWithGoogle = async () => {
   try {
-    // Check if mobile
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    
-    if (isMobile) {
-      return await signInWithRedirect(auth, googleProvider);
-    } else {
-      const result = await signInWithPopup(auth, googleProvider);
-      return result.user;
-    }
+    // Reverting to signInWithPopup as it's more reliable across different environments
+    // especially inside iframes (like AI Studio) and avoids redirect loop issues.
+    const result = await signInWithPopup(auth, googleProvider);
+    return result.user;
   } catch (error) {
     console.error("Login Error:", error);
     throw error;
