@@ -771,16 +771,27 @@ export default function Dashboard() {
                           )}
                         </div>
                         {imageUrl.includes('drive.google.com') && (
-                          <p className="text-[10px] text-primary font-bold animate-pulse">
-                            ✨ تم اكتشاف رابط Google Drive، سيتم تحويله تلقائياً لرابط مباشر عند الحفظ.
-                          </p>
+                          <div className="bg-primary/10 border border-primary/20 p-3 rounded-xl space-y-1">
+                            <p className="text-[10px] text-primary font-bold flex items-center gap-1">
+                              <Sparkles size={12} />
+                              تم اكتشاف رابط Google Drive
+                            </p>
+                            <p className="text-[9px] text-gray-400 leading-tight">
+                              تأكد من أن الملف في Google Drive مضبوط على "أي شخص لديه الرابط يمكنه العرض" (Anyone with the link can view) وإلا فلن تظهر الصورة للعملاء.
+                            </p>
+                          </div>
                         )}
                       </div>
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-gray-400">2. رابط تحميل الملف</label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-bold text-gray-400">2. رابط تحميل الملف</label>
+                      {downloadUrl.includes('drive.google.com') && (
+                        <span className="text-[10px] text-primary font-bold">رابط Google Drive ✅</span>
+                      )}
+                    </div>
                     <input 
                       type="url" 
                       value={downloadUrl} 
@@ -789,6 +800,11 @@ export default function Dashboard() {
                       className="bg-dark border-white/5 focus:border-primary outline-none transition-all w-full p-4 rounded-2xl"
                       required={uploadMethod === 'link'}
                     />
+                    {downloadUrl.includes('drive.google.com') && (
+                      <p className="text-[9px] text-gray-500 px-2">
+                        * تأكد من جعل الملف "عام" (Public) في Google Drive ليتمكن العميل من تحميله بعد الشراء.
+                      </p>
+                    )}
                   </div>
                 </div>
               )}

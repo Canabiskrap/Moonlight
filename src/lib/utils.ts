@@ -1,14 +1,17 @@
 export const convertDriveLink = (url: string) => {
   if (!url || !url.includes('drive.google.com')) return url;
   
-  // Handle /file/d/ID/view or /open?id=ID
   let id = '';
-  const match = url.match(/\/file\/d\/(.+?)\//) || url.match(/id=(.+?)(&|$)/);
-  if (match) id = match[1];
+  // Improved regex to catch IDs more reliably
+  const dMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  
+  if (dMatch) id = dMatch[1];
+  else if (idMatch) id = idMatch[1];
   
   if (id) {
-    // This is the direct link format for images in Google Drive
-    return `https://lh3.googleusercontent.com/u/0/d/${id}`;
+    // Using the uc?export=view format which is widely used for direct embedding
+    return `https://drive.google.com/uc?export=view&id=${id}`;
   }
   return url;
 };
