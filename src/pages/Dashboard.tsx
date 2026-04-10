@@ -91,7 +91,7 @@ export default function Dashboard() {
     setStatus('uploading');
     setErrorMessage('');
     setShowToast(false);
-    setUploadProgress(0);
+    setUploadProgress(1); // Start at 1% to show "Saving..." instead of "Preparing..."
 
     try {
       if (!auth.currentUser) {
@@ -243,11 +243,14 @@ export default function Dashboard() {
         setErrorMessage(err.message || "فشل حفظ المنتج");
       }
     } finally {
-      // Ensure we don't stay in uploading state if something unexpected happens
-      // but only if we didn't succeed (success sets it to success then idle)
-      if (status === 'uploading') {
-        // We don't set to idle immediately if it's success/error to let the UI show the result
-      }
+      // If we are still in uploading state and no success/error was set, reset to idle
+      // This prevents the UI from being stuck if an uncaught error occurs
+      setTimeout(() => {
+        setStatus(current => {
+          if (current === 'uploading') return 'idle';
+          return current;
+        });
+      }, 10000); // 10 second safety timeout
     }
   };
 
@@ -348,8 +351,17 @@ export default function Dashboard() {
             
             <form onSubmit={handleSubmit} className="space-y-4">
               {errorMessage && (
-                <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-xl text-sm font-bold">
-                  {errorMessage}
+                <div className="space-y-2">
+                  <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-xl text-sm font-bold">
+                    {errorMessage}
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={() => setStatus('idle')}
+                    className="w-full text-[10px] text-gray-500 hover:text-white underline"
+                  >
+                    إعادة تعيين الحالة (إذا تعطل الرفع)
+                  </button>
                 </div>
               )}
               {showToast && (
@@ -487,13 +499,20 @@ export default function Dashboard() {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-gray-400">رابط صورة الغلاف</label>
-                    <input 
-                      type="url" 
-                      value={imageUrl} 
-                      onChange={(e) => setImageUrl(e.target.value)}
-                      placeholder="https://..."
-                      className="bg-dark border-white/5 focus:border-primary outline-none transition-all w-full p-4 rounded-2xl"
-                    />
+                    <div className="flex gap-2">
+                      <input 
+                        type="url" 
+                        value={imageUrl} 
+                        onChange={(e) => setImageUrl(e.target.value)}
+                        placeholder="https://..."
+                        className="bg-dark border-white/5 focus:border-primary outline-none transition-all flex-1 p-4 rounded-2xl"
+                      />
+                      {imageUrl && (
+                        <div className="w-16 h-16 rounded-xl overflow-hidden border border-white/10 flex-shrink-0">
+                          <img src={imageUrl} className="w-full h-full object-cover" referrerPolicy="no-referrer" alt="Preview" />
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="space-y-2">
