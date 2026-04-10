@@ -70,13 +70,20 @@ export default function Dashboard() {
           finalImageUrl = await new Promise((resolve, reject) => {
             imageUploadTask.on('state_changed', 
               (snapshot) => {
-                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 10; // Image is 10% of total progress
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 10;
                 setUploadProgress(progress);
               },
-              (error) => reject(error),
-              async () => {
-                const url = await getDownloadURL(imageUploadTask.snapshot.ref);
-                resolve(url);
+              (error) => {
+                console.error("Image upload error:", error);
+                reject(error);
+              },
+              () => {
+                getDownloadURL(imageUploadTask.snapshot.ref)
+                  .then(resolve)
+                  .catch((err) => {
+                    console.error("Error getting image URL:", err);
+                    reject(err);
+                  });
               }
             );
           });
@@ -89,13 +96,20 @@ export default function Dashboard() {
           finalDownloadUrl = await new Promise((resolve, reject) => {
             fileUploadTask.on('state_changed', 
               (snapshot) => {
-                const progress = 10 + ((snapshot.bytesTransferred / snapshot.totalBytes) * 90); // File is 90% of total progress
+                const progress = 10 + ((snapshot.bytesTransferred / snapshot.totalBytes) * 90);
                 setUploadProgress(progress);
               },
-              (error) => reject(error),
-              async () => {
-                const url = await getDownloadURL(fileUploadTask.snapshot.ref);
-                resolve(url);
+              (error) => {
+                console.error("File upload error:", error);
+                reject(error);
+              },
+              () => {
+                getDownloadURL(fileUploadTask.snapshot.ref)
+                  .then(resolve)
+                  .catch((err) => {
+                    console.error("Error getting file URL:", err);
+                    reject(err);
+                  });
               }
             );
           });
@@ -212,6 +226,17 @@ export default function Dashboard() {
             </h2>
             
             <form onSubmit={handleSubmit} className="space-y-4">
+              {errorMessage && (
+                <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-xl text-sm font-bold">
+                  {errorMessage}
+                </div>
+              )}
+              {successMessage && (
+                <div className="bg-green-500/10 border border-green-500/20 text-green-500 p-4 rounded-xl text-sm font-bold">
+                  {successMessage}
+                </div>
+              )}
+              
               <div className="space-y-2">
                 <label className="text-sm font-bold text-gray-400">اسم المنتج</label>
                 <input 
@@ -364,11 +389,11 @@ export default function Dashboard() {
               </div>
 
               <div className="space-y-4">
-                {isSubmitting && uploadProgress > 0 && (
-                  <div className="w-full bg-dark rounded-full h-2.5 overflow-hidden">
+                {isSubmitting && (
+                  <div className="w-full bg-dark rounded-full h-2.5 overflow-hidden border border-white/10">
                     <div 
                       className="bg-primary h-2.5 rounded-full transition-all duration-300" 
-                      style={{ width: `${uploadProgress}%` }}
+                      style={{ width: `${Math.max(uploadProgress, 2)}%` }}
                     ></div>
                   </div>
                 )}
@@ -379,8 +404,11 @@ export default function Dashboard() {
                   className="w-full bg-primary text-white py-4 rounded-xl font-black text-lg hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 disabled:opacity-50 relative overflow-hidden"
                 >
                   {isSubmitting ? (
-                    <span className="relative z-10">
-                      {uploadProgress > 0 ? `جاري الرفع... ${Math.round(uploadProgress)}%` : "جاري النشر..."}
+                    <span className="relative z-10 flex items-center justify-center gap-2">
+                      <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
+                      {uploadProgress > 0 
+                        ? `جاري الرفع... ${Math.round(uploadProgress)}%` 
+                        : "جاري تحضير الملفات للرفع..."}
                     </span>
                   ) : (
                     "نشر المنتج الآن"
