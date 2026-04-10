@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytesResumable, getDownloadURL, uploadBytes, getStorage } from 'firebase/storage';
 import { 
   db, 
   storage, 
@@ -45,6 +45,7 @@ export default function Dashboard() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [debugLogs, setDebugLogs] = useState<string[]>([]);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [customBucket, setCustomBucket] = useState('');
   const navigate = useNavigate();
 
   const addLog = (msg: string) => {
@@ -55,22 +56,41 @@ export default function Dashboard() {
 
   const testConnection = async () => {
     setIsTestingConnection(true);
-    addLog("بدء اختبار الاتصال...");
+    addLog("بدء اختبار الاتصال الشامل...");
     try {
-      // Use addDoc instead of setDoc for testing to avoid "not defined" issues if any
+      // 1. Test Firestore
+      addLog("1. اختبار Firestore...");
       const testCol = collection(db, 'test_connection');
       await addDoc(testCol, { 
         lastTest: Timestamp.now(),
         user: auth.currentUser?.email,
         status: 'ok',
-        type: 'test_connection_btn'
+        type: 'full_diagnostic'
       });
-      addLog("✅ تم الاتصال بقاعدة البيانات بنجاح!");
-      alert("تم الاتصال بنجاح! قاعدة البيانات تعمل.");
+      addLog("✅ Firestore: متصل");
+
+      // 2. Test Storage
+      addLog("2. اختبار Storage...");
+      try {
+        const activeStorage = customBucket ? getStorage(storage.app, customBucket) : storage;
+        if (customBucket) addLog(`استخدام Bucket مخصص: ${customBucket}`);
+        
+        const storageTestRef = ref(activeStorage, `test/connection_${Date.now()}.txt`);
+        const blob = new Blob(["connection test"], { type: "text/plain" });
+        await uploadBytes(storageTestRef, blob);
+        addLog("✅ Storage: متصل (تم رفع ملف تجريبي)");
+      } catch (sErr: any) {
+        addLog(`❌ Storage: فشل (${sErr.code || sErr.message})`);
+        if (sErr.code === 'storage/retry-limit-exceeded') {
+          addLog("تنبيه: يبدو أن هناك مشكلة في إعدادات الـ Bucket أو جدار حماية يمنع الاتصال.");
+        }
+      }
+
+      alert("تم الانتهاء من الفحص. راجع سجل العمليات (Debug) للتفاصيل.");
     } catch (err: any) {
-      addLog(`❌ فشل الاتصال: ${err.message}`);
-      console.error("Connection Test Error:", err);
-      alert(`فشل الاتصال: ${err.message}`);
+      addLog(`❌ فشل عام: ${err.message}`);
+      console.error("Diagnostic Error:", err);
+      alert(`فشل الفحص: ${err.message}`);
     } finally {
       setIsTestingConnection(false);
     }
@@ -182,9 +202,11 @@ export default function Dashboard() {
         const createTimeout = (ms: number, msg: string) => 
           new Promise((_, reject) => setTimeout(() => reject(new Error(msg)), ms));
 
+        const activeStorage = customBucket ? getStorage(storage.app, customBucket) : storage;
+
         if (imageFile) {
           addLog("جاري رفع الصورة...");
-          const imageRef = ref(storage, `products/images/${Date.now()}_${imageFile.name}`);
+          const imageRef = ref(activeStorage, `products/images/${Date.now()}_${imageFile.name}`);
           const imageUploadTask = uploadBytesResumable(imageRef, imageFile);
           
           imageUploadTask.on('state_changed', (snapshot) => {
@@ -207,7 +229,7 @@ export default function Dashboard() {
         
         if (productFile) {
           addLog("جاري رفع الملف الرقمي...");
-          const fileRef = ref(storage, `products/files/${Date.now()}_${productFile.name}`);
+          const fileRef = ref(activeStorage, `products/files/${Date.now()}_${productFile.name}`);
           const fileUploadTask = uploadBytesResumable(fileRef, productFile);
           
           // Track progress
@@ -452,12 +474,15 @@ export default function Dashboard() {
               <div className="mb-6 p-4 bg-black/50 border border-white/5 rounded-xl font-mono text-[10px] text-gray-400">
                 <div className="flex justify-between items-center mb-2">
                   <p className="text-gray-500 uppercase tracking-widest">سجل العمليات (Debug):</p>
-                  <button 
-                    onClick={() => setDebugLogs([])}
-                    className="text-[8px] hover:text-white underline"
-                  >
-                    مسح السجل
-                  </button>
+                  <div className="flex gap-4">
+                    <span className="text-[8px] text-primary/50">Bucket: {storage.app.options.storageBucket || 'غير محدد'}</span>
+                    <button 
+                      onClick={() => setDebugLogs([])}
+                      className="text-[8px] hover:text-white underline"
+                    >
+                      مسح السجل
+                    </button>
+                  </div>
                 </div>
                 {debugLogs.map((log, i) => (
                   <div key={i} className="mb-1">
@@ -465,21 +490,46 @@ export default function Dashboard() {
                     {log}
                   </div>
                 ))}
-                <button 
-                  onClick={testConnection}
-                  disabled={isTestingConnection}
-                  className="mt-4 w-full py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[10px] font-bold transition-all disabled:opacity-50"
-                >
-                  {isTestingConnection ? 'جاري الاختبار...' : 'اختبار الاتصال بقاعدة البيانات'}
-                </button>
+                
+                <div className="mt-4 space-y-2">
+                  <div className="flex gap-2">
+                    <input 
+                      type="text"
+                      placeholder="تغيير الـ Bucket (مثلاً: project.appspot.com)"
+                      value={customBucket}
+                      onChange={(e) => setCustomBucket(e.target.value)}
+                      className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-[10px] outline-none focus:border-primary"
+                    />
+                    <button 
+                      onClick={testConnection}
+                      disabled={isTestingConnection}
+                      className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[10px] font-bold transition-all disabled:opacity-50"
+                    >
+                      {isTestingConnection ? 'جاري الفحص...' : 'بدء الفحص الشامل'}
+                    </button>
+                  </div>
+                  <p className="text-[8px] text-gray-500">
+                    * إذا فشل الـ Storage، جرب إضافة ".appspot.com" بدلاً من ".firebasestorage.app"
+                  </p>
+                </div>
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               {errorMessage && (
                 <div className="space-y-2">
-                  <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-xl text-sm font-bold">
-                    {errorMessage}
+                  <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-xl text-sm font-bold flex flex-col gap-2">
+                    <span>{errorMessage}</span>
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setStatus('idle');
+                        setErrorMessage('');
+                      }}
+                      className="text-[10px] bg-red-500/20 hover:bg-red-500/30 px-3 py-1 rounded-lg self-start transition-all"
+                    >
+                      إعادة المحاولة / تنظيف الخطأ
+                    </button>
                   </div>
                   <button 
                     type="button"
