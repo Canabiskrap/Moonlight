@@ -88,7 +88,7 @@ export default function FloatingActions() {
           <div className="relative w-full h-full rounded-full overflow-hidden flex items-center justify-center">
             <Bot size={28} className="absolute z-0" />
             <img 
-              src="https://drive.google.com/uc?export=view&id=1JwGdv-MGEcoSqBLpFGnucb3VEDzHatOc" 
+              src="/bot-avatar.png" 
               alt="Bot Avatar" 
               className="w-full h-full object-cover absolute inset-0 z-10 transition-opacity duration-300" 
               onError={(e) => e.currentTarget.style.opacity = '0'} 
@@ -121,7 +121,7 @@ export default function FloatingActions() {
                 <div className="bg-white/20 w-10 h-10 rounded-xl relative overflow-hidden flex items-center justify-center">
                   <Bot size={24} className="text-white absolute z-0" />
                   <img 
-                    src="https://drive.google.com/uc?export=view&id=1JwGdv-MGEcoSqBLpFGnucb3VEDzHatOc" 
+                    src="/bot-avatar.png" 
                     alt="Bot Avatar" 
                     className="w-full h-full object-cover absolute inset-0 z-10 transition-opacity duration-300" 
                     onError={(e) => e.currentTarget.style.opacity = '0'} 

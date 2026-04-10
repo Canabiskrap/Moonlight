@@ -1,6 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
-const GEMINI_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_KEY = import.meta.env.VITE_GEMINI_API_KEY || (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : undefined);
 if (GEMINI_KEY) {
   console.log("Gemini API Key detected (starts with):", GEMINI_KEY.substring(0, 4) + "...");
 } else {
@@ -80,9 +80,10 @@ export async function getSmartRecommendations(query: string, products: any[]): P
 
 export async function chatWithBot(userMessage: string, history: {role: 'user' | 'model', parts: {text: string}[]}[]): Promise<string> {
   if (!ai) {
-    const errorMsg = "Gemini AI not initialized. GEMINI_API_KEY is " + (process.env.GEMINI_API_KEY ? "present" : "MISSING");
+    const hasKey = !!GEMINI_KEY;
+    const errorMsg = "Gemini AI not initialized. API Key is " + (hasKey ? "present" : "MISSING");
     console.error(errorMsg);
-    return `عذراً، هناك مشكلة في تهيئة الذكاء الاصطناعي (${process.env.GEMINI_API_KEY ? 'مفتاح موجود ولكن فشل الاتصال' : 'مفتاح مفقود'}). يرجى التواصل مع الدعم الفني.`;
+    return `عذراً، هناك مشكلة في تهيئة الذكاء الاصطناعي (${hasKey ? 'مفتاح موجود ولكن فشل الاتصال' : 'مفتاح مفقود'}). يرجى التواصل مع الدعم الفني.`;
   }
   try {
     console.log("Calling Gemini with message:", userMessage);
