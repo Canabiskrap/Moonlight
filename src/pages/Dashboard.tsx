@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, Timestamp } from 'firebase/firestore';
 import { ref, uploadBytesResumable, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage, auth, deleteFile, handleFirestoreError, OperationType } from '../lib/firebase';
-import { uploadToCloudinary } from '../lib/cloudinary';
 import { motion } from 'motion/react';
 import { Plus, Trash2, Package, DollarSign, Image as ImageIcon, Link as LinkIcon, FileText, Upload, CheckCircle2, Globe, Search } from 'lucide-react';
 
@@ -114,14 +113,21 @@ export default function Dashboard() {
 
       if (uploadMethod === 'direct') {
         if (imageFile) {
-          console.log("Starting image upload to Cloudinary...");
+          console.log("Starting image upload to Firebase...");
+          const imageRef = ref(storage, `products/images/${Date.now()}_${imageFile.name}`);
+          const imageUploadTask = uploadBytesResumable(imageRef, imageFile);
+          
+          imageUploadTask.on('state_changed', (snapshot) => {
+            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 10;
+            setUploadProgress(Math.round(progress));
+          });
+
           try {
-            finalImageUrl = await uploadToCloudinary(imageFile, (progress) => {
-              setUploadProgress(Math.round(progress * 0.1));
-            });
+            await imageUploadTask;
+            finalImageUrl = await getDownloadURL(imageRef);
             console.log("Image upload success:", finalImageUrl);
           } catch (imgErr: any) {
-            console.error("Cloudinary Error:", imgErr);
+            console.error("Firebase Image Error:", imgErr);
             throw new Error("فشل رفع الصورة: " + imgErr.message);
           }
         }
@@ -149,9 +155,23 @@ export default function Dashboard() {
       } else {
         // Validation for link method
         if (imageFile) {
-          finalImageUrl = await uploadToCloudinary(imageFile, (progress) => {
+          console.log("Starting image upload to Firebase...");
+          const imageRef = ref(storage, `products/images/${Date.now()}_${imageFile.name}`);
+          const imageUploadTask = uploadBytesResumable(imageRef, imageFile);
+          
+          imageUploadTask.on('state_changed', (snapshot) => {
+            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
             setUploadProgress(Math.round(progress));
           });
+
+          try {
+            await imageUploadTask;
+            finalImageUrl = await getDownloadURL(imageRef);
+            console.log("Image upload success:", finalImageUrl);
+          } catch (imgErr: any) {
+            console.error("Firebase Image Error:", imgErr);
+            throw new Error("فشل رفع الصورة: " + imgErr.message);
+          }
         } else if (imageUrl && !isValidUrl(imageUrl)) {
           // Try to fix common missing https://
           if (imageUrl.includes('.') && !imageUrl.startsWith('http')) {
