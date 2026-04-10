@@ -18,6 +18,7 @@ import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import FloatingActions from './components/FloatingActions';
 import { motion, AnimatePresence } from 'motion/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 const ADMIN_EMAILS = [
   'canabiskrap07@gmail.com',
@@ -115,6 +116,7 @@ export default function App() {
         </main>
         <Footer />
         <FloatingActions />
+        <SpeedInsights />
       </div>
     </Router>
   );
