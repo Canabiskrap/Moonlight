@@ -45,6 +45,7 @@ export default function Dashboard() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [debugLogs, setDebugLogs] = useState<string[]>([]);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [imageUploadType, setImageUploadType] = useState<'file' | 'link'>('file');
   const [customBucket, setCustomBucket] = useState('');
   const navigate = useNavigate();
 
@@ -77,12 +78,19 @@ export default function Dashboard() {
         
         const storageTestRef = ref(activeStorage, `test/connection_${Date.now()}.txt`);
         const blob = new Blob(["connection test"], { type: "text/plain" });
-        await uploadBytes(storageTestRef, blob);
+        
+        const uploadPromise = uploadBytes(storageTestRef, blob);
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("انتهت مهلة اختبار التخزين (30 ثانية). قد يكون هناك حظر للاتصال أو الـ Bucket غير صحيح.")), 30000)
+        );
+
+        await Promise.race([uploadPromise, timeoutPromise]);
         addLog("✅ Storage: متصل (تم رفع ملف تجريبي)");
       } catch (sErr: any) {
         addLog(`❌ Storage: فشل (${sErr.code || sErr.message})`);
-        if (sErr.code === 'storage/retry-limit-exceeded') {
+        if (sErr.code === 'storage/retry-limit-exceeded' || sErr.message.includes('مهلة')) {
           addLog("تنبيه: يبدو أن هناك مشكلة في إعدادات الـ Bucket أو جدار حماية يمنع الاتصال.");
+          addLog("نصيحة: جرب استخدام 'روابط خارجية' ووضع رابط مباشر للصورة والملف لتجاوز هذه المشكلة.");
         }
       }
 
@@ -217,7 +225,7 @@ export default function Dashboard() {
           try {
             await Promise.race([
               imageUploadTask,
-              createTimeout(45000, "انتهت مهلة رفع الصورة (45 ثانية).")
+              createTimeout(120000, "انتهت مهلة رفع الصورة (دقيقتان). يرجى التحقق من اتصال الإنترنت.")
             ]);
             finalImageUrl = await getDownloadURL(imageRef);
             addLog("تم رفع الصورة بنجاح");
@@ -241,7 +249,7 @@ export default function Dashboard() {
           try {
             await Promise.race([
               fileUploadTask,
-              createTimeout(60000, "انتهت مهلة رفع الملف (60 ثانية).")
+              createTimeout(600000, "انتهت مهلة رفع الملف (10 دقائق). إذا كان الملف كبيراً جداً، يرجى التأكد من استقرار الإنترنت.")
             ]);
             finalDownloadUrl = await getDownloadURL(fileRef);
             addLog("تم رفع الملف بنجاح");
@@ -252,30 +260,39 @@ export default function Dashboard() {
         }
       } else {
         // Validation for link method
-        if (imageFile) {
+        const activeStorage = customBucket ? getStorage(storage.app, customBucket) : storage;
+        const createTimeout = (ms: number, msg: string) => 
+          new Promise((_, reject) => setTimeout(() => reject(new Error(msg)), ms));
+
+        if (imageUploadType === 'file' && imageFile) {
           addLog("جاري رفع الصورة (طريقة الرابط)...");
-          const imageRef = ref(storage, `products/images/${Date.now()}_${imageFile.name}`);
+          const imageRef = ref(activeStorage, `products/images/${Date.now()}_${imageFile.name}`);
           const imageUploadTask = uploadBytesResumable(imageRef, imageFile);
           
           imageUploadTask.on('state_changed', (snapshot) => {
-            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 50;
             setUploadProgress(Math.round(progress));
           });
 
           try {
-            await imageUploadTask;
+            await Promise.race([
+              imageUploadTask,
+              createTimeout(120000, "انتهت مهلة رفع الصورة (دقيقتان).")
+            ]);
             finalImageUrl = await getDownloadURL(imageRef);
             addLog("تم رفع الصورة بنجاح");
           } catch (imgErr: any) {
             addLog(`خطأ في رفع الصورة: ${imgErr.message}`);
             throw new Error("فشل رفع الصورة: " + imgErr.message);
           }
-        } else if (imageUrl && !isValidUrl(imageUrl)) {
-          // Try to fix common missing https://
-          if (imageUrl.includes('.') && !imageUrl.startsWith('http')) {
-            finalImageUrl = `https://${imageUrl}`;
-          } else {
-            throw new Error("رابط الصورة غير صالح. يجب أن يبدأ بـ http:// أو https://");
+        } else if (imageUploadType === 'link' || !imageFile) {
+          if (imageUrl && !isValidUrl(imageUrl)) {
+            // Try to fix common missing https://
+            if (imageUrl.includes('.') && !imageUrl.startsWith('http')) {
+              finalImageUrl = `https://${imageUrl}`;
+            } else {
+              throw new Error("رابط الصورة غير صالح. يجب أن يبدأ بـ http:// أو https://");
+            }
           }
         }
 
@@ -285,6 +302,11 @@ export default function Dashboard() {
           } else {
             throw new Error("رابط التحميل غير صالح. يجب أن يبدأ بـ http:// أو https://");
           }
+        }
+        
+        // Google Drive link helper
+        if (finalDownloadUrl.includes('drive.google.com')) {
+          addLog("تنبيه: تم اكتشاف رابط Google Drive. تأكد من أنه رابط مباشر للتحميل.");
         }
       }
 
@@ -652,19 +674,19 @@ export default function Dashboard() {
                         className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all"
                       >
                         {productFile ? (
-                          <div className="flex flex-col items-center gap-2 text-gold font-bold text-xs p-4 text-center">
+                          <div className="flex flex-col items-center gap-2 text-primary font-bold text-xs p-4 text-center">
                             <CheckCircle2 size={24} />
                             <span className="break-all">{productFile.name}</span>
                           </div>
                         ) : downloadUrl ? (
-                          <div className="flex flex-col items-center gap-2 text-gold font-bold text-xs p-4 text-center">
-                            <LinkIcon size={24} />
+                          <div className="flex flex-col items-center gap-2 text-primary font-bold text-xs p-4 text-center">
+                            <Package size={24} />
                             <span>ملف موجود مسبقاً</span>
                           </div>
                         ) : (
                           <>
                             <Upload className="text-gray-500 mb-2" size={24} />
-                            <span className="text-xs text-gray-500">اختر الملف (PDF, ZIP, etc)</span>
+                            <span className="text-xs text-gray-500">ارفع الملف الرقمي (ZIP)</span>
                           </>
                         )}
                       </label>
@@ -674,46 +696,82 @@ export default function Dashboard() {
               ) : (
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-gray-400">1. صورة الغلاف (رفع مباشر)</label>
-                    <div className="relative group">
-                      <input 
-                        type="file" 
-                        accept="image/*"
-                        onChange={(e) => setImageFile(e.target.files?.[0] || null)}
-                        className="hidden"
-                        id="image-upload-link"
-                      />
-                      <label 
-                        htmlFor="image-upload-link"
-                        className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all"
-                      >
-                        {imageFile ? (
-                          <div className="flex flex-col items-center gap-2 text-primary font-bold text-xs p-4 text-center">
-                            <CheckCircle2 size={24} />
-                            <span className="break-all">{imageFile.name}</span>
-                          </div>
-                        ) : imageUrl ? (
-                          <div className="flex flex-col items-center gap-2 text-primary font-bold text-xs p-4 text-center">
-                            <ImageIcon size={24} />
-                            <span>صورة موجودة مسبقاً</span>
-                          </div>
-                        ) : (
-                          <>
-                            <Upload className="text-gray-500 mb-2" size={24} />
-                            <span className="text-xs text-gray-500">اختر صورة المعرض</span>
-                          </>
-                        )}
-                      </label>
+                    <div className="flex justify-between items-center">
+                      <label className="text-sm font-bold text-gray-400">1. صورة الغلاف</label>
+                      <div className="flex bg-dark rounded-lg p-1 border border-white/5">
+                        <button 
+                          type="button"
+                          onClick={() => setImageUploadType('file')}
+                          className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${imageUploadType === 'file' ? 'bg-primary text-white' : 'text-gray-500'}`}
+                        >
+                          رفع ملف
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={() => setImageUploadType('link')}
+                          className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${imageUploadType === 'link' ? 'bg-primary text-white' : 'text-gray-500'}`}
+                        >
+                          رابط خارجي
+                        </button>
+                      </div>
                     </div>
+
+                    {imageUploadType === 'file' ? (
+                      <div className="relative group">
+                        <input 
+                          type="file" 
+                          accept="image/*"
+                          onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                          className="hidden"
+                          id="image-upload-link"
+                        />
+                        <label 
+                          htmlFor="image-upload-link"
+                          className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all"
+                        >
+                          {imageFile ? (
+                            <div className="flex flex-col items-center gap-2 text-primary font-bold text-xs p-4 text-center">
+                              <CheckCircle2 size={24} />
+                              <span className="break-all">{imageFile.name}</span>
+                            </div>
+                          ) : imageUrl ? (
+                            <div className="flex flex-col items-center gap-2 text-primary font-bold text-xs p-4 text-center">
+                              <ImageIcon size={24} />
+                              <span>صورة موجودة مسبقاً</span>
+                            </div>
+                          ) : (
+                            <>
+                              <Upload className="text-gray-500 mb-2" size={24} />
+                              <span className="text-xs text-gray-500">اختر صورة المعرض</span>
+                            </>
+                          )}
+                        </label>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <input 
+                          type="url" 
+                          value={imageUrl} 
+                          onChange={(e) => setImageUrl(e.target.value)}
+                          placeholder="https:// رابط الصورة..."
+                          className="bg-dark border-white/5 focus:border-primary outline-none transition-all flex-1 p-4 rounded-2xl"
+                        />
+                        {imageUrl && (
+                          <div className="w-16 h-16 rounded-xl overflow-hidden border border-white/10 flex-shrink-0">
+                            <img src={imageUrl} className="w-full h-full object-cover" referrerPolicy="no-referrer" alt="Preview" />
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-gray-400">رابط تحميل الملف</label>
+                    <label className="text-sm font-bold text-gray-400">2. رابط تحميل الملف</label>
                     <input 
                       type="url" 
                       value={downloadUrl} 
                       onChange={(e) => setDownloadUrl(e.target.value)}
-                      placeholder="https://..."
+                      placeholder="https:// رابط تحميل الملف الرقمي..."
                       className="bg-dark border-white/5 focus:border-primary outline-none transition-all w-full p-4 rounded-2xl"
                       required={uploadMethod === 'link'}
                     />
