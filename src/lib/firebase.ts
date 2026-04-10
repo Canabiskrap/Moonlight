@@ -1,6 +1,21 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, signOut, setPersistence, browserLocalPersistence, getRedirectResult } from 'firebase/auth';
-import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, onSnapshot, orderBy, Timestamp } from 'firebase/firestore';
+import { 
+  getFirestore, 
+  collection, 
+  doc, 
+  getDoc, 
+  getDocs, 
+  setDoc, 
+  addDoc,
+  updateDoc, 
+  deleteDoc, 
+  query, 
+  where, 
+  onSnapshot, 
+  orderBy, 
+  Timestamp 
+} from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import firebaseConfig from '../../firebase-applet-config.json';
 
@@ -8,10 +23,27 @@ const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId);
 export const auth = getAuth(app);
 
+export { 
+  collection, 
+  doc, 
+  getDoc, 
+  getDocs, 
+  setDoc, 
+  addDoc,
+  updateDoc, 
+  deleteDoc, 
+  query, 
+  where, 
+  onSnapshot, 
+  orderBy, 
+  Timestamp 
+};
+
 // Set persistence to local to ensure session survives redirects and refreshes
 setPersistence(auth, browserLocalPersistence).catch(err => console.error("Persistence Error:", err));
 
 export const storage = getStorage(app);
+console.log("Firebase Storage initialized with bucket:", (firebaseConfig as any).storageBucket);
 export const googleProvider = new GoogleAuthProvider();
 // Force select account to avoid silent failures
 googleProvider.setCustomParameters({ prompt: 'select_account' });

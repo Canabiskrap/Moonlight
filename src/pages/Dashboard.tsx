@@ -1,8 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, Timestamp, setDoc } from 'firebase/firestore';
-import { ref, uploadBytesResumable, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage, auth, deleteFile, handleFirestoreError, OperationType } from '../lib/firebase';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { 
+  db, 
+  storage, 
+  auth, 
+  deleteFile, 
+  handleFirestoreError, 
+  OperationType,
+  collection,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  query,
+  orderBy,
+  Timestamp,
+  setDoc
+} from '../lib/firebase';
 import { motion } from 'motion/react';
 import { Plus, Trash2, Package, DollarSign, Image as ImageIcon, Link as LinkIcon, FileText, Upload, CheckCircle2, Globe, Search } from 'lucide-react';
 
@@ -41,11 +57,13 @@ export default function Dashboard() {
     setIsTestingConnection(true);
     addLog("بدء اختبار الاتصال...");
     try {
-      const testRef = doc(db, 'test_connection', 'status');
-      await setDoc(testRef, { 
+      // Use addDoc instead of setDoc for testing to avoid "not defined" issues if any
+      const testCol = collection(db, 'test_connection');
+      await addDoc(testCol, { 
         lastTest: Timestamp.now(),
         user: auth.currentUser?.email,
-        status: 'ok'
+        status: 'ok',
+        type: 'test_connection_btn'
       });
       addLog("✅ تم الاتصال بقاعدة البيانات بنجاح!");
       alert("تم الاتصال بنجاح! قاعدة البيانات تعمل.");
@@ -161,6 +179,9 @@ export default function Dashboard() {
       let finalDownloadUrl = downloadUrl;
 
       if (uploadMethod === 'direct') {
+        const createTimeout = (ms: number, msg: string) => 
+          new Promise((_, reject) => setTimeout(() => reject(new Error(msg)), ms));
+
         if (imageFile) {
           addLog("جاري رفع الصورة...");
           const imageRef = ref(storage, `products/images/${Date.now()}_${imageFile.name}`);
@@ -172,7 +193,10 @@ export default function Dashboard() {
           });
 
           try {
-            await imageUploadTask;
+            await Promise.race([
+              imageUploadTask,
+              createTimeout(45000, "انتهت مهلة رفع الصورة (45 ثانية).")
+            ]);
             finalImageUrl = await getDownloadURL(imageRef);
             addLog("تم رفع الصورة بنجاح");
           } catch (imgErr: any) {
@@ -193,7 +217,10 @@ export default function Dashboard() {
           });
 
           try {
-            await fileUploadTask;
+            await Promise.race([
+              fileUploadTask,
+              createTimeout(60000, "انتهت مهلة رفع الملف (60 ثانية).")
+            ]);
             finalDownloadUrl = await getDownloadURL(fileRef);
             addLog("تم رفع الملف بنجاح");
           } catch (uploadErr: any) {
