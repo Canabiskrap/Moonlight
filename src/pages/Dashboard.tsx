@@ -71,12 +71,30 @@ export default function Dashboard() {
         throw new Error("يرجى التأكد من رفع الملفات أو وضع الروابط");
       }
 
+      // Encrypt the downloadUrl via server API
+      let encryptedDownloadUrl = finalDownloadUrl;
+      try {
+        const encryptRes = await fetch('/api/encrypt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: finalDownloadUrl })
+        });
+        if (encryptRes.ok) {
+          const data = await encryptRes.json();
+          encryptedDownloadUrl = data.encryptedUrl;
+        } else {
+          console.error("Failed to encrypt URL, saving as plain text");
+        }
+      } catch (err) {
+        console.error("Encryption API error:", err);
+      }
+
       await addDoc(collection(db, 'products'), {
         name,
         description,
         price: parseFloat(price),
         imageUrl: finalImageUrl,
-        downloadUrl: finalDownloadUrl,
+        downloadUrl: encryptedDownloadUrl,
         category,
         createdAt: Timestamp.now()
       });

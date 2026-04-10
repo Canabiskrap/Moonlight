@@ -60,31 +60,66 @@ export default function ProductDetails() {
               });
             },
             onApprove: async (data: any, actions: any) => {
-              const order = await actions.order.capture();
-              console.log("Payment Success:", order);
-              
-              // Record order in Firestore
-              await addDoc(collection(db, 'orders'), {
-                productId: product.id,
-                productName: product.name,
-                amount: product.price,
-                customerEmail: order.payer.email_address,
-                paypalOrderId: order.id,
-                status: 'completed',
-                createdAt: Timestamp.now()
-              });
+              try {
+                // We don't capture here, we just get the order ID and let the server verify it.
+                // Wait, the client-side script usually captures it. Let's capture it here, then verify.
+                const order = await actions.order.capture();
+                console.log("Payment Success:", order);
+                
+                // Record order in Firestore
+                await addDoc(collection(db, 'orders'), {
+                  productId: product.id,
+                  productName: product.name,
+                  amount: product.price,
+                  customerEmail: order.payer.email_address,
+                  paypalOrderId: order.id,
+                  status: 'completed',
+                  createdAt: Timestamp.now()
+                });
 
-              setPaid(true);
-              
-              // Trigger automatic download
-              if (product.downloadUrl) {
-                const link = document.createElement('a');
-                link.href = product.downloadUrl;
-                link.target = '_blank';
-                link.download = product.name;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+                setPaid(true);
+                
+                // Verify with server and get decrypted download URL
+                if (product.downloadUrl) {
+                  const verifyRes = await fetch('/api/verify-order', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      orderId: order.id,
+                      encryptedUrl: product.downloadUrl
+                    })
+                  });
+
+                  if (verifyRes.ok) {
+                    const { downloadUrl } = await verifyRes.json();
+                    if (downloadUrl) {
+                      // Update the product state with the decrypted URL so the button works
+                      setProduct(prev => ({ ...prev, downloadUrl }));
+                      
+                      // Auto trigger download
+                      const link = document.createElement('a');
+                      link.href = downloadUrl;
+                      link.target = '_blank';
+                      link.download = product.name;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                    }
+                  } else {
+                    console.error("Server verification failed, falling back to original URL");
+                    // Fallback for legacy unencrypted URLs if server fails
+                    const link = document.createElement('a');
+                    link.href = product.downloadUrl;
+                    link.target = '_blank';
+                    link.download = product.name;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }
+                }
+              } catch (err) {
+                console.error("Error processing approved order:", err);
+                alert("حدث خطأ أثناء معالجة الطلب. يرجى التواصل مع الدعم.");
               }
             },
             onError: (err: any) => {
