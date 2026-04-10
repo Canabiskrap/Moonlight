@@ -19,6 +19,7 @@ import {
   Timestamp,
   setDoc
 } from '../lib/firebase';
+import { convertDriveLink, isValidUrl } from '../lib/utils';
 import { motion } from 'motion/react';
 import { Plus, Trash2, Package, DollarSign, Image as ImageIcon, Link as LinkIcon, FileText, Upload, CheckCircle2, Globe, Search } from 'lucide-react';
 
@@ -193,17 +194,7 @@ export default function Dashboard() {
         throw new Error("يرجى تأكيد بريدك الإلكتروني في جوجل لتتمكن من النشر.");
       }
 
-      // URL Validation helper
-      const isValidUrl = (url: string) => {
-        try {
-          new URL(url);
-          return true;
-        } catch {
-          return false;
-        }
-      };
-
-      let finalImageUrl = imageUrl;
+      let finalImageUrl = convertDriveLink(imageUrl);
       let finalDownloadUrl = downloadUrl;
 
       if (uploadMethod === 'direct') {
@@ -286,12 +277,17 @@ export default function Dashboard() {
             throw new Error("فشل رفع الصورة: " + imgErr.message);
           }
         } else if (imageUploadType === 'link' || !imageFile) {
-          if (imageUrl && !isValidUrl(imageUrl)) {
-            // Try to fix common missing https://
-            if (imageUrl.includes('.') && !imageUrl.startsWith('http')) {
-              finalImageUrl = `https://${imageUrl}`;
+          if (imageUrl) {
+            const convertedUrl = convertDriveLink(imageUrl);
+            if (!isValidUrl(convertedUrl)) {
+              // Try to fix common missing https://
+              if (imageUrl.includes('.') && !imageUrl.startsWith('http')) {
+                finalImageUrl = `https://${imageUrl}`;
+              } else {
+                throw new Error("رابط الصورة غير صالح. يجب أن يبدأ بـ http:// أو https://");
+              }
             } else {
-              throw new Error("رابط الصورة غير صالح. يجب أن يبدأ بـ http:// أو https://");
+              finalImageUrl = convertedUrl;
             }
           }
         }
@@ -736,7 +732,12 @@ export default function Dashboard() {
                             </div>
                           ) : imageUrl ? (
                             <div className="flex flex-col items-center gap-2 text-primary font-bold text-xs p-4 text-center">
-                              <ImageIcon size={24} />
+                              <img 
+                                src={convertDriveLink(imageUrl)} 
+                                className="w-12 h-12 rounded-lg object-cover mb-1" 
+                                referrerPolicy="no-referrer"
+                                onError={(e) => (e.target as HTMLImageElement).src = 'https://via.placeholder.com/150?text=Error'}
+                              />
                               <span>صورة موجودة مسبقاً</span>
                             </div>
                           ) : (
@@ -748,18 +749,31 @@ export default function Dashboard() {
                         </label>
                       </div>
                     ) : (
-                      <div className="flex gap-2">
-                        <input 
-                          type="url" 
-                          value={imageUrl} 
-                          onChange={(e) => setImageUrl(e.target.value)}
-                          placeholder="https:// رابط الصورة..."
-                          className="bg-dark border-white/5 focus:border-primary outline-none transition-all flex-1 p-4 rounded-2xl"
-                        />
-                        {imageUrl && (
-                          <div className="w-16 h-16 rounded-xl overflow-hidden border border-white/10 flex-shrink-0">
-                            <img src={imageUrl} className="w-full h-full object-cover" referrerPolicy="no-referrer" alt="Preview" />
-                          </div>
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <input 
+                            type="url" 
+                            value={imageUrl} 
+                            onChange={(e) => setImageUrl(e.target.value)}
+                            placeholder="https:// رابط الصورة..."
+                            className="bg-dark border-white/5 focus:border-primary outline-none transition-all flex-1 p-4 rounded-2xl"
+                          />
+                          {imageUrl && (
+                            <div className="w-16 h-16 rounded-xl overflow-hidden border border-white/10 flex-shrink-0 bg-dark-light flex items-center justify-center">
+                              <img 
+                                src={convertDriveLink(imageUrl)} 
+                                className="w-full h-full object-cover" 
+                                referrerPolicy="no-referrer" 
+                                alt="Preview"
+                                onError={(e) => (e.target as HTMLImageElement).src = 'https://via.placeholder.com/150?text=Invalid+Link'}
+                              />
+                            </div>
+                          )}
+                        </div>
+                        {imageUrl.includes('drive.google.com') && (
+                          <p className="text-[10px] text-primary font-bold animate-pulse">
+                            ✨ تم اكتشاف رابط Google Drive، سيتم تحويله تلقائياً لرابط مباشر عند الحفظ.
+                          </p>
                         )}
                       </div>
                     )}

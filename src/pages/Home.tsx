@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { convertDriveLink } from '../lib/utils';
 import { motion } from 'motion/react';
 import { ShoppingBag, Sparkles, ShieldCheck, Zap, MessageCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -182,7 +183,7 @@ export default function Home() {
                 
                 <div className="aspect-video relative overflow-hidden bg-dark-light flex items-center justify-center">
                   <img 
-                    src={product.imageUrl} 
+                    src={convertDriveLink(product.imageUrl)} 
                     alt={product.name}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                     referrerPolicy="no-referrer"
