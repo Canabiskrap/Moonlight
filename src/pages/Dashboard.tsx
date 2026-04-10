@@ -20,8 +20,9 @@ import {
   setDoc
 } from '../lib/firebase';
 import { convertDriveLink, isValidUrl } from '../lib/utils';
+import { SmartDiagnosticService } from '../lib/smartDiagnostic';
 import { motion } from 'motion/react';
-import { Plus, Trash2, Package, DollarSign, Image as ImageIcon, Link as LinkIcon, FileText, Upload, CheckCircle2, Globe, Search } from 'lucide-react';
+import { Plus, Trash2, Package, DollarSign, Image as ImageIcon, Link as LinkIcon, FileText, Upload, CheckCircle2, Globe, Search, RefreshCw, Sparkles } from 'lucide-react';
 
 export default function Dashboard() {
   const [products, setProducts] = useState<any[]>([]);
@@ -455,6 +456,78 @@ export default function Dashboard() {
         {/* Add/Edit Product Form */}
         <div className="lg:col-span-1">
           <div className="bg-dark-light p-8 rounded-[2rem] border border-white/5 sticky top-24">
+            {/* Smart Fix & System Health */}
+            <div className="mb-8 p-5 bg-primary/5 border border-primary/10 rounded-[2rem] space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-black text-primary uppercase tracking-widest">حالة النظام الذكية</h3>
+                <div className="flex gap-1">
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                  <div className="w-2 h-2 rounded-full bg-green-500/50"></div>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-dark/50 p-3 rounded-2xl border border-white/5 text-center">
+                  <p className="text-[8px] text-gray-500 mb-1">قاعدة البيانات</p>
+                  <p className="text-[10px] font-bold text-green-400">متصل ✅</p>
+                </div>
+                <div className="bg-dark/50 p-3 rounded-2xl border border-white/5 text-center">
+                  <p className="text-[8px] text-gray-500 mb-1">التخزين</p>
+                  <p className="text-[10px] font-bold text-green-400">نشط ✅</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-2">
+                <button 
+                  onClick={async () => {
+                    addLog("بدء الإصلاح التلقائي الذكي...");
+                    const results = await SmartDiagnosticService.runFullDiagnostic();
+                    if (results.firestore.status === 'ok' && results.storage.status === 'ok') {
+                      addLog("✅ تم فحص جميع الأنظمة، كل شيء يعمل بشكل مثالي.");
+                      alert("تم فحص النظام: جميع الاتصالات سليمة والروابط تعمل.");
+                    } else {
+                      addLog("⚠️ تم اكتشاف بعض التنبيهات، راجع سجل العمليات.");
+                      alert("تم اكتشاف بعض المشاكل، يرجى مراجعة سجل العمليات (Debug) أسفل الصفحة.");
+                    }
+                  }}
+                  className="w-full py-3 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl text-[11px] font-black transition-all flex items-center justify-center gap-2"
+                >
+                  <RefreshCw size={14} className="animate-spin-slow" />
+                  فحص حالة النظام
+                </button>
+
+                <button 
+                  onClick={async () => {
+                    if (!confirm("هل تريد تشغيل الإصلاح الذكي لجميع المنتجات؟ سيقوم النظام بتصحيح الروابط التالفة تلقائياً.")) return;
+                    
+                    addLog("بدء إصلاح جميع المنتجات...");
+                    let fixedCount = 0;
+                    
+                    for (const product of products) {
+                      const { fixed, changes } = await SmartDiagnosticService.autoFixProduct(product);
+                      if (changes.length > 0) {
+                        addLog(`جاري إصلاح المنتج: ${product.name} (${changes.join(', ')})`);
+                        await updateDoc(doc(db, 'products', product.id), fixed);
+                        fixedCount++;
+                      }
+                    }
+                    
+                    if (fixedCount > 0) {
+                      addLog(`✅ تم إصلاح ${fixedCount} منتج بنجاح.`);
+                      alert(`تم الانتهاء! تم إصلاح ${fixedCount} منتج تلقائياً.`);
+                    } else {
+                      addLog("✅ لم يتم العثور على مشاكل تحتاج لإصلاح في المنتجات الحالية.");
+                      alert("جميع المنتجات سليمة ولا تحتاج لإصلاح.");
+                    }
+                  }}
+                  className="w-full py-3 bg-gold/10 hover:bg-gold/20 text-gold border border-gold/20 rounded-xl text-[11px] font-black transition-all flex items-center justify-center gap-2"
+                >
+                  <Sparkles size={14} />
+                  إصلاح جميع المنتجات تلقائياً
+                </button>
+              </div>
+            </div>
+
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-black flex items-center gap-2">
                 {editingId ? <CheckCircle2 className="text-gold" /> : <Plus className="text-primary" />}

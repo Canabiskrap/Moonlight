@@ -17,6 +17,7 @@ import Login from './pages/Login';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import FloatingActions from './components/FloatingActions';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { motion, AnimatePresence } from 'motion/react';
 
 const ADMIN_EMAILS = [
@@ -95,28 +96,30 @@ export default function App() {
   }
 
   return (
-    <Router>
-      <div className="min-h-screen bg-[#0a0e1a] text-white font-['Cairo'] flex flex-col">
-        <Navbar user={user} isAdmin={isAdmin} />
-        <main className="pt-20 pb-10 px-4 max-w-7xl mx-auto flex-1 w-full">
-          <AnimatePresence mode="wait">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/product/:id" element={<ProductDetails />} />
-              <Route path="/login" element={<Login user={user} />} />
-              <Route path="/privacy" element={<Privacy />} />
-              <Route path="/terms" element={<Terms />} />
-              <Route 
-                path="/dashboard" 
-                element={isAdmin ? <Dashboard /> : <Navigate to="/login" />} 
-              />
-            </Routes>
-          </AnimatePresence>
-        </main>
-        <Footer />
-        <FloatingActions />
-      </div>
-    </Router>
+    <ErrorBoundary>
+      <Router>
+        <div className="min-h-screen bg-[#0a0e1a] text-white font-['Cairo'] flex flex-col">
+          <Navbar user={user} isAdmin={isAdmin} />
+          <main className="pt-20 pb-10 px-4 max-w-7xl mx-auto flex-1 w-full">
+            <AnimatePresence mode="wait">
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/product/:id" element={<ProductDetails />} />
+                <Route path="/login" element={<Login user={user} />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/terms" element={<Terms />} />
+                <Route 
+                  path="/dashboard" 
+                  element={isAdmin ? <Dashboard /> : <Navigate to="/login" />} 
+                />
+              </Routes>
+            </AnimatePresence>
+          </main>
+          <Footer />
+          <FloatingActions />
+        </div>
+      </Router>
+    </ErrorBoundary>
   );
 }
 

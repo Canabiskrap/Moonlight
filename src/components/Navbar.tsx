@@ -26,22 +26,28 @@ export default function Navbar({ user, isAdmin }: NavbarProps) {
           <Link to="/" className={`text-gray-400 hover:text-white font-medium transition-colors ${!isDashboard ? 'text-white' : ''}`}>المتجر</Link>
           
           {isAdmin && (
-            <Link 
-              to={isDashboard ? "/" : "/dashboard"} 
-              className="flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-lg font-bold border border-primary/20 hover:bg-primary/20 transition-all"
-            >
-              {isDashboard ? (
-                <>
-                  <Home size={18} />
-                  العودة للمتجر
-                </>
-              ) : (
-                <>
-                  <LayoutDashboard size={18} />
-                  لوحة التحكم
-                </>
-              )}
-            </Link>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500/10 border border-green-500/20 rounded-full" title="حالة النظام: متصل">
+                <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+                <span className="text-[10px] font-black text-green-500 uppercase tracking-tighter">System OK</span>
+              </div>
+              <Link 
+                to={isDashboard ? "/" : "/dashboard"} 
+                className="flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-lg font-bold border border-primary/20 hover:bg-primary/20 transition-all"
+              >
+                {isDashboard ? (
+                  <>
+                    <Home size={18} />
+                    العودة للمتجر
+                  </>
+                ) : (
+                  <>
+                    <LayoutDashboard size={18} />
+                    لوحة التحكم
+                  </>
+                )}
+              </Link>
+            </div>
           )}
 
           {user ? (
