@@ -259,6 +259,7 @@ export default function Dashboard() {
                     <div className="relative group">
                       <input 
                         type="file" 
+                        accept="*/*"
                         onChange={(e) => setProductFile(e.target.files?.[0] || null)}
                         className="hidden"
                         id="file-upload"
