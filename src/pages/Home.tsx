@@ -2,14 +2,38 @@ import { useState, useEffect } from 'react';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { convertDriveLink } from '../lib/utils';
-import { motion } from 'motion/react';
-import { ShoppingBag, Sparkles, ShieldCheck, Zap, MessageCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { ShoppingBag, Sparkles, ShieldCheck, Zap, MessageCircle, Search, Brain, Loader2, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { getSmartRecommendations } from '../services/geminiService';
 
 export default function Home() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isAiSearching, setIsAiSearching] = useState(false);
+  const [aiFilteredIds, setAiFilteredIds] = useState<string[] | null>(null);
+
+  const handleAiSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim() || isAiSearching) return;
+
+    setIsAiSearching(true);
+    try {
+      const recommendedIds = await getSmartRecommendations(searchQuery, products);
+      setAiFilteredIds(recommendedIds);
+    } catch (err) {
+      console.error("AI Search failed", err);
+    } finally {
+      setIsAiSearching(false);
+    }
+  };
+
+  const clearAiSearch = () => {
+    setAiFilteredIds(null);
+    setSearchQuery('');
+  };
 
   useEffect(() => {
     const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
@@ -25,9 +49,11 @@ export default function Home() {
     return () => unsubscribe();
   }, []);
 
-  const filteredProducts = selectedCategory === 'all' 
-    ? products 
-    : products.filter(p => p.category === selectedCategory);
+  const filteredProducts = aiFilteredIds 
+    ? products.filter(p => aiFilteredIds.includes(p.id))
+    : (selectedCategory === 'all' 
+        ? products 
+        : products.filter(p => p.category === selectedCategory));
 
   const categories = [
     { id: 'all', name: 'الكل' },
@@ -130,20 +156,62 @@ export default function Home() {
             <p className="text-gray-500">تصفح مجموعتنا المختارة من القوالب الرقمية</p>
           </div>
           
-          <div className="flex flex-wrap justify-center gap-3 bg-white/5 p-2 rounded-2xl border border-white/5 backdrop-blur-md">
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
-                className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
-                  selectedCategory === cat.id 
-                    ? 'bg-primary text-white shadow-lg shadow-primary/20' 
-                    : 'text-gray-400 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                {cat.name}
-              </button>
-            ))}
+          <div className="flex flex-col gap-4 w-full md:w-auto">
+            {/* AI Search Bar */}
+            <form onSubmit={handleAiSearch} className="relative group">
+              <div className="absolute inset-0 bg-primary/5 blur-xl rounded-2xl group-focus-within:bg-primary/10 transition-colors" />
+              <div className="relative flex items-center bg-dark-light/50 backdrop-blur-xl border border-white/10 rounded-2xl p-1.5 focus-within:border-primary/50 transition-all">
+                <input 
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="اسأل الذكاء الاصطناعي عما تحتاجه..."
+                  className="bg-transparent border-none focus:ring-0 text-white px-4 py-2 text-sm w-full md:w-64 text-right"
+                  dir="rtl"
+                />
+                {aiFilteredIds ? (
+                  <button 
+                    type="button"
+                    onClick={clearAiSearch}
+                    className="p-2 hover:bg-white/5 rounded-xl text-gray-400 hover:text-white transition-colors"
+                  >
+                    <X size={18} />
+                  </button>
+                ) : (
+                  <button 
+                    type="submit"
+                    disabled={isAiSearching}
+                    className="bg-primary text-white p-2 rounded-xl hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
+                  >
+                    {isAiSearching ? <Loader2 className="animate-spin" size={18} /> : <Brain size={18} />}
+                  </button>
+                )}
+              </div>
+              {aiFilteredIds && (
+                <div className="absolute -bottom-6 right-0 text-[10px] font-black text-primary uppercase tracking-widest animate-pulse">
+                  تمت الفلترة بواسطة الذكاء الاصطناعي
+                </div>
+              )}
+            </form>
+
+            <div className="flex flex-wrap justify-center gap-3 bg-white/5 p-2 rounded-2xl border border-white/5 backdrop-blur-md">
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => {
+                    setSelectedCategory(cat.id);
+                    setAiFilteredIds(null);
+                  }}
+                  className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
+                    selectedCategory === cat.id && !aiFilteredIds
+                      ? 'bg-primary text-white shadow-lg shadow-primary/20' 
+                      : 'text-gray-400 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  {cat.name}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -195,6 +263,16 @@ export default function Home() {
                     }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-dark/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  
+                  {aiFilteredIds && aiFilteredIds.includes(product.id) && (
+                    <div className="absolute top-4 left-4 bg-primary/90 backdrop-blur-md px-3 py-1 rounded-lg text-[10px] font-black text-white border border-white/20 shadow-xl animate-bounce">
+                      <div className="flex items-center gap-1">
+                        <Brain size={12} />
+                        ترشيح ذكي
+                      </div>
+                    </div>
+                  )}
+
                   <div className="absolute top-4 right-4 bg-dark/80 backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-black text-gold border border-gold/20 shadow-lg">
                     {product.category === 'cv' ? 'سيرة ذاتية' : product.category === 'social' ? 'سوشيال ميديا' : product.category === 'web' ? 'قالب ويب' : 'أخرى'}
                   </div>

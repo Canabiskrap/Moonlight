@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { doc, getDoc, addDoc, collection, Timestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { motion } from 'motion/react';
-import { ArrowRight, ShieldCheck, Download, ExternalLink, CreditCard, Sparkles } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { ArrowRight, ShieldCheck, Download, ExternalLink, CreditCard, Sparkles, Brain, Lightbulb, Target, CheckCircle2, Loader2 } from 'lucide-react';
 import { convertDriveLink } from '../lib/utils';
+import { getProductInsights, ProductInsight } from '../services/geminiService';
 
 declare global {
   interface Window {
@@ -18,6 +19,21 @@ export default function ProductDetails() {
   const [loading, setLoading] = useState(true);
   const [paid, setPaid] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [aiInsights, setAiInsights] = useState<ProductInsight | null>(null);
+  const [loadingAi, setLoadingAi] = useState(false);
+
+  const handleGetAiInsights = async () => {
+    if (!product || loadingAi) return;
+    setLoadingAi(true);
+    try {
+      const insights = await getProductInsights(product);
+      setAiInsights(insights);
+    } catch (err) {
+      console.error("Failed to get AI insights", err);
+    } finally {
+      setLoadingAi(false);
+    }
+  };
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -251,6 +267,83 @@ export default function ProductDetails() {
             <p className="text-xs text-gray-500 mb-1">التسليم</p>
             <p className="font-bold text-green-400">فوري وآلي</p>
           </div>
+        </div>
+
+        {/* AI Insights Section */}
+        <div className="space-y-6">
+          {!aiInsights ? (
+            <button
+              onClick={handleGetAiInsights}
+              disabled={loadingAi}
+              className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-primary/20 to-gold/20 hover:from-primary/30 hover:to-gold/30 p-6 rounded-[2rem] border border-white/10 transition-all group disabled:opacity-50"
+            >
+              {loadingAi ? (
+                <Loader2 className="animate-spin text-primary" size={24} />
+              ) : (
+                <>
+                  <Brain className="text-primary group-hover:scale-110 transition-transform" size={24} />
+                  <div className="text-right">
+                    <p className="text-sm font-black text-white">رؤية الذكاء الاصطناعي</p>
+                    <p className="text-[10px] text-gray-400">احصل على تحليل ذكي لهذا المشروع</p>
+                  </div>
+                </>
+              )}
+            </button>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-dark-light/50 backdrop-blur-xl p-8 rounded-[2.5rem] border border-primary/20 space-y-8 relative overflow-hidden"
+            >
+              <div className="absolute top-0 left-0 w-32 h-32 bg-primary/5 blur-3xl rounded-full -ml-16 -mt-16" />
+              
+              <div className="flex items-center gap-3 border-b border-white/5 pb-4">
+                <div className="bg-primary/20 p-2 rounded-xl">
+                  <Sparkles className="text-primary" size={20} />
+                </div>
+                <h3 className="text-xl font-black text-white">تحليل Moonlight الذكي</h3>
+              </div>
+
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-gold">
+                    <Brain size={16} />
+                    <span className="text-xs font-black uppercase tracking-widest">خلاصة إبداعية</span>
+                  </div>
+                  <p className="text-gray-300 text-sm leading-relaxed font-medium">{aiInsights.creativeSummary}</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-primary">
+                      <Target size={16} />
+                      <span className="text-xs font-black uppercase tracking-widest">الفئة المستهدفة</span>
+                    </div>
+                    <p className="text-gray-400 text-xs leading-relaxed">{aiInsights.targetAudience}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-green-400">
+                      <Lightbulb size={16} />
+                      <span className="text-xs font-black uppercase tracking-widest">نصيحة الخبير</span>
+                    </div>
+                    <p className="text-gray-400 text-xs leading-relaxed">{aiInsights.proTip}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest block">حالات الاستخدام المثالية</span>
+                  <div className="flex flex-wrap gap-2">
+                    {aiInsights.suggestedUseCases.map((useCase, i) => (
+                      <div key={i} className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5 text-[10px] text-gray-300 font-bold">
+                        <CheckCircle2 size={12} className="text-primary" />
+                        {useCase}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
         </div>
       </div>
     </motion.div>
