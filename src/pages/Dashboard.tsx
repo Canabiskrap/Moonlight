@@ -23,7 +23,7 @@ import {
 import { convertDriveLink, isValidUrl } from '../lib/utils';
 import { SmartDiagnosticService } from '../lib/smartDiagnostic';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Trash2, Package, DollarSign, Image as ImageIcon, Link as LinkIcon, FileText, Upload, CheckCircle2, Globe, Search, RefreshCw, Sparkles, ShoppingBag, AlertCircle, Settings, Activity, LogOut } from 'lucide-react';
+import { Plus, Trash2, Package, DollarSign, Image as ImageIcon, Link as LinkIcon, FileText, Upload, CheckCircle2, Globe, Search, RefreshCw, Sparkles, ShoppingBag, AlertCircle, Settings, Activity, LogOut, Loader2 } from 'lucide-react';
 
 import { getProductInsights } from '../services/geminiService';
 
@@ -443,9 +443,14 @@ export default function Dashboard() {
       addLog("✅ نجح اختبار الذكاء الاصطناعي: " + result.creativeSummary.substring(0, 50) + "...");
       alert("الذكاء الاصطناعي يعمل بنجاح! ✅");
     } catch (err: any) {
-      addLog("❌ فشل اختبار الذكاء الاصطناعي: " + err.message);
+      const errorStr = JSON.stringify(err);
+      let msg = err.message;
+      if (errorStr.includes('403') || errorStr.includes('PERMISSION_DENIED')) {
+        msg = "خطأ 403: ليس لديك صلاحية. يرجى التأكد من تفعيل Generative Language API لمفتاحك.";
+      }
+      addLog("❌ فشل اختبار الذكاء الاصطناعي: " + msg);
       console.error("AI Test Error:", err);
-      alert("فشل اختبار الذكاء الاصطناعي: " + err.message);
+      alert("فشل اختبار الذكاء الاصطناعي: " + msg);
     } finally {
       setIsTestingAI(false);
     }
@@ -652,58 +657,98 @@ export default function Dashboard() {
               </motion.div>
             )}
             
-            {/* Debug Logs */}
-            {debugLogs.length > 0 && (
-              <div className="mb-6 p-4 bg-black/50 border border-white/5 rounded-xl font-mono text-[10px] text-gray-400">
-                <div className="flex justify-between items-center mb-2">
-                  <p className="text-gray-500 uppercase tracking-widest">سجل العمليات (Debug):</p>
-                  <div className="flex gap-4">
-                    <span className="text-[8px] text-primary/50">Bucket: {storage.app.options.storageBucket || 'غير محدد'}</span>
-                    <button 
-                      onClick={() => setDebugLogs([])}
-                      className="text-[8px] hover:text-white underline"
-                    >
-                      مسح السجل
-                    </button>
+            {/* System Diagnostic & Tools Section */}
+            <div className="mb-10 bg-dark-light/30 rounded-[2.5rem] border border-white/5 overflow-hidden backdrop-blur-sm">
+              <div className="p-8 border-b border-white/5 flex items-center justify-between bg-white/5">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20">
+                    <Activity className="text-primary" size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black text-white">أدوات النظام والتشخيص</h3>
+                    <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">System Health & AI Diagnostics</p>
                   </div>
                 </div>
-                {debugLogs.map((log, i) => (
-                  <div key={i} className="mb-1">
-                    <span className="text-primary mr-2">›</span>
-                    {log}
+                <div className="flex items-center gap-3">
+                  <div className="text-right hidden sm:block">
+                    <p className="text-[10px] text-gray-500 font-bold uppercase">Storage Bucket</p>
+                    <p className="text-[9px] text-primary/70 font-mono">{storage.app.options.storageBucket || 'Default'}</p>
                   </div>
-                ))}
-                
-                <div className="mt-4 space-y-2">
-                  <div className="flex gap-2">
-                    <input 
-                      type="text"
-                      placeholder="تغيير الـ Bucket (مثلاً: project.appspot.com)"
-                      value={customBucket}
-                      onChange={(e) => setCustomBucket(e.target.value)}
-                      className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-[10px] outline-none focus:border-primary"
-                    />
-                    <button 
-                      onClick={testAI}
-                      disabled={isTestingAI}
-                      className="px-4 py-2 bg-primary/10 hover:bg-primary/20 border border-primary/20 rounded-lg text-[10px] font-bold transition-all disabled:opacity-50 text-primary"
-                    >
-                      {isTestingAI ? 'جاري الاختبار...' : 'اختبار الذكاء الاصطناعي'}
-                    </button>
-                    <button 
-                      onClick={testConnection}
-                      disabled={isTestingConnection}
-                      className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[10px] font-bold transition-all disabled:opacity-50"
-                    >
-                      {isTestingConnection ? 'جاري الفحص...' : 'بدء الفحص الشامل'}
-                    </button>
-                  </div>
-                  <p className="text-[8px] text-gray-500">
-                    * إذا فشل الـ Storage، جرب إضافة ".appspot.com" بدلاً من ".firebasestorage.app"
-                  </p>
+                  <button 
+                    onClick={() => setDebugLogs([])}
+                    className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-gray-400 transition-colors"
+                    title="مسح السجل"
+                  >
+                    <Trash2 size={18} />
+                  </button>
                 </div>
               </div>
-            )}
+
+              <div className="p-8 space-y-8">
+                {/* Log Display */}
+                <div className="bg-black/40 rounded-3xl p-6 font-mono text-[11px] text-gray-400 space-y-2 max-h-48 overflow-auto border border-white/5 scrollbar-hide shadow-inner">
+                  {debugLogs.length > 0 ? (
+                    debugLogs.map((log, i) => (
+                      <div key={i} className="flex gap-3 items-start group">
+                        <span className="text-primary/40 shrink-0 font-bold">[{i}]</span>
+                        <span className={`break-all ${log.includes('❌') ? 'text-red-400' : log.includes('✅') ? 'text-green-400' : ''}`}>
+                          {log}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-10 opacity-20">
+                      <Activity size={32} className="mb-2" />
+                      <p className="italic font-bold">لا توجد عمليات مسجلة حالياً</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Tool Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="md:col-span-1">
+                    <div className="relative group">
+                      <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-gray-500 group-focus-within:text-primary transition-colors">
+                        <Globe size={16} />
+                      </div>
+                      <input 
+                        type="text"
+                        placeholder="تغيير الـ Bucket..."
+                        value={customBucket}
+                        onChange={(e) => setCustomBucket(e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-xs outline-none focus:border-primary/50 focus:bg-primary/5 transition-all text-white font-bold"
+                      />
+                    </div>
+                  </div>
+
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={testAI}
+                    disabled={isTestingAI}
+                    className="flex items-center justify-center gap-3 py-4 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-2xl text-xs font-black transition-all disabled:opacity-50"
+                  >
+                    {isTestingAI ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
+                    اختبار الذكاء الاصطناعي
+                  </motion.button>
+
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={testConnection}
+                    disabled={isTestingConnection}
+                    className="flex items-center justify-center gap-3 py-4 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-2xl text-xs font-black transition-all disabled:opacity-50 shadow-xl"
+                  >
+                    {isTestingConnection ? <Loader2 size={18} className="animate-spin" /> : <RefreshCw size={18} />}
+                    بدء الفحص الشامل
+                  </motion.button>
+                </div>
+                
+                <p className="text-[10px] text-gray-600 text-center font-medium">
+                  * ملاحظة: تغيير الـ Bucket يؤثر فقط على الجلسة الحالية لأغراض الاختبار الفني.
+                </p>
+              </div>
+            </div>
 
             <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
               {errorMessage && (
@@ -1237,61 +1282,6 @@ export default function Dashboard() {
 
       {/* Debug Logs - Collapsible at bottom */}
       <div className="mt-20">
-        <details className="group bg-dark-light/20 rounded-[2rem] border border-white/5 overflow-hidden">
-          <summary className="p-6 cursor-pointer flex items-center justify-between list-none">
-            <div className="flex items-center gap-3">
-              <Activity size={18} className="text-primary" />
-              <span className="text-xs font-black text-gray-500 uppercase tracking-widest">سجل العمليات التقني (Debug Logs)</span>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="text-[8px] text-primary/50">Bucket: {storage.app.options.storageBucket || 'غير محدد'}</span>
-              <Settings size={14} className="text-gray-600 group-open:rotate-90 transition-transform" />
-            </div>
-          </summary>
-          
-          <div className="p-8 pt-0 space-y-6">
-            <div className="bg-black/40 rounded-2xl p-6 font-mono text-[10px] text-gray-500 space-y-1 max-h-64 overflow-auto border border-white/5">
-              {debugLogs.length > 0 ? (
-                debugLogs.map((log, i) => (
-                  <div key={i} className="flex gap-3">
-                    <span className="text-primary/50 shrink-0">[{i}]</span>
-                    <span className="break-all">{log}</span>
-                  </div>
-                ))
-              ) : (
-                <p className="text-center py-4 italic">لا توجد سجلات حالياً</p>
-              )}
-            </div>
-
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1 flex gap-2">
-                <input 
-                  type="text"
-                  placeholder="تغيير الـ Bucket (مثلاً: project.appspot.com)"
-                  value={customBucket}
-                  onChange={(e) => setCustomBucket(e.target.value)}
-                  className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-[10px] outline-none focus:border-primary text-white"
-                />
-                <button 
-                  onClick={testConnection}
-                  disabled={isTestingConnection}
-                  className="px-6 py-3 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl text-[10px] font-black transition-all disabled:opacity-50"
-                >
-                  {isTestingConnection ? 'جاري الفحص...' : 'فحص شامل'}
-                </button>
-              </div>
-              <button 
-                onClick={() => setDebugLogs([])}
-                className="px-6 py-3 bg-white/5 hover:bg-white/10 text-gray-500 border border-white/10 rounded-xl text-[10px] font-black transition-all"
-              >
-                مسح السجل
-              </button>
-            </div>
-            <p className="text-[9px] text-gray-600 text-center">
-              * ملاحظة: تغيير الـ Bucket يؤثر فقط على الجلسة الحالية لأغراض الاختبار.
-            </p>
-          </div>
-        </details>
       </div>
 
       {/* Final Logout Section at the very bottom */}

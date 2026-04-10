@@ -43,7 +43,10 @@ export default function FloatingActions() {
       console.error("Bot Error Details:", error);
       let errorMsg = "عذراً، حدث خطأ تقني. يمكنك التواصل معنا عبر الواتساب مباشرة.";
       
-      if (error?.message?.includes('API_KEY_INVALID') || error?.message?.includes('API key')) {
+      const errorStr = JSON.stringify(error);
+      if (errorStr.includes('403') || errorStr.includes('PERMISSION_DENIED')) {
+        errorMsg = "خطأ: ليس لديك صلاحية للوصول إلى الذكاء الاصطناعي. يرجى التأكد من صحة مفتاح API في الإعدادات وتفعيل Generative Language API.";
+      } else if (error?.message?.includes('API_KEY_INVALID') || error?.message?.includes('API key')) {
         errorMsg = "خطأ: مفتاح API الخاص بالذكاء الاصطناعي غير صالح أو مفقود.";
       } else if (error?.message?.includes('quota')) {
         errorMsg = "عذراً، تم تجاوز حصة الاستخدام اليومية للذكاء الاصطناعي.";

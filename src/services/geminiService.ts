@@ -19,7 +19,7 @@ export async function getProductInsights(product: any): Promise<ProductInsight> 
   if (!ai) throw new Error("AI service not initialized. Missing API Key.");
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-flash-latest",
       contents: `Analyze this product and provide creative insights in Arabic.
       Product Name: ${product.name}
       Description: ${product.description}
@@ -58,7 +58,7 @@ export async function getSmartRecommendations(query: string, products: any[]): P
     const productList = products.map(p => ({ id: p.id, name: p.name, description: p.description, category: p.category }));
     
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-flash-latest",
       contents: `User Query: "${query}"
       Available Products: ${JSON.stringify(productList)}`,
       config: {
@@ -87,7 +87,7 @@ export async function chatWithBot(userMessage: string, history: {role: 'user' | 
   try {
     console.log("Calling Gemini with message:", userMessage);
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-flash-latest",
       contents: [
         ...history.map(h => ({ role: h.role, parts: h.parts })),
         { role: 'user', parts: [{ text: userMessage }] }
