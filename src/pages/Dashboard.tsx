@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, Timestamp } from 'firebase/firestore';
 import { ref, uploadBytesResumable, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage, auth, deleteFile } from '../lib/firebase';
+import { uploadToCloudinary } from '../lib/cloudinary';
 import { motion } from 'motion/react';
 import { Plus, Trash2, Package, DollarSign, Image as ImageIcon, Link as LinkIcon, FileText, Upload, CheckCircle2, Globe } from 'lucide-react';
 
@@ -74,32 +75,14 @@ export default function Dashboard() {
           throw new Error("يرجى اختيار صورة الغلاف والملف الرقمي أولاً.");
         }
         try {
-          console.log("Starting image upload...");
-          const imageRef = ref(storage, `products/images/${Date.now()}_${imageFile.name}`);
-          const imageUploadTask = uploadBytesResumable(imageRef, imageFile);
-          
-          finalImageUrl = await new Promise((resolve, reject) => {
-            imageUploadTask.on('state_changed', 
-              (snapshot) => {
-                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 10;
-                setUploadProgress(Math.round(progress));
-              },
-              (error) => {
-                console.error("Image upload error:", error);
-                reject(new Error("فشل رفع صورة الغلاف: " + error.message));
-              },
-              async () => {
-                try {
-                  const url = await getDownloadURL(imageUploadTask.snapshot.ref);
-                  resolve(url);
-                } catch (err) {
-                  reject(err);
-                }
-              }
-            );
+          console.log("Starting image upload to Cloudinary...");
+          finalImageUrl = await uploadToCloudinary(imageFile, (progress) => {
+            // Image is 10% of total progress
+            setUploadProgress(Math.round(progress * 0.1));
           });
+          console.log("Image uploaded to Cloudinary:", finalImageUrl);
           
-          console.log("Starting product file upload...");
+          console.log("Starting product file upload to Firebase...");
           const fileRef = ref(storage, `products/files/${Date.now()}_${productFile.name}`);
           const fileUploadTask = uploadBytesResumable(fileRef, productFile);
           
@@ -134,30 +117,11 @@ export default function Dashboard() {
           throw new Error("يرجى وضع رابط التحميل.");
         }
         try {
-          console.log("Starting image upload for link method...");
-          const imageRef = ref(storage, `products/images/${Date.now()}_${imageFile.name}`);
-          const imageUploadTask = uploadBytesResumable(imageRef, imageFile);
-          
-          finalImageUrl = await new Promise((resolve, reject) => {
-            imageUploadTask.on('state_changed', 
-              (snapshot) => {
-                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                setUploadProgress(Math.round(progress));
-              },
-              (error) => {
-                console.error("Image upload error:", error);
-                reject(new Error("فشل رفع الصورة: " + error.message));
-              },
-              async () => {
-                try {
-                  const url = await getDownloadURL(imageUploadTask.snapshot.ref);
-                  resolve(url);
-                } catch (err) {
-                  reject(err);
-                }
-              }
-            );
+          console.log("Starting image upload to Cloudinary for link method...");
+          finalImageUrl = await uploadToCloudinary(imageFile, (progress) => {
+            setUploadProgress(Math.round(progress));
           });
+          console.log("Image uploaded to Cloudinary:", finalImageUrl);
           finalDownloadUrl = downloadUrl;
         } catch (storageErr: any) {
           throw storageErr;
