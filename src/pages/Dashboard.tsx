@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { put } from '@vercel/blob';
+import { upload } from '@vercel/blob/client';
 import { 
   db, 
   auth, 
@@ -226,12 +226,18 @@ export default function Dashboard() {
         addLog("جاري رفع الصورة (Vercel Blob)...");
         
         try {
-          const { url } = await put(imageFile.name, imageFile, {
+          const blob = await upload(imageFile.name, imageFile, {
             access: 'public',
-            token: import.meta.env.VITE_BLOB_READ_WRITE_TOKEN
+            handleUploadUrl: `${window.location.origin}/api/upload`,
+            addRandomSuffix: true,
+            onUploadProgress: (progressEvent) => {
+              const total = progressEvent.total || 1;
+              const progress = (progressEvent.loaded / total) * 40;
+              setUploadProgress(Math.round(progress));
+            },
           });
           
-          finalImageUrl = url;
+          finalImageUrl = blob.url;
           addLog("تم رفع الصورة بنجاح");
         } catch (imgErr: any) {
           console.error("Image upload error details:", imgErr);
@@ -242,12 +248,18 @@ export default function Dashboard() {
         addLog("جاري رفع الصورة (Vercel Blob)...");
         
         try {
-          const { url } = await put(imageFile.name, imageFile, {
+          const blob = await upload(imageFile.name, imageFile, {
             access: 'public',
-            token: import.meta.env.VITE_BLOB_READ_WRITE_TOKEN
+            handleUploadUrl: `${window.location.origin}/api/upload`,
+            addRandomSuffix: true,
+            onUploadProgress: (progressEvent) => {
+              const total = progressEvent.total || 1;
+              const progress = (progressEvent.loaded / total) * 40;
+              setUploadProgress(Math.round(progress));
+            },
           });
           
-          finalImageUrl = url;
+          finalImageUrl = blob.url;
           addLog("تم رفع الصورة بنجاح");
         } catch (imgErr: any) {
           console.error("Image upload error details (link mode):", imgErr);
@@ -260,12 +272,20 @@ export default function Dashboard() {
         addLog("جاري رفع الملف الرقمي (Vercel Blob)...");
         
         try {
-          const { url } = await put(productFile.name, productFile, {
+          const blob = await upload(productFile.name, productFile, {
             access: 'public',
-            token: import.meta.env.VITE_BLOB_READ_WRITE_TOKEN
+            handleUploadUrl: `${window.location.origin}/api/upload`,
+            addRandomSuffix: true,
+            onUploadProgress: (progressEvent) => {
+              const baseProgress = finalImageUrl ? 40 : 0;
+              const remaining = 100 - baseProgress - 10;
+              const total = progressEvent.total || 1;
+              const progress = baseProgress + ((progressEvent.loaded / total) * remaining);
+              setUploadProgress(Math.round(progress));
+            },
           });
           
-          finalDownloadUrl = url;
+          finalDownloadUrl = blob.url;
           addLog("تم رفع الملف بنجاح");
         } catch (uploadErr: any) {
           console.error("Product file upload error details:", uploadErr);

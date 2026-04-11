@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
+import { handleUpload } from '@vercel/blob/client';
 
 dotenv.config();
 
@@ -42,6 +43,31 @@ function decrypt(text: string) {
 }
 
 // API Routes
+
+// Vercel Blob Upload Endpoint
+app.post('/api/upload', async (request, response) => {
+  const body = request.body;
+
+  console.log("Upload endpoint hit. Token present?", !!process.env.VITE_BLOB_READ_WRITE_TOKEN);
+
+  try {
+    const jsonResponse = await handleUpload({
+      body,
+      request,
+      token: process.env.VITE_BLOB_READ_WRITE_TOKEN,
+      onBeforeGenerateToken: async (pathname, clientPayload) => {
+        return {
+          tokenPayload: JSON.stringify({}),
+        };
+      },
+    });
+
+    response.status(200).json(jsonResponse);
+  } catch (error) {
+    console.error("handleUpload error:", error);
+    response.status(400).json({ error: (error as Error).message });
+  }
+});
 
 // 1. Encrypt URL (Used by Dashboard when adding a product)
 app.post('/api/encrypt', (req, res) => {
