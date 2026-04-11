@@ -2,18 +2,30 @@ import { motion, AnimatePresence } from 'motion/react';
 import { MessageCircle, Bot, X, Send, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { chatWithBot } from '../services/geminiService';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 export default function FloatingActions() {
   const [showBot, setShowBot] = useState(false);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<{role: 'bot' | 'user', text: string}[]>([
-    { role: 'bot', text: 'مرحباً بك في متجر Moonlight! أنا مساعدك الذكي، كيف يمكنني مساعدتك اليوم؟' }
+    { role: 'bot', text: 'مرحباً بك في Moonlight 🌕! أنا مساعدك الذكي، كيف يمكنني مساعدتك اليوم؟' }
   ]);
   const [isTyping, setIsTyping] = useState(false);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const whatsappNumber = "96569929627"; 
   const whatsappUrl = `https://wa.me/${whatsappNumber}`;
+
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'settings', 'appearance'), (doc) => {
+      if (doc.exists()) {
+        setLogoUrl(doc.data().logoUrl);
+      }
+    });
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -88,7 +100,7 @@ export default function FloatingActions() {
           <div className="relative w-full h-full rounded-full overflow-hidden flex items-center justify-center">
             <Bot size={28} className="text-white" />
             <img 
-              src="/bot-avatar.png" 
+              src={logoUrl || "/bot-avatar.png"} 
               alt="Bot Avatar" 
               className="w-full h-full object-cover absolute inset-0 transition-opacity duration-300" 
               onLoad={(e) => e.currentTarget.style.opacity = '1'}
@@ -114,7 +126,7 @@ export default function FloatingActions() {
             <div className="bg-primary p-5 flex items-center gap-3">
               <div className="flex items-center gap-2">
                 <button 
-                  onClick={() => setMessages([{ role: 'bot', text: 'مرحباً بك في متجر Moonlight! أنا مساعدك الذكي، كيف يمكنني مساعدتك اليوم؟' }])}
+                  onClick={() => setMessages([{ role: 'bot', text: 'مرحباً بك في Moonlight 🌕! أنا مساعدك الذكي، كيف يمكنني مساعدتك اليوم؟' }])}
                   className="p-1.5 hover:bg-white/10 rounded-lg text-white/50 hover:text-white transition-colors"
                   title="مسح المحادثة"
                 >
@@ -123,7 +135,7 @@ export default function FloatingActions() {
                 <div className="bg-white/20 w-10 h-10 rounded-xl relative overflow-hidden flex items-center justify-center">
                   <Bot size={24} className="text-white" />
                   <img 
-                    src="/bot-avatar.png" 
+                    src={logoUrl || "/bot-avatar.png"} 
                     alt="Bot Avatar" 
                     className="w-full h-full object-cover absolute inset-0 transition-opacity duration-300" 
                     onLoad={(e) => e.currentTarget.style.opacity = '1'}
@@ -133,7 +145,7 @@ export default function FloatingActions() {
                 </div>
               </div>
               <div>
-                <p className="font-black text-sm">مساعد Moonlight الذكي</p>
+                <p className="font-black text-sm">مساعد Moonlight 🌕 الذكي</p>
                 <p className="text-[10px] text-white/70">مدعوم بالذكاء الاصطناعي</p>
               </div>
             </div>
@@ -191,3 +203,4 @@ export default function FloatingActions() {
     </div>
   );
 }
+

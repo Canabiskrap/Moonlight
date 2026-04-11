@@ -171,6 +171,38 @@ export default function Dashboard() {
     setUploadProgress(0);
   };
 
+  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'settings'>('products');
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+
+  const handleLogoUpload = async () => {
+    if (!logoFile) return;
+    setIsUploadingLogo(true);
+    addLog("جاري رفع الشعار الجديد...");
+    
+    try {
+      const activeStorage = customBucket ? getStorage(storage.app, customBucket) : storage;
+      const logoRef = ref(activeStorage, 'site/logo.png');
+      await uploadBytes(logoRef, logoFile);
+      const url = await getDownloadURL(logoRef);
+      
+      // Update a settings document in Firestore to store the logo URL
+      await setDoc(doc(db, 'settings', 'appearance'), {
+        logoUrl: url,
+        updatedAt: Timestamp.now()
+      }, { merge: true });
+      
+      addLog("تم تحديث الشعار بنجاح! سيظهر التغيير بعد تحديث الصفحة.");
+      setLogoFile(null);
+      setShowToast(true);
+    } catch (err: any) {
+      console.error("Logo Upload Error:", err);
+      addLog(`خطأ في رفع الشعار: ${err.message}`);
+    } finally {
+      setIsUploadingLogo(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (status === 'uploading') return;
@@ -178,10 +210,9 @@ export default function Dashboard() {
     setStatus('uploading');
     setErrorMessage('');
     setShowToast(false);
-    setUploadProgress(1); // Start at 1% to show "Saving..." instead of "Preparing..."
+    setUploadProgress(1);
     addLog("بدء عملية الحفظ...");
 
-    // Safety timeout: Reset status to idle if stuck for 15 minutes
     const safetyTimeout = setTimeout(() => {
       setStatus(current => {
         if (current === 'uploading') {
@@ -190,148 +221,120 @@ export default function Dashboard() {
         }
         return current;
       });
-    }, 900000); // 15 minutes
+    }, 900000);
 
     try {
-      if (!auth.currentUser) {
-        throw new Error("يجب تسجيل الدخول كمسؤول للقيام بهذه العملية.");
-      }
-
-      if (!isAdminUser) {
-        throw new Error(`حسابك (${currentUser?.email}) ليس لديه صلاحيات المسؤول.`);
-      }
-
-      if (!isEmailVerified) {
-        throw new Error("يرجى تأكيد بريدك الإلكتروني في جوجل لتتمكن من النشر.");
-      }
+      if (!auth.currentUser) throw new Error("يجب تسجيل الدخول كمسؤول.");
+      if (!isAdminUser) throw new Error(`حسابك ليس لديه صلاحيات المسؤول.`);
+      if (!isEmailVerified) throw new Error("يرجى تأكيد بريدك الإلكتروني.");
 
       let finalImageUrl = convertDriveLink(imageUrl);
       let finalDownloadUrl = downloadUrl;
 
-      if (uploadMethod === 'direct') {
-        const createTimeout = (ms: number, msg: string) => 
-          new Promise((_, reject) => setTimeout(() => reject(new Error(msg)), ms));
+      const activeStorage = customBucket ? getStorage(storage.app, customBucket) : storage;
+      const createTimeout = (ms: number, msg: string) => 
+        new Promise((_, reject) => setTimeout(() => reject(new Error(msg)), ms));
 
-        const activeStorage = customBucket ? getStorage(storage.app, customBucket) : storage;
-
-        if (imageFile) {
-          addLog("جاري رفع الصورة...");
-          const imageRef = ref(activeStorage, `products/images/${Date.now()}_${imageFile.name}`);
-          const imageUploadTask = uploadBytesResumable(imageRef, imageFile);
-          uploadTaskRef.current = imageUploadTask;
-          
-          imageUploadTask.on('state_changed', (snapshot) => {
-            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 10;
-            setUploadProgress(Math.round(progress));
-          });
-
-          try {
-            await Promise.race([
-              imageUploadTask,
-              createTimeout(120000, "انتهت مهلة رفع الصورة (دقيقتان). يرجى التحقق من اتصال الإنترنت.")
-            ]);
-            finalImageUrl = await getDownloadURL(imageRef);
-            addLog("تم رفع الصورة بنجاح");
-          } catch (imgErr: any) {
-            if (imgErr.code === 'storage/canceled') {
-              throw new Error("UPLOAD_CANCELED");
-            }
-            addLog(`خطأ في رفع الصورة: ${imgErr.message}`);
-            throw new Error("فشل رفع الصورة: " + imgErr.message);
-          } finally {
-            uploadTaskRef.current = null;
-          }
-        }
+      // 1. Handle Image Upload
+      if (uploadMethod === 'direct' && imageFile) {
+        addLog("جاري رفع الصورة...");
+        const imageRef = ref(activeStorage, `products/images/${Date.now()}_${imageFile.name}`);
+        const imageUploadTask = uploadBytesResumable(imageRef, imageFile);
+        uploadTaskRef.current = imageUploadTask;
         
-        if (productFile) {
-          addLog("جاري رفع الملف الرقمي...");
-          const fileRef = ref(activeStorage, `products/files/${Date.now()}_${productFile.name}`);
-          const fileUploadTask = uploadBytesResumable(fileRef, productFile);
-          uploadTaskRef.current = fileUploadTask;
-          
-          // Track progress
-          fileUploadTask.on('state_changed', (snapshot) => {
-            const progress = 10 + ((snapshot.bytesTransferred / snapshot.totalBytes) * 90);
-            setUploadProgress(Math.round(progress));
-          });
+        imageUploadTask.on('state_changed', (snapshot) => {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 40;
+          setUploadProgress(Math.round(progress));
+        });
 
-          try {
-            await Promise.race([
-              fileUploadTask,
-              createTimeout(600000, "انتهت مهلة رفع الملف (10 دقائق). إذا كان الملف كبيراً جداً، يرجى التأكد من استقرار الإنترنت.")
-            ]);
-            finalDownloadUrl = await getDownloadURL(fileRef);
-            addLog("تم رفع الملف بنجاح");
-          } catch (uploadErr: any) {
-            if (uploadErr.code === 'storage/canceled') {
-              throw new Error("UPLOAD_CANCELED");
-            }
-            addLog(`خطأ في رفع الملف: ${uploadErr.message}`);
-            throw new Error("فشل رفع الملف الرقمي: " + uploadErr.message);
-          } finally {
-            uploadTaskRef.current = null;
-          }
+        try {
+          await Promise.race([
+            imageUploadTask,
+            createTimeout(120000, "انتهت مهلة رفع الصورة (دقيقتان).")
+          ]);
+          finalImageUrl = await getDownloadURL(imageRef);
+          addLog("تم رفع الصورة بنجاح");
+        } catch (imgErr: any) {
+          if (imgErr.code === 'storage/canceled') throw new Error("UPLOAD_CANCELED");
+          throw new Error("فشل رفع الصورة: " + imgErr.message);
+        } finally {
+          uploadTaskRef.current = null;
         }
-      } else {
-        // Validation for link method
-        const activeStorage = customBucket ? getStorage(storage.app, customBucket) : storage;
-        const createTimeout = (ms: number, msg: string) => 
-          new Promise((_, reject) => setTimeout(() => reject(new Error(msg)), ms));
+      } else if (uploadMethod === 'link' && imageUploadType === 'file' && imageFile) {
+        // Handle file upload even in link mode if imageUploadType is 'file'
+        addLog("جاري رفع الصورة (طريقة الرابط)...");
+        const imageRef = ref(activeStorage, `products/images/${Date.now()}_${imageFile.name}`);
+        const imageUploadTask = uploadBytesResumable(imageRef, imageFile);
+        uploadTaskRef.current = imageUploadTask;
+        
+        imageUploadTask.on('state_changed', (snapshot) => {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 40;
+          setUploadProgress(Math.round(progress));
+        });
 
-        if (imageUploadType === 'file' && imageFile) {
-          addLog("جاري رفع الصورة (طريقة الرابط)...");
-          const imageRef = ref(activeStorage, `products/images/${Date.now()}_${imageFile.name}`);
-          const imageUploadTask = uploadBytesResumable(imageRef, imageFile);
-          uploadTaskRef.current = imageUploadTask;
-          
-          imageUploadTask.on('state_changed', (snapshot) => {
-            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 50;
-            setUploadProgress(Math.round(progress));
-          });
-
-          try {
-            await Promise.race([
-              imageUploadTask,
-              createTimeout(120000, "انتهت مهلة رفع الصورة (دقيقتان).")
-            ]);
-            finalImageUrl = await getDownloadURL(imageRef);
-            addLog("تم رفع الصورة بنجاح");
-          } catch (imgErr: any) {
-            if (imgErr.code === 'storage/canceled') {
-              throw new Error("UPLOAD_CANCELED");
-            }
-            addLog(`خطأ في رفع الصورة: ${imgErr.message}`);
-            throw new Error("فشل رفع الصورة: " + imgErr.message);
-          } finally {
-            uploadTaskRef.current = null;
-          }
-        } else if (imageUploadType === 'link' || !imageFile) {
-          if (imageUrl) {
-            const convertedUrl = convertDriveLink(imageUrl);
-            if (!isValidUrl(convertedUrl)) {
-              // Try to fix common missing https://
-              if (imageUrl.includes('.') && !imageUrl.startsWith('http')) {
-                finalImageUrl = `https://${imageUrl}`;
-              } else {
-                throw new Error("رابط الصورة غير صالح. يجب أن يبدأ بـ http:// أو https://");
-              }
-            } else {
-              finalImageUrl = convertedUrl;
-            }
-          }
+        try {
+          await Promise.race([
+            imageUploadTask,
+            createTimeout(120000, "انتهت مهلة رفع الصورة.")
+          ]);
+          finalImageUrl = await getDownloadURL(imageRef);
+          addLog("تم رفع الصورة بنجاح");
+        } catch (imgErr: any) {
+          if (imgErr.code === 'storage/canceled') throw new Error("UPLOAD_CANCELED");
+          throw new Error("فشل رفع الصورة: " + imgErr.message);
+        } finally {
+          uploadTaskRef.current = null;
         }
+      }
 
-        if (downloadUrl && !isValidUrl(downloadUrl)) {
-          if (downloadUrl.includes('.') && !downloadUrl.startsWith('http')) {
-            finalDownloadUrl = `https://${downloadUrl}`;
+      // 2. Handle Product File Upload
+      if (uploadMethod === 'direct' && productFile) {
+        addLog("جاري رفع الملف الرقمي...");
+        const fileRef = ref(activeStorage, `products/files/${Date.now()}_${productFile.name}`);
+        const fileUploadTask = uploadBytesResumable(fileRef, productFile);
+        uploadTaskRef.current = fileUploadTask;
+        
+        fileUploadTask.on('state_changed', (snapshot) => {
+          const baseProgress = finalImageUrl ? 40 : 0;
+          const remaining = 100 - baseProgress - 10; // Reserve 10% for firestore
+          const progress = baseProgress + ((snapshot.bytesTransferred / snapshot.totalBytes) * remaining);
+          setUploadProgress(Math.round(progress));
+        });
+
+        try {
+          await Promise.race([
+            fileUploadTask,
+            createTimeout(600000, "انتهت مهلة رفع الملف (10 دقائق).")
+          ]);
+          finalDownloadUrl = await getDownloadURL(fileRef);
+          addLog("تم رفع الملف بنجاح");
+        } catch (uploadErr: any) {
+          if (uploadErr.code === 'storage/canceled') throw new Error("UPLOAD_CANCELED");
+          throw new Error("فشل رفع الملف الرقمي: " + uploadErr.message);
+        } finally {
+          uploadTaskRef.current = null;
+        }
+      }
+
+      // 3. Validation and URL conversion
+      if (finalImageUrl) {
+        finalImageUrl = convertDriveLink(finalImageUrl);
+        if (!isValidUrl(finalImageUrl)) {
+          if (finalImageUrl.includes('.') && !finalImageUrl.startsWith('http')) {
+            finalImageUrl = `https://${finalImageUrl}`;
           } else {
-            throw new Error("رابط التحميل غير صالح. يجب أن يبدأ بـ http:// أو https://");
+            throw new Error("رابط الصورة غير صالح.");
           }
         }
-        
-        // Google Drive link helper
-        if (finalDownloadUrl.includes('drive.google.com')) {
-          addLog("تنبيه: تم اكتشاف رابط Google Drive. تأكد من أنه رابط مباشر للتحميل.");
+      }
+
+      if (finalDownloadUrl) {
+        if (!isValidUrl(finalDownloadUrl)) {
+          if (finalDownloadUrl.includes('.') && !finalDownloadUrl.startsWith('http')) {
+            finalDownloadUrl = `https://${finalDownloadUrl}`;
+          } else {
+            throw new Error("رابط التحميل غير صالح.");
+          }
         }
       }
 
@@ -339,10 +342,9 @@ export default function Dashboard() {
         throw new Error("يرجى التأكد من رفع الملفات أو وضع الروابط الصحيحة");
       }
 
+      setUploadProgress(95);
       const numericPrice = parseFloat(price);
-      if (isNaN(numericPrice)) {
-        throw new Error("يرجى إدخال سعر صحيح");
-      }
+      if (isNaN(numericPrice)) throw new Error("يرجى إدخال سعر صحيح");
 
       const productData = {
         name,
@@ -354,25 +356,18 @@ export default function Dashboard() {
         updatedAt: Timestamp.now()
       };
 
-      try {
-        if (editingId) {
-          addLog("جاري تحديث البيانات في قاعدة البيانات...");
-          await updateDoc(doc(db, 'products', editingId), productData);
-          addLog("تم التحديث بنجاح");
-        } else {
-          addLog("جاري إضافة المنتج لقاعدة البيانات...");
-          await addDoc(collection(db, 'products'), {
-            ...productData,
-            createdAt: Timestamp.now()
-          });
-          addLog("تمت الإضافة بنجاح");
-        }
-      } catch (firestoreErr) {
-        addLog(`خطأ في قاعدة البيانات: ${firestoreErr instanceof Error ? firestoreErr.message : 'خطأ غير معروف'}`);
-        console.error("Firestore Save Error:", firestoreErr);
-        handleFirestoreError(firestoreErr, editingId ? OperationType.UPDATE : OperationType.CREATE, 'products');
+      if (editingId) {
+        addLog("جاري تحديث البيانات...");
+        await updateDoc(doc(db, 'products', editingId), productData);
+      } else {
+        addLog("جاري إضافة المنتج...");
+        await addDoc(collection(db, 'products'), {
+          ...productData,
+          createdAt: Timestamp.now()
+        });
       }
       
+      setUploadProgress(100);
       setStatus('success');
       setShowToast(true);
       resetForm();
@@ -383,12 +378,9 @@ export default function Dashboard() {
       }, 3000);
       
     } catch (err: any) {
-      if (err.message === 'UPLOAD_CANCELED') {
-        return;
-      }
+      if (err.message === 'UPLOAD_CANCELED') return;
       console.error("Submit Error:", err);
       setStatus('error');
-      // If the error is a JSON string from handleFirestoreError, try to parse it
       try {
         const parsed = JSON.parse(err.message);
         setErrorMessage(`خطأ: ${parsed.error}`);
@@ -522,7 +514,7 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center gap-2 mt-2">
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-            <span className="text-[10px] text-gray-500 uppercase tracking-[0.2em] font-bold">Moonlight Management System</span>
+            <span className="text-[10px] text-gray-500 uppercase tracking-[0.2em] font-bold">🌕 Management System</span>
           </div>
         </div>
         
@@ -549,9 +541,120 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        {/* Add/Edit Product Form */}
-        <div className="lg:col-span-1 space-y-8">
+        <div className="flex flex-wrap gap-2 mb-10 bg-dark-light/30 p-2 rounded-3xl border border-white/5 w-fit">
+          <button 
+            onClick={() => setActiveTab('products')}
+            className={`px-6 py-3 rounded-2xl text-sm font-black transition-all flex items-center gap-2 ${activeTab === 'products' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-gray-500 hover:text-white'}`}
+          >
+            <Package size={18} />
+            المنتجات
+          </button>
+          <button 
+            onClick={() => setActiveTab('orders')}
+            className={`px-6 py-3 rounded-2xl text-sm font-black transition-all flex items-center gap-2 ${activeTab === 'orders' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-gray-500 hover:text-white'}`}
+          >
+            <ShoppingBag size={18} />
+            الطلبات
+          </button>
+          <button 
+            onClick={() => setActiveTab('settings')}
+            className={`px-6 py-3 rounded-2xl text-sm font-black transition-all flex items-center gap-2 ${activeTab === 'settings' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-gray-500 hover:text-white'}`}
+          >
+            <Settings size={18} />
+            إعدادات المتجر
+          </button>
+        </div>
+
+        {activeTab === 'settings' && (
+          <div className="max-w-2xl mx-auto space-y-8">
+            <div className="bg-dark-light/30 backdrop-blur-2xl p-10 rounded-[3rem] border border-white/10 shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-32 -mt-32" />
+              
+              <div className="relative z-10 space-y-8">
+                <div className="flex items-center gap-4 mb-2">
+                  <div className="w-14 h-14 bg-primary/20 rounded-2xl flex items-center justify-center text-primary">
+                    <Settings size={28} />
+                  </div>
+                  <div>
+                    <h2 className="text-3xl font-black text-white">إعدادات المظهر</h2>
+                    <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">تخصيص هوية Moonlight 🌕</p>
+                  </div>
+                </div>
+
+                <div className="p-8 bg-white/5 rounded-[2rem] border border-white/5 space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-black text-white mb-1">شعار المتجر (Logo)</h3>
+                      <p className="text-xs text-gray-500 font-bold">سيظهر الشعار في أعلى وأسفل الموقع</p>
+                    </div>
+                    <div className="w-20 h-20 bg-dark rounded-2xl border border-white/10 flex items-center justify-center overflow-hidden">
+                      {logoFile ? (
+                        <img src={URL.createObjectURL(logoFile)} className="w-full h-full object-contain p-2" alt="Preview" />
+                      ) : (
+                        <img src="/logo.png" className="w-full h-full object-contain p-2" alt="Current Logo" onError={(e) => e.currentTarget.src = 'https://via.placeholder.com/100?text=Logo'} />
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <input 
+                      type="file" 
+                      accept="image/*"
+                      onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
+                      className="hidden"
+                      id="logo-upload-input"
+                    />
+                    <label 
+                      htmlFor="logo-upload-input"
+                      className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-white/10 rounded-3xl cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all group"
+                    >
+                      <Upload className="text-gray-500 mb-3 group-hover:text-primary transition-colors" size={32} />
+                      <span className="text-sm font-black text-gray-400 group-hover:text-white transition-colors">
+                        {logoFile ? logoFile.name : 'اختر صورة الشعار الجديد'}
+                      </span>
+                      <span className="text-[10px] text-gray-600 mt-2">يفضل أن تكون الخلفية شفافة (PNG)</span>
+                    </label>
+
+                    <button 
+                      onClick={handleLogoUpload}
+                      disabled={!logoFile || isUploadingLogo}
+                      className="w-full py-4 bg-primary text-white rounded-2xl font-black text-sm hover:bg-primary-dark transition-all shadow-xl shadow-primary/20 disabled:opacity-50 flex items-center justify-center gap-3"
+                    >
+                      {isUploadingLogo ? (
+                        <>
+                          <RefreshCw size={18} className="animate-spin" />
+                          جاري الرفع...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 size={18} />
+                          حفظ الشعار الجديد
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="bg-gold/10 border border-gold/20 p-6 rounded-3xl flex items-start gap-4">
+                  <div className="bg-gold/20 p-2 rounded-lg text-gold">
+                    <Activity size={20} />
+                  </div>
+                  <div>
+                    <h4 className="text-gold font-black text-sm mb-1">نصيحة تقنية</h4>
+                    <p className="text-xs text-gray-400 leading-relaxed font-bold">
+                      بعد رفع الشعار، قد يستغرق الأمر بضع ثوانٍ ليظهر في جميع صفحات الموقع. إذا لم يتغير الشعار فوراً، يرجى تحديث الصفحة.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab !== 'settings' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+            {/* Add/Edit Product Form */}
+            <div className={`lg:col-span-1 space-y-8 ${activeTab === 'orders' ? 'hidden lg:block opacity-30 pointer-events-none' : ''}`}>
           <div className="bg-dark-light/30 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-white/10 shadow-2xl relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16" />
             
@@ -1135,12 +1238,25 @@ export default function Dashboard() {
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
                   {status === 'uploading' ? (
-                    <span className="relative z-10 flex items-center justify-center gap-3">
-                      <RefreshCw size={18} className="animate-spin" />
-                      {uploadProgress > 0 
-                        ? `جاري الحفظ... ${Math.round(uploadProgress)}%` 
-                        : "جاري التحضير..."}
-                    </span>
+                    <div className="relative z-10 flex flex-col items-center gap-2">
+                      <div className="flex items-center justify-center gap-3">
+                        <RefreshCw size={18} className="animate-spin" />
+                        {uploadProgress > 0 
+                          ? `جاري الحفظ... ${Math.round(uploadProgress)}%` 
+                          : "جاري التحضير..."}
+                      </div>
+                      <button 
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleCancelUpload();
+                        }}
+                        className="text-[10px] text-white/60 hover:text-white underline font-bold mt-1 transition-colors"
+                      >
+                        إلغاء العملية
+                      </button>
+                    </div>
                   ) : status === 'success' ? (
                     <span className="relative z-10 flex items-center justify-center gap-2">
                       <CheckCircle2 className="w-5 h-5" />
@@ -1160,176 +1276,180 @@ export default function Dashboard() {
 
         {/* Products List & Orders */}
         <div className="lg:col-span-2 space-y-10">
-          {/* Products Table */}
-          <div className="bg-dark-light/30 backdrop-blur-2xl rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl">
-            <div className="p-8 border-b border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-gold/10 rounded-2xl flex items-center justify-center text-gold">
-                  <Package size={24} />
+          {activeTab === 'products' && (
+            <div className="bg-dark-light/30 backdrop-blur-2xl rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl">
+              <div className="p-8 border-b border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-gold/10 rounded-2xl flex items-center justify-center text-gold">
+                    <Package size={24} />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-black text-white">المنتجات</h2>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">إدارة المخزون ({products.length})</p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-2xl font-black text-white">المنتجات</h2>
-                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">إدارة المخزون ({products.length})</p>
+                
+                <div className="relative w-full md:w-80">
+                  <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+                  <input 
+                    type="text"
+                    placeholder="بحث عن منتج..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full bg-white/5 border border-white/5 focus:border-primary/50 outline-none p-4 pr-12 rounded-2xl text-sm transition-all"
+                  />
                 </div>
               </div>
               
-              <div className="relative w-full md:w-80">
-                <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
-                <input 
-                  type="text"
-                  placeholder="بحث عن منتج..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-white/5 border border-white/5 focus:border-primary/50 outline-none p-4 pr-12 rounded-2xl text-sm transition-all"
-                />
-              </div>
-            </div>
-            
-            <div className="overflow-x-auto">
-              <table className="w-full text-right border-collapse">
-                <thead>
-                  <tr className="bg-white/5 text-gray-500 text-[10px] font-black uppercase tracking-widest">
-                    <th className="p-6">المنتج</th>
-                    <th className="p-6">الفئة</th>
-                    <th className="p-6">السعر</th>
-                    <th className="p-6 text-left">الإجراءات</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {filteredProductsList.map((p, index) => (
-                    <motion.tr 
-                      key={p.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      className={`group hover:bg-white/[0.02] transition-colors ${editingId === p.id ? 'bg-primary/5' : ''}`}
-                    >
-                      <td className="p-6">
-                        <div className="flex items-center gap-4">
-                          <div className="w-14 h-14 rounded-2xl overflow-hidden border border-white/10 group-hover:border-primary/30 transition-colors bg-dark relative">
-                            <img 
-                              src={convertDriveLink(p.imageUrl)} 
-                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
-                              referrerPolicy="no-referrer" 
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                if (!target.src.includes('placeholder')) {
-                                  target.src = 'https://via.placeholder.com/150?text=Error';
-                                }
-                              }}
-                            />
+              <div className="overflow-x-auto">
+                <table className="w-full text-right border-collapse">
+                  <thead>
+                    <tr className="bg-white/5 text-gray-500 text-[10px] font-black uppercase tracking-widest">
+                      <th className="p-6">المنتج</th>
+                      <th className="p-6">الفئة</th>
+                      <th className="p-6">السعر</th>
+                      <th className="p-6 text-left">الإجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {filteredProductsList.map((p, index) => (
+                      <motion.tr 
+                        key={p.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className={`group hover:bg-white/[0.02] transition-colors ${editingId === p.id ? 'bg-primary/5' : ''}`}
+                      >
+                        <td className="p-6">
+                          <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 rounded-2xl overflow-hidden border border-white/10 group-hover:border-primary/30 transition-colors bg-dark relative">
+                              <img 
+                                src={convertDriveLink(p.imageUrl)} 
+                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                                referrerPolicy="no-referrer" 
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  if (!target.src.includes('placeholder')) {
+                                    target.src = 'https://via.placeholder.com/150?text=Error';
+                                  }
+                                }}
+                              />
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="font-black text-white group-hover:text-primary transition-colors">{p.name}</span>
+                              <span className="text-[10px] text-gray-500 line-clamp-1 max-w-[200px]">{p.description}</span>
+                            </div>
                           </div>
-                          <div className="flex flex-col">
-                            <span className="font-black text-white group-hover:text-primary transition-colors">{p.name}</span>
-                            <span className="text-[10px] text-gray-500 line-clamp-1 max-w-[200px]">{p.description}</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-6">
-                        <span className="px-3 py-1 bg-white/5 rounded-full text-[10px] font-bold text-gray-400 border border-white/5">
-                          {p.category === 'cv' ? 'سيرة ذاتية' : p.category === 'social' ? 'سوشيال ميديا' : 'قالب ويب'}
-                        </span>
-                      </td>
-                      <td className="p-6 font-black text-gold tracking-tighter text-lg">${p.price}</td>
-                      <td className="p-6">
-                        <div className="flex items-center gap-2 justify-end">
-                          <button 
-                            onClick={() => handleEdit(p)}
-                            className="w-10 h-10 flex items-center justify-center bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-xl transition-all"
-                            title="تعديل"
-                          >
-                            <FileText size={18} />
-                          </button>
-                          
-                          {deletingId === p.id ? (
-                            <motion.div 
-                              initial={{ opacity: 0, scale: 0.9 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              className="flex items-center gap-2 bg-red-500/10 p-1.5 rounded-xl border border-red-500/20"
-                            >
-                              <span className="text-[9px] font-black text-red-500 px-2 uppercase">تأكيد؟</span>
-                              <button 
-                                onClick={() => handleDelete(p.id, p.imageUrl, p.downloadUrl)} 
-                                className="bg-red-500 text-white px-4 py-1.5 rounded-lg text-[10px] font-black hover:bg-red-600 transition-colors shadow-lg shadow-red-500/20"
-                              >
-                                نعم
-                              </button>
-                              <button 
-                                onClick={() => setDeletingId(null)} 
-                                className="bg-white/10 text-white px-4 py-1.5 rounded-lg text-[10px] font-black hover:bg-white/20 transition-colors"
-                              >
-                                لا
-                              </button>
-                            </motion.div>
-                          ) : (
+                        </td>
+                        <td className="p-6">
+                          <span className="px-3 py-1 bg-white/5 rounded-full text-[10px] font-bold text-gray-400 border border-white/5">
+                            {p.category === 'cv' ? 'سيرة ذاتية' : p.category === 'social' ? 'سوشيال ميديا' : 'قالب ويب'}
+                          </span>
+                        </td>
+                        <td className="p-6 font-black text-gold tracking-tighter text-lg">${p.price}</td>
+                        <td className="p-6">
+                          <div className="flex items-center gap-2 justify-end">
                             <button 
-                              onClick={() => setDeletingId(p.id)}
-                              className="w-10 h-10 flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition-all"
-                              title="حذف"
+                              onClick={() => handleEdit(p)}
+                              className="w-10 h-10 flex items-center justify-center bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-xl transition-all"
+                              title="تعديل"
                             >
-                              <Trash2 size={18} />
+                              <FileText size={18} />
                             </button>
-                          )}
-                        </div>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Orders Table */}
-          <div className="bg-dark-light/30 backdrop-blur-2xl rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl">
-            <div className="p-8 border-b border-white/5">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-green-500/10 rounded-2xl flex items-center justify-center text-green-500">
-                  <DollarSign size={24} />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-black text-white">آخر الطلبات</h2>
-                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">سجل المبيعات ({orders.length})</p>
-                </div>
+                            
+                            {deletingId === p.id ? (
+                              <motion.div 
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="flex items-center gap-2 bg-red-500/10 p-1.5 rounded-xl border border-red-500/20"
+                              >
+                                <span className="text-[9px] font-black text-red-500 px-2 uppercase">تأكيد؟</span>
+                                <button 
+                                  onClick={() => handleDelete(p.id, p.imageUrl, p.downloadUrl)} 
+                                  className="bg-red-500 text-white px-4 py-1.5 rounded-lg text-[10px] font-black hover:bg-red-600 transition-colors shadow-lg shadow-red-500/20"
+                                >
+                                  نعم
+                                </button>
+                                <button 
+                                  onClick={() => setDeletingId(null)} 
+                                  className="bg-white/10 text-white px-4 py-1.5 rounded-lg text-[10px] font-black hover:bg-white/20 transition-colors"
+                                >
+                                  لا
+                                </button>
+                              </motion.div>
+                            ) : (
+                              <button 
+                                onClick={() => setDeletingId(p.id)}
+                                className="w-10 h-10 flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition-all"
+                                title="حذف"
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
-            
-            <div className="overflow-x-auto">
-              <table className="w-full text-right border-collapse">
-                <thead>
-                  <tr className="bg-white/5 text-gray-500 text-[10px] font-black uppercase tracking-widest">
-                    <th className="p-6">المنتج</th>
-                    <th className="p-6">العميل</th>
-                    <th className="p-6">المبلغ</th>
-                    <th className="p-6">رقم الطلب</th>
-                    <th className="p-6">التاريخ</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {orders.map((o, index) => (
-                    <motion.tr 
-                      key={o.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      className="group hover:bg-white/[0.02] transition-colors"
-                    >
-                      <td className="p-6 font-black text-white">{o.productName}</td>
-                      <td className="p-6 text-sm text-gray-400 font-medium">{o.customerEmail}</td>
-                      <td className="p-6 font-black text-green-400 tracking-tighter text-lg">${o.amount}</td>
-                      <td className="p-6 text-[10px] font-mono text-gray-500">{o.paypalOrderId || '---'}</td>
-                      <td className="p-6 text-[10px] text-gray-500 font-bold">
-                        {o.createdAt?.toDate().toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' })}
-                      </td>
-                    </motion.tr>
-                  ))}
-                </tbody>
-              </table>
+          )}
+          
+          {activeTab === 'orders' && (
+            <div className="bg-dark-light/30 backdrop-blur-2xl rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl">
+              <div className="p-8 border-b border-white/5">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-green-500/10 rounded-2xl flex items-center justify-center text-green-500">
+                    <DollarSign size={24} />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-black text-white">آخر الطلبات</h2>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">سجل المبيعات ({orders.length})</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="overflow-x-auto">
+                <table className="w-full text-right border-collapse">
+                  <thead>
+                    <tr className="bg-white/5 text-gray-500 text-[10px] font-black uppercase tracking-widest">
+                      <th className="p-6">المنتج</th>
+                      <th className="p-6">العميل</th>
+                      <th className="p-6">المبلغ</th>
+                      <th className="p-6">رقم الطلب</th>
+                      <th className="p-6">التاريخ</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {orders.map((o, index) => (
+                      <motion.tr 
+                        key={o.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="group hover:bg-white/[0.02] transition-colors"
+                      >
+                        <td className="p-6 font-black text-white">{o.productName}</td>
+                        <td className="p-6 text-sm text-gray-400 font-medium">{o.customerEmail}</td>
+                        <td className="p-6 font-black text-green-400 tracking-tighter text-lg">${o.amount}</td>
+                        <td className="p-6 text-[10px] font-mono text-gray-500">{o.paypalOrderId || '---'}</td>
+                        <td className="p-6 text-[10px] text-gray-500 font-bold">
+                          {o.createdAt?.toDate().toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
+    )}
 
-      {/* Debug Logs - Collapsible at bottom */}
+
+    {/* Debug Logs - Collapsible at bottom */}
       <div className="mt-20">
       </div>
 
@@ -1391,7 +1511,7 @@ export default function Dashboard() {
         
         <div className="flex items-center gap-4 opacity-30">
           <div className="h-[1px] w-12 bg-gray-500"></div>
-          <p className="text-[8px] text-gray-500 uppercase tracking-[0.5em] font-black">Moonlight Security Protocol</p>
+          <p className="text-[8px] text-gray-500 uppercase tracking-[0.5em] font-black">🌕 Security Protocol</p>
           <div className="h-[1px] w-12 bg-gray-500"></div>
         </div>
       </div>

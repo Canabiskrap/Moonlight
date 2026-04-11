@@ -64,7 +64,7 @@ export default function Login({ user }: LoginProps) {
 
         <div className="space-y-3">
           <h1 className="text-4xl font-black tracking-tighter text-white">مرحباً بك</h1>
-          <p className="text-gray-500 text-sm font-medium leading-relaxed">سجل دخولك للوصول إلى لوحة التحكم أو متابعة مشترياتك في متجر Moonlight</p>
+          <p className="text-gray-500 text-sm font-medium leading-relaxed">سجل دخولك للوصول إلى لوحة التحكم أو متابعة مشترياتك في Moonlight 🌕</p>
           
           {error && (
             <motion.div 

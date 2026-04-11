@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, signOut, setPersistence, browserLocalPersistence, getRedirectResult } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { 
   getFirestore, 
   collection, 
@@ -64,36 +64,10 @@ googleProvider.setCustomParameters({ prompt: 'select_account' });
 export const loginWithGoogle = async () => {
   console.log("Attempting Google Login...");
   try {
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    const isIframe = window.self !== window.top;
-
-    console.log("Environment check:", { isMobile, isIframe });
-
-    // In iframes, popups are often blocked. Redirect is safer but reloads the page.
-    // However, on Vercel (not an iframe), popup is usually better.
-    
-    if (isIframe) {
-      console.log("In iframe, using signInWithRedirect...");
-      await signInWithRedirect(auth, googleProvider);
-      return null;
-    }
-
-    try {
-      console.log("Attempting signInWithPopup...");
-      const result = await signInWithPopup(auth, googleProvider);
-      console.log("Login success:", result.user.email);
-      return result.user;
-    } catch (popupError: any) {
-      console.error("Popup Login Error:", popupError);
-      
-      if (popupError.code === 'auth/popup-blocked' || popupError.code === 'auth/popup-closed-by-user' || popupError.code === 'auth/cancelled-popup-request') {
-        console.log("Popup blocked or closed, falling back to signInWithRedirect...");
-        await signInWithRedirect(auth, googleProvider);
-        return null;
-      }
-      
-      throw popupError;
-    }
+    console.log("Attempting signInWithPopup...");
+    const result = await signInWithPopup(auth, googleProvider);
+    console.log("Login success:", result.user.email);
+    return result.user;
   } catch (error: any) {
     console.error("General Login Error:", error);
     throw error;

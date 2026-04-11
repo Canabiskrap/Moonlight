@@ -26,7 +26,7 @@ export async function getProductInsights(product: any): Promise<ProductInsight> 
       Category: ${product.category}
       Price: $${product.price}`,
       config: {
-        systemInstruction: "You are a creative marketing expert for a digital products store called 'Moonlight'. Your goal is to provide inspiring and professional insights about products in Arabic. Be concise, elegant, and persuasive.",
+        systemInstruction: "You are a creative marketing expert for 'Moonlight 🌕'. Your goal is to provide inspiring and professional insights about products in Arabic. Be concise, elegant, and persuasive.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -94,10 +94,10 @@ export async function chatWithBot(userMessage: string, history: {role: 'user' | 
         { role: 'user', parts: [{ text: userMessage }] }
       ],
       config: {
-        systemInstruction: `أنت "المساعد الخبير" لمتجر Moonlight. أنت لست مجرد بوت، بل خبير في التصميم الرقمي والدعم الفني.
+        systemInstruction: `أنت "المساعد الخبير" لـ Moonlight 🌕. أنت لست مجرد بوت، بل خبير في التصميم الرقمي والدعم الفني.
           
           قواعدك الذهبية:
-          1. الهوية: اسمك "مساعد Moonlight الذكي".
+          1. الهوية: اسمك "مساعد Moonlight 🌕 الذكي".
           2. الخبرة الفنية (إصلاحات المتجر):
              - إذا واجه العميل مشكلة في التحميل: أخبره أن يتأكد من استقرار الإنترنت، أو يراسلنا عبر واتساب لإرسال الملف يدوياً فوراً.
              - إذا سأل عن الدفع: أكد له أن PayPal وسيلة آمنة عالمياً، وبمجرد الدفع سيظهر زر "تحميل" تلقائياً.
