@@ -62,24 +62,29 @@ export default function Dashboard() {
 
   const testConnection = async () => {
     setIsTestingConnection(true);
+    setDebugLogs([]); // Clear logs
     addLog("بدء اختبار الاتصال الشامل...");
     try {
       // 1. Test Firestore
       addLog("1. اختبار Firestore...");
-      const testCol = collection(db, 'test_connection');
-      await addDoc(testCol, { 
-        lastTest: Timestamp.now(),
-        user: auth.currentUser?.email,
-        status: 'ok',
-        type: 'full_diagnostic'
-      });
-      addLog("✅ Firestore: متصل");
+      try {
+        const testCol = collection(db, 'test_connection');
+        await addDoc(testCol, { 
+          lastTest: Timestamp.now(),
+          user: auth.currentUser?.email,
+          status: 'ok'
+        });
+        addLog("✅ Firestore: متصل");
+      } catch (fErr: any) {
+        addLog(`❌ Firestore: فشل (${fErr.message})`);
+      }
 
       // 2. Test Storage (Vercel Blob)
       addLog("2. اختبار Storage (Vercel Blob)...");
       try {
         const blobFile = new File(["connection test"], `test_connection_${Date.now()}.txt`, { type: "text/plain" });
         
+        addLog("جاري استدعاء upload()...");
         await upload(blobFile.name, blobFile, {
           access: 'public',
           handleUploadUrl: `${window.location.origin}/api/upload`,
@@ -87,14 +92,14 @@ export default function Dashboard() {
         
         addLog("✅ Vercel Blob: متصل (تم رفع ملف تجريبي)");
       } catch (sErr: any) {
-        addLog(`❌ Vercel Blob: فشل (${sErr.message})`);
+        addLog(`❌ Vercel Blob: فشل (الرسالة: ${sErr.message})`);
+        console.error("Blob Diagnostic Error:", sErr);
       }
 
-      alert("تم الانتهاء من الفحص. راجع سجل العمليات (Debug) للتفاصيل.");
+      addLog("تم الانتهاء من الفحص.");
     } catch (err: any) {
       addLog(`❌ فشل عام: ${err.message}`);
       console.error("Diagnostic Error:", err);
-      alert(`فشل الفحص: ${err.message}`);
     } finally {
       setIsTestingConnection(false);
     }
