@@ -30,7 +30,7 @@ export default function Login({ user }: LoginProps) {
       if (err.code === 'auth/popup-blocked') {
         message = "تم حظر النافذة المنبثقة. يرجى السماح بالمنبثقات لهذا الموقع أو المحاولة من متصفح آخر.";
       } else if (err.code === 'auth/unauthorized-domain') {
-        message = "هذا النطاق (Domain) غير مصرح به في إعدادات Firebase. يرجى إضافة رابط الموقع إلى Authorized Domains في Firebase Console.";
+        message = `هذا النطاق (${window.location.hostname}) غير مصرح به في إعدادات Firebase. يرجى إضافة رابط الموقع إلى Authorized Domains في Firebase Console.`;
       } else if (err.code === 'auth/network-request-failed') {
         message = "خطأ في الاتصال بالشبكة. يرجى التحقق من اتصالك بالإنترنت.";
       } else if (err.message) {
