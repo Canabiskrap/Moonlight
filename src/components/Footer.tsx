@@ -63,6 +63,7 @@ export default function Footer() {
               <li><Link to="/" className="hover:text-primary transition-colors">المتجر</Link></li>
               <li><a href="#products" className="hover:text-primary transition-colors">المنتجات</a></li>
               <li><Link to="/login" className="hover:text-primary transition-colors">تسجيل الدخول</Link></li>
+              <li><Link to="/status" className="hover:text-primary transition-colors">حالة النظام</Link></li>
             </ul>
           </div>
 

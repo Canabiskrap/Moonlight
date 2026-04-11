@@ -20,6 +20,8 @@ import FloatingActions from './components/FloatingActions';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { motion, AnimatePresence } from 'motion/react';
 
+import Status from './pages/Status';
+
 const ADMIN_EMAILS = [
   'canabiskrap07@gmail.com',
   'Esraa0badr@gmail.com',
@@ -88,6 +90,7 @@ export default function App() {
                 <Route path="/login" element={<Login user={user} />} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/terms" element={<Terms />} />
+                <Route path="/status" element={<Status />} />
                 <Route 
                   path="/dashboard" 
                   element={isAdmin ? <Dashboard /> : <Navigate to="/login" />} 
