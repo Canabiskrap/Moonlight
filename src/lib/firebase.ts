@@ -42,7 +42,7 @@ export {
 // Set persistence to local to ensure session survives redirects and refreshes
 setPersistence(auth, browserLocalPersistence).catch(err => console.error("Persistence Error:", err));
 
-export const storage = getStorage(app);
+export const storage = getStorage(app, (firebaseConfig as any).storageBucket);
 console.log("Firebase Storage initialized with bucket:", (firebaseConfig as any).storageBucket);
 export const googleProvider = new GoogleAuthProvider();
 // Force select account to avoid silent failures
