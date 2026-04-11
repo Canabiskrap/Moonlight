@@ -226,10 +226,9 @@ export default function Dashboard() {
         addLog("جاري رفع الصورة (Vercel Blob)...");
         
         try {
-          const blob = await upload(imageFile.name, imageFile, {
+          const blob = await upload(`${Date.now()}_${imageFile.name}`, imageFile, {
             access: 'public',
             handleUploadUrl: `${window.location.origin}/api/upload`,
-            addRandomSuffix: true,
             onUploadProgress: (progressEvent) => {
               const total = progressEvent.total || 1;
               const progress = (progressEvent.loaded / total) * 40;
@@ -248,10 +247,9 @@ export default function Dashboard() {
         addLog("جاري رفع الصورة (Vercel Blob)...");
         
         try {
-          const blob = await upload(imageFile.name, imageFile, {
+          const blob = await upload(`${Date.now()}_${imageFile.name}`, imageFile, {
             access: 'public',
             handleUploadUrl: `${window.location.origin}/api/upload`,
-            addRandomSuffix: true,
             onUploadProgress: (progressEvent) => {
               const total = progressEvent.total || 1;
               const progress = (progressEvent.loaded / total) * 40;
@@ -272,10 +270,9 @@ export default function Dashboard() {
         addLog("جاري رفع الملف الرقمي (Vercel Blob)...");
         
         try {
-          const blob = await upload(productFile.name, productFile, {
+          const blob = await upload(`${Date.now()}_${productFile.name}`, productFile, {
             access: 'public',
             handleUploadUrl: `${window.location.origin}/api/upload`,
-            addRandomSuffix: true,
             onUploadProgress: (progressEvent) => {
               const baseProgress = finalImageUrl ? 40 : 0;
               const remaining = 100 - baseProgress - 10;
@@ -333,15 +330,21 @@ export default function Dashboard() {
         updatedAt: Timestamp.now()
       };
 
+      console.log("Attempting to save product data:", productData);
+
       if (editingId) {
         addLog("جاري تحديث البيانات...");
+        console.log("Updating document:", editingId);
         await updateDoc(doc(db, 'products', editingId), productData);
+        console.log("Document updated successfully");
       } else {
         addLog("جاري إضافة المنتج...");
+        console.log("Adding new document to 'products' collection");
         await addDoc(collection(db, 'products'), {
           ...productData,
           createdAt: Timestamp.now()
         });
+        console.log("Document added successfully");
       }
       
       setUploadProgress(100);
