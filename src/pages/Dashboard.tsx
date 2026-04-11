@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ref, uploadBytesResumable, getDownloadURL, uploadBytes, getStorage } from 'firebase/storage';
 import { 
@@ -207,6 +207,7 @@ export default function Dashboard() {
           addLog("جاري رفع الصورة...");
           const imageRef = ref(activeStorage, `products/images/${Date.now()}_${imageFile.name}`);
           const imageUploadTask = uploadBytesResumable(imageRef, imageFile);
+          uploadTaskRef.current = imageUploadTask;
           
           imageUploadTask.on('state_changed', (snapshot) => {
             const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 10;
@@ -221,8 +222,13 @@ export default function Dashboard() {
             finalImageUrl = await getDownloadURL(imageRef);
             addLog("تم رفع الصورة بنجاح");
           } catch (imgErr: any) {
+            if (imgErr.code === 'storage/canceled') {
+              throw new Error("UPLOAD_CANCELED");
+            }
             addLog(`خطأ في رفع الصورة: ${imgErr.message}`);
             throw new Error("فشل رفع الصورة: " + imgErr.message);
+          } finally {
+            uploadTaskRef.current = null;
           }
         }
         
@@ -230,6 +236,7 @@ export default function Dashboard() {
           addLog("جاري رفع الملف الرقمي...");
           const fileRef = ref(activeStorage, `products/files/${Date.now()}_${productFile.name}`);
           const fileUploadTask = uploadBytesResumable(fileRef, productFile);
+          uploadTaskRef.current = fileUploadTask;
           
           // Track progress
           fileUploadTask.on('state_changed', (snapshot) => {
@@ -245,8 +252,13 @@ export default function Dashboard() {
             finalDownloadUrl = await getDownloadURL(fileRef);
             addLog("تم رفع الملف بنجاح");
           } catch (uploadErr: any) {
+            if (uploadErr.code === 'storage/canceled') {
+              throw new Error("UPLOAD_CANCELED");
+            }
             addLog(`خطأ في رفع الملف: ${uploadErr.message}`);
             throw new Error("فشل رفع الملف الرقمي: " + uploadErr.message);
+          } finally {
+            uploadTaskRef.current = null;
           }
         }
       } else {
@@ -354,6 +366,9 @@ export default function Dashboard() {
       }, 3000);
       
     } catch (err: any) {
+      if (err.message === 'UPLOAD_CANCELED') {
+        return;
+      }
       console.error("Submit Error:", err);
       setStatus('error');
       // If the error is a JSON string from handleFirestoreError, try to parse it
@@ -429,6 +444,17 @@ export default function Dashboard() {
   const totalRevenue = orders.reduce((sum, order) => sum + (order.amount || 0), 0);
 
   const [isTestingAI, setIsTestingAI] = useState(false);
+  const uploadTaskRef = useRef<any>(null);
+
+  const handleCancelUpload = () => {
+    if (uploadTaskRef.current) {
+      uploadTaskRef.current.cancel();
+      uploadTaskRef.current = null;
+      setStatus('idle');
+      setUploadProgress(0);
+      addLog("تم إلغاء عملية الرفع.");
+    }
+  };
 
   const testAI = async () => {
     setIsTestingAI(true);
@@ -1059,18 +1085,27 @@ export default function Dashboard() {
               <div className="space-y-4 pt-4">
                 {status === 'uploading' && (
                   <div className="space-y-3 p-4 bg-primary/5 rounded-2xl border border-primary/10">
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-[10px] font-black text-primary uppercase tracking-widest">
-                        <span>جاري المعالجة</span>
-                        <span>{uploadProgress}%</span>
+                    <div className="flex justify-between items-center">
+                      <div className="space-y-2 flex-1">
+                        <div className="flex justify-between text-[10px] font-black text-primary uppercase tracking-widest">
+                          <span>جاري المعالجة</span>
+                          <span>{uploadProgress}%</span>
+                        </div>
+                        <div className="w-full bg-dark/50 rounded-full h-2 overflow-hidden border border-white/5">
+                          <motion.div 
+                            initial={{ width: 0 }}
+                            animate={{ width: `${Math.max(uploadProgress, 5)}%` }}
+                            className="bg-primary h-full rounded-full shadow-[0_0_10px_rgba(139,92,246,0.5)]"
+                          />
+                        </div>
                       </div>
-                      <div className="w-full bg-dark/50 rounded-full h-2 overflow-hidden border border-white/5">
-                        <motion.div 
-                          initial={{ width: 0 }}
-                          animate={{ width: `${Math.max(uploadProgress, 5)}%` }}
-                          className="bg-primary h-full rounded-full shadow-[0_0_10px_rgba(139,92,246,0.5)]"
-                        />
-                      </div>
+                      <button
+                        type="button"
+                        onClick={handleCancelUpload}
+                        className="ml-4 px-3 py-1 bg-red-500/10 text-red-500 rounded-lg text-[10px] font-black hover:bg-red-500/20 transition-all"
+                      >
+                        إلغاء
+                      </button>
                     </div>
                   </div>
                 )}
