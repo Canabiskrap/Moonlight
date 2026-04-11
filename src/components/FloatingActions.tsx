@@ -7,7 +7,7 @@ export default function FloatingActions() {
   const [showBot, setShowBot] = useState(false);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<{role: 'bot' | 'user', text: string}[]>([
-    { role: 'bot', text: 'مرحباً بك في متجر Monnlight! أنا مساعدك الذكي، كيف يمكنني مساعدتك اليوم؟' }
+    { role: 'bot', text: 'مرحباً بك في متجر Moonlight! أنا مساعدك الذكي، كيف يمكنني مساعدتك اليوم؟' }
   ]);
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -114,7 +114,7 @@ export default function FloatingActions() {
             <div className="bg-primary p-5 flex items-center gap-3">
               <div className="flex items-center gap-2">
                 <button 
-                  onClick={() => setMessages([{ role: 'bot', text: 'مرحباً بك في متجر Monnlight! أنا مساعدك الذكي، كيف يمكنني مساعدتك اليوم؟' }])}
+                  onClick={() => setMessages([{ role: 'bot', text: 'مرحباً بك في متجر Moonlight! أنا مساعدك الذكي، كيف يمكنني مساعدتك اليوم؟' }])}
                   className="p-1.5 hover:bg-white/10 rounded-lg text-white/50 hover:text-white transition-colors"
                   title="مسح المحادثة"
                 >
@@ -133,7 +133,7 @@ export default function FloatingActions() {
                 </div>
               </div>
               <div>
-                <p className="font-black text-sm">مساعد Monnlight الذكي</p>
+                <p className="font-black text-sm">مساعد Moonlight الذكي</p>
                 <p className="text-[10px] text-white/70">مدعوم بالذكاء الاصطناعي</p>
               </div>
             </div>

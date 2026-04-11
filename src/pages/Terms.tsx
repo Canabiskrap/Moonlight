@@ -16,7 +16,7 @@ export default function Terms() {
         <section className="space-y-4">
           <h2 className="text-2xl font-black text-primary">1. قبول الشروط</h2>
           <p className="text-gray-300 leading-relaxed">
-            باستخدامك لموقع Monnlight وشرائك لمنتجاتنا الرقمية، فإنك توافق على الالتزام بهذه الشروط والأحكام. إذا كنت لا توافق على أي جزء من هذه الشروط، يرجى عدم استخدام خدماتنا.
+            باستخدامك لموقع Moonlight وشرائك لمنتجاتنا الرقمية، فإنك توافق على الالتزام بهذه الشروط والأحكام. إذا كنت لا توافق على أي جزء من هذه الشروط، يرجى عدم استخدام خدماتنا.
           </p>
         </section>
 
@@ -37,7 +37,7 @@ export default function Terms() {
         <section className="space-y-4">
           <h2 className="text-2xl font-black text-primary">4. حقوق الملكية والاستخدام</h2>
           <p className="text-gray-300 leading-relaxed">
-            عند شرائك لأي قالب أو منتج رقمي من Monnlight، فإنك تحصل على ترخيص غير حصري لاستخدامه في مشاريعك الشخصية أو التجارية. <strong className="text-red-400">يُمنع منعاً باتاً</strong> إعادة بيع، توزيع، أو مشاركة الملفات الأصلية مع أطراف أخرى بأي شكل من الأشكال.
+            عند شرائك لأي قالب أو منتج رقمي من Moonlight، فإنك تحصل على ترخيص غير حصري لاستخدامه في مشاريعك الشخصية أو التجارية. <strong className="text-red-400">يُمنع منعاً باتاً</strong> إعادة بيع، توزيع، أو مشاركة الملفات الأصلية مع أطراف أخرى بأي شكل من الأشكال.
           </p>
         </section>
 

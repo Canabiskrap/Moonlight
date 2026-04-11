@@ -16,7 +16,7 @@ export default function AdminNav() {
 
   return (
     <nav className="w-64 bg-[#0a0a0f] border-l border-white/10 h-screen p-6 flex flex-col fixed right-0 top-0">
-      <div className="text-2xl font-black text-white mb-10">Monnlight</div>
+      <div className="text-2xl font-black text-white mb-10">Moonlight</div>
       <div className="flex-1 space-y-2">
         {navItems.map((item) => {
           const Icon = item.icon;
