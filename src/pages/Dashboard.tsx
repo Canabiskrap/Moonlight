@@ -6,8 +6,10 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Plus, Trash2, Edit2, X, Upload, Loader2, Package, DollarSign, 
   BarChart3, ImageIcon, FileText, Save, Eye, Settings, 
-  Palette, ShoppingBag, TrendingUp, ExternalLink, Users
+  Palette, ShoppingBag, TrendingUp, ExternalLink, Users, Sparkles
 } from 'lucide-react';
+import VisitorAnalytics from '../components/VisitorAnalytics';
+import { generateProductDescription } from '../services/geminiService';
 
 interface Product {
   id: string;
@@ -26,7 +28,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'settings'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'analytics' | 'settings'>('products');
   const [hasNewOrders, setHasNewOrders] = useState(false);
   const [lastOrderTime, setLastOrderTime] = useState<Date | null>(null);
   const [visitorCount, setVisitorCount] = useState(0);
@@ -42,6 +44,10 @@ export default function Dashboard() {
   const [downloadUrl, setDownloadUrl] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState('');
+  
+  // AI Description state
+  const [generatingDescription, setGeneratingDescription] = useState(false);
+  const [suggestedDescriptions, setSuggestedDescriptions] = useState<string[]>([]);
 
   // Settings state
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -113,6 +119,27 @@ export default function Dashboard() {
     setImageUrl('');
     setDownloadUrl('');
     setEditingProduct(null);
+    setSuggestedDescriptions([]);
+  };
+
+  const handleGenerateDescription = async () => {
+    if (!name.trim()) {
+      alert('يرجى إدخال اسم المنتج أولاً');
+      return;
+    }
+    
+    setGeneratingDescription(true);
+    setSuggestedDescriptions([]);
+    
+    try {
+      const descriptions = await generateProductDescription(name, category, price || '0');
+      setSuggestedDescriptions(descriptions);
+    } catch (error) {
+      console.error('Error generating descriptions:', error);
+      alert('حدث خطأ أثناء توليد الوصف. تأكد من إعداد مفتاح Gemini API.');
+    } finally {
+      setGeneratingDescription(false);
+    }
   };
 
   const openEditModal = (product: Product) => {
@@ -362,6 +389,17 @@ export default function Dashboard() {
             </div>
           </button>
           <button
+            onClick={() => setActiveTab('analytics')}
+            className={`px-6 py-3 rounded-xl font-bold transition-all ${
+              activeTab === 'analytics' ? 'bg-primary text-white' : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <Eye size={18} />
+              التحليلات
+            </div>
+          </button>
+          <button
             onClick={() => setActiveTab('settings')}
             className={`px-6 py-3 rounded-xl font-bold transition-all ${
               activeTab === 'settings' ? 'bg-primary text-white' : 'text-gray-400 hover:text-white'
@@ -501,6 +539,11 @@ export default function Dashboard() {
           </div>
         )}
 
+        {/* Analytics Tab */}
+        {activeTab === 'analytics' && (
+          <VisitorAnalytics />
+        )}
+
         {/* Settings Tab */}
         {activeTab === 'settings' && (
           <div className="space-y-6 max-w-2xl">
@@ -595,13 +638,55 @@ export default function Dashboard() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-gray-400">الوصف</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-bold text-gray-400">الوصف</label>
+                    <button
+                      type="button"
+                      onClick={handleGenerateDescription}
+                      disabled={generatingDescription || !name.trim()}
+                      className="flex items-center gap-2 text-xs font-bold text-primary hover:text-primary-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {generatingDescription ? (
+                        <>
+                          <Loader2 size={14} className="animate-spin" />
+                          جاري التوليد...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles size={14} />
+                          اقترح وصفا احترافيا
+                        </>
+                      )}
+                    </button>
+                  </div>
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     className="w-full bg-dark p-4 rounded-xl border border-white/5 focus:border-primary/50 outline-none transition-colors h-24 resize-none"
                     placeholder="وصف مختصر للمنتج"
                   />
+                  
+                  {/* AI Suggested Descriptions */}
+                  {suggestedDescriptions.length > 0 && (
+                    <div className="space-y-2 mt-3">
+                      <p className="text-xs text-gray-500 font-bold">اختر وصفا مقترحا:</p>
+                      <div className="space-y-2">
+                        {suggestedDescriptions.map((desc, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => {
+                              setDescription(desc);
+                              setSuggestedDescriptions([]);
+                            }}
+                            className="w-full text-right p-3 bg-dark/50 hover:bg-primary/10 border border-white/5 hover:border-primary/30 rounded-xl text-xs text-gray-300 transition-all"
+                          >
+                            {desc}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

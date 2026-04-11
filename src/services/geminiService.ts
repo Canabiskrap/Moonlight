@@ -78,7 +78,7 @@ export async function getSmartRecommendations(query: string, products: any[]): P
   }
 }
 
-export async function chatWithBot(userMessage: string, history: {role: 'user' | 'model', parts: {text: string}[]}[]): Promise<string> {
+export async function chatWithBot(userMessage: string, history: {role: 'user' | 'model', parts: {text: string}[]}[], products?: any[]): Promise<string> {
   if (!ai) {
     const hasKey = !!GEMINI_KEY;
     const errorMsg = "Gemini AI not initialized. API Key is " + (hasKey ? "present" : "MISSING");
@@ -87,6 +87,13 @@ export async function chatWithBot(userMessage: string, history: {role: 'user' | 
   }
   try {
     console.log("Calling Gemini with message:", userMessage);
+    
+    // Build product catalog context if products are provided
+    const productCatalog = products && products.length > 0 
+      ? `\n\nقائمة منتجات المتجر الحالية (${products.length} منتج):
+${products.map((p, i) => `${i + 1}. ${p.name} - الفئة: ${p.category} - السعر: $${p.price} - ${p.description || 'بدون وصف'}`).join('\n')}`
+      : '';
+    
     const response = await ai.models.generateContent({
       model: "gemini-flash-latest",
       contents: [
@@ -94,25 +101,38 @@ export async function chatWithBot(userMessage: string, history: {role: 'user' | 
         { role: 'user', parts: [{ text: userMessage }] }
       ],
       config: {
-        systemInstruction: `أنت "المساعد الخبير" لـ Moonlight 🌕. أنت لست مجرد بوت، بل خبير في التصميم الرقمي والدعم الفني.
+        systemInstruction: `أنت مساعد متجر Moonlight المتخصص في الهويات البصرية والتصميم الاحترافي.
           
-          قواعدك الذهبية:
-          1. الهوية: اسمك "مساعد Moonlight 🌕 الذكي".
-          2. الخبرة الفنية (إصلاحات المتجر):
-             - إذا واجه العميل مشكلة في التحميل: أخبره أن يتأكد من استقرار الإنترنت، أو يراسلنا عبر واتساب لإرسال الملف يدوياً فوراً.
-             - إذا سأل عن الدفع: أكد له أن PayPal وسيلة آمنة عالمياً، وبمجرد الدفع سيظهر زر "تحميل" تلقائياً.
-             - إذا لم تظهر الصور: اطلب منه تحديث الصفحة (Refresh).
-          3. خبرة المبيعات:
-             - إذا كان العميل متردداً، اقترح عليه خدماتنا (لوجو، هوية بصرية، مواقع، تطبيقات).
-             - اشرح له أن تصاميمنا "عصرية" و"تزيد من مبيعاته".
-          4. التواصل:
-             - كن ودوداً جداً واحترافياً.
-             - لغتك هي العربية بلهجة مهذبة.
-             - دائماً ذكّره بوجود أيقونة الواتساب الخضراء للتحدث مع الإدارة مباشرة لأي طلبات خاصة.
+          === هويتك ===
+          اسمك: "مساعد Moonlight الذكي"
+          دورك: خبير تصميم رقمي ومستشار مبيعات
           
-          معلومات المتجر:
-          - نحن نقدم: تصميم شعارات، هوية بصرية، بوستات ريلز، مواقع ويب، تطبيقات أندرويد و iOS، ومعارض أعمال.
-          - الأسعار: تنافسية جداً مقابل الجودة العالية.`,
+          === منتجات المتجر (40+ منتج) ===
+          الفئات الرئيسية:
+          1. السير الذاتية (CV Templates): قوالب احترافية جاهزة للتعديل، مناسبة للباحثين عن عمل والمهنيين
+          2. قوالب السوشيال ميديا: بوستات انستجرام، ستوري، ريلز، فيسبوك، تيك توك
+          3. الهويات البصرية: شعارات، بطاقات أعمال، أوراق رسمية، ختم، كروت عمل
+          4. قوالب الويب: صفحات هبوط، مواقع شخصية، متاجر إلكترونية
+          5. تصاميم خاصة: دعوات زفاف، منيو مطاعم، بروشورات، بنرات إعلانية
+          ${productCatalog}
+          
+          === قواعد التعامل ===
+          1. الرد بالعربية الفصحى بأسلوب ودود ومهني
+          2. اقترح منتجات بناءً على احتياجات العميل
+          3. إذا سأل عن منتج محدد، أعطه تفاصيله وسعره
+          4. إذا كان متردداً، اشرح مميزات المنتج وكيف سيفيده
+          5. ذكّره دائماً بإمكانية التواصل عبر واتساب للطلبات الخاصة
+          
+          === الدعم الفني ===
+          - مشكلة التحميل: تأكد من استقرار الإنترنت أو تواصل عبر واتساب
+          - الدفع: PayPal آمن وبعد الدفع يظهر زر التحميل تلقائياً
+          - الصور لا تظهر: حدّث الصفحة (Refresh)
+          
+          === معلومات إضافية ===
+          - جميع التصاميم عصرية وقابلة للتعديل
+          - ملفات بجودة عالية (PSD, AI, Figma, Word, PowerPoint)
+          - دعم فني مستمر عبر واتساب
+          - أسعار تنافسية مقارنة بالجودة`,
         temperature: 0.7,
         topP: 0.95,
       }
@@ -121,6 +141,44 @@ export async function chatWithBot(userMessage: string, history: {role: 'user' | 
     return response.text || "عذراً، لم أستطع فهم ذلك.";
   } catch (error) {
     console.error("Gemini Chat Error:", error);
+    throw error;
+  }
+}
+
+export async function generateProductDescription(productName: string, category: string, price: string): Promise<string[]> {
+  if (!ai) throw new Error("AI service not initialized. Missing API Key.");
+  
+  const categoryNames: Record<string, string> = {
+    'cv': 'سيرة ذاتية',
+    'social': 'سوشيال ميديا',
+    'web': 'قوالب ويب',
+    'other': 'تصميم عام'
+  };
+  
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-flash-latest",
+      contents: `اكتب 3 أوصاف تسويقية مختلفة لهذا المنتج:
+      اسم المنتج: ${productName}
+      الفئة: ${categoryNames[category] || category}
+      السعر: $${price}
+      
+      المطلوب: 3 أوصاف قصيرة (2-3 جمل لكل وصف) بالعربية، تسويقية وجذابة، تركز على الفوائد والقيمة للعميل.`,
+      config: {
+        systemInstruction: "أنت كاتب محتوى تسويقي محترف. اكتب أوصاف جذابة ومقنعة بالعربية. كل وصف يجب أن يكون فريداً ومختلفاً عن الآخر. ركز على الفوائد العملية والقيمة للعميل.",
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: { type: Type.STRING }
+        },
+        temperature: 0.8,
+      }
+    });
+
+    const descriptions = JSON.parse(response.text);
+    return Array.isArray(descriptions) ? descriptions.slice(0, 3) : [];
+  } catch (error) {
+    console.error("Gemini Description Error:", error);
     throw error;
   }
 }

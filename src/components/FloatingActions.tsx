@@ -2,17 +2,18 @@ import { motion, AnimatePresence } from 'motion/react';
 import { MessageCircle, Bot, X, Send, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { chatWithBot } from '../services/geminiService';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, collection } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 export default function FloatingActions() {
   const [showBot, setShowBot] = useState(false);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<{role: 'bot' | 'user', text: string}[]>([
-    { role: 'bot', text: 'مرحباً بك في Moonlight 🌕! أنا مساعدك الذكي، كيف يمكنني مساعدتك اليوم؟' }
+    { role: 'bot', text: 'مرحباً بك في Moonlight! أنا مساعدك الذكي المتخصص في الهويات البصرية والتصميم الاحترافي. أعرف جميع منتجات المتجر ويمكنني مساعدتك باختيار المنتج المناسب لك. كيف يمكنني خدمتك؟' }
   ]);
   const [isTyping, setIsTyping] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [products, setProducts] = useState<any[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const whatsappNumber = "96569929627"; 
@@ -24,7 +25,17 @@ export default function FloatingActions() {
         setLogoUrl(doc.data().logoUrl);
       }
     });
-    return () => unsub();
+    
+    // Load products for AI context
+    const productsUnsub = onSnapshot(collection(db, 'products'), (snapshot) => {
+      const prods = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setProducts(prods);
+    });
+    
+    return () => {
+      unsub();
+      productsUnsub();
+    };
   }, []);
 
   useEffect(() => {
@@ -49,7 +60,7 @@ export default function FloatingActions() {
         parts: [{ text: m.text }]
       }));
 
-      const botResponse = await chatWithBot(userMessage, history);
+      const botResponse = await chatWithBot(userMessage, history, products);
       setMessages(prev => [...prev, { role: 'bot', text: botResponse }]);
     } catch (error: any) {
       console.error("Bot Error Details:", error);
@@ -126,7 +137,7 @@ export default function FloatingActions() {
             <div className="bg-primary p-5 flex items-center gap-3">
               <div className="flex items-center gap-2">
                 <button 
-                  onClick={() => setMessages([{ role: 'bot', text: 'مرحباً بك في Moonlight 🌕! أنا مساعدك الذكي، كيف يمكنني مساعدتك اليوم؟' }])}
+                  onClick={() => setMessages([{ role: 'bot', text: 'مرحباً بك في Moonlight! أنا مساعدك الذكي المتخصص في الهويات البصرية والتصميم الاحترافي. أعرف جميع منتجات المتجر ويمكنني مساعدتك باختيار المنتج المناسب لك. كيف يمكنني خدمتك؟' }])}
                   className="p-1.5 hover:bg-white/10 rounded-lg text-white/50 hover:text-white transition-colors"
                   title="مسح المحادثة"
                 >
