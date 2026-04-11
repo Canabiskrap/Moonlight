@@ -2,16 +2,10 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { doc, getDoc, addDoc, collection, Timestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { motion, AnimatePresence } from 'motion/react';
-import { ArrowRight, ShieldCheck, Download, ExternalLink, CreditCard, Sparkles, Brain, Lightbulb, Target, CheckCircle2, Loader2 } from 'lucide-react';
 import { convertDriveLink } from '../lib/utils';
+import { motion } from 'motion/react';
+import { ArrowRight, Download, ShieldCheck, Sparkles, ExternalLink, Brain, Target, Lightbulb, CheckCircle2, Loader2 } from 'lucide-react';
 import { getProductInsights, ProductInsight } from '../services/geminiService';
-
-declare global {
-  interface Window {
-    paypal: any;
-  }
-}
 
 export default function ProductDetails() {
   const { id } = useParams();
@@ -64,8 +58,8 @@ export default function ProductDetails() {
       script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD`;
       script.async = true;
       script.onload = () => {
-        if (window.paypal) {
-          window.paypal.Buttons({
+        if ((window as any).paypal) {
+          (window as any).paypal.Buttons({
             createOrder: (data: any, actions: any) => {
               return actions.order.create({
                 purchase_units: [{

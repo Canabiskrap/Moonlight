@@ -1,7 +1,8 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { User } from 'firebase/auth';
-import { logout } from '../lib/firebase';
-import { ShoppingBag, LayoutDashboard, LogOut, LogIn, Moon, Home } from 'lucide-react';
+import { LogIn, User as UserIcon, LogOut, LayoutDashboard, ShoppingBag } from 'lucide-react';
+import { auth } from '../lib/firebase';
+import { motion } from 'motion/react';
 
 interface NavbarProps {
   user: User | null;
@@ -9,67 +10,56 @@ interface NavbarProps {
 }
 
 export default function Navbar({ user, isAdmin }: NavbarProps) {
-  const location = useLocation();
-  const isDashboard = location.pathname === '/dashboard';
-
   return (
-    <nav className="fixed top-0 left-0 right-0 bg-[#0a0e1a]/95 backdrop-blur-md z-50 border-b border-white/5 px-6 py-4">
-      <div className="max-w-7xl mx-auto flex justify-between items-center">
-        <Link to="/" className="flex items-center gap-3 group">
-          <div className="bg-gradient-to-br from-gold to-orange-500 w-10 h-10 flex items-center justify-center rounded-xl shadow-lg shadow-gold/20 group-hover:scale-110 transition-transform">
-            <Moon className="text-dark w-6 h-6 fill-current" />
-          </div>
-          <span className="text-2xl font-black text-white tracking-tighter">Monnlight</span>
-        </Link>
-
-        <div className="flex items-center gap-6">
-          <Link to="/" className={`text-gray-400 hover:text-white font-medium transition-colors ${!isDashboard ? 'text-white' : ''}`}>المتجر</Link>
-          
-          {isAdmin && (
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500/10 border border-green-500/20 rounded-full" title="حالة النظام: متصل">
-                <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
-                <span className="text-[10px] font-black text-green-500 uppercase tracking-tighter">System OK</span>
-              </div>
-              <Link 
-                to={isDashboard ? "/" : "/dashboard"} 
-                className="flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-lg font-bold border border-primary/20 hover:bg-primary/20 transition-all"
-              >
-                {isDashboard ? (
-                  <>
-                    <Home size={18} />
-                    العودة للمتجر
-                  </>
-                ) : (
-                  <>
-                    <LayoutDashboard size={18} />
-                    لوحة التحكم
-                  </>
-                )}
-              </Link>
+    <nav className="bg-dark/80 backdrop-blur-xl border-b border-white/5 sticky top-0 z-50">
+      <div className="container mx-auto px-4 h-20 flex items-center justify-between">
+        <div className="flex items-center gap-8">
+          <Link to="/" className="flex items-center gap-3 group">
+            <div className="bg-primary p-2 rounded-xl shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform">
+              <ShoppingBag className="text-white" size={24} />
             </div>
-          )}
+            <span className="text-2xl font-black tracking-tighter text-white group-hover:text-primary transition-colors">Moonlight</span>
+          </Link>
 
-          {user && !isDashboard ? (
+          <div className="hidden md:flex items-center gap-6">
+            <Link to="/" className="text-sm font-bold text-gray-400 hover:text-white transition-colors">المتجر</Link>
+            <a href="#products" className="text-sm font-bold text-gray-400 hover:text-white transition-colors">المنتجات</a>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4">
+          {user ? (
             <div className="flex items-center gap-4">
-              <div className="hidden md:block text-right">
-                <p className="text-sm font-bold text-white leading-none mb-1">{user.displayName}</p>
-                <p className="text-xs text-gray-500">{user.email}</p>
+              {isAdmin && (
+                <Link 
+                  to="/dashboard" 
+                  className="flex items-center gap-2 bg-gold/10 text-gold px-4 py-2 rounded-xl text-sm font-bold border border-gold/20 hover:bg-gold/20 transition-all"
+                >
+                  <LayoutDashboard size={18} />
+                  <span className="hidden sm:inline">لوحة التحكم</span>
+                </Link>
+              )}
+              
+              <div className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-xl border border-white/10">
+                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center border border-primary/30">
+                  <UserIcon size={16} className="text-primary" />
+                </div>
+                <span className="text-sm font-bold text-gray-300 hidden sm:inline">{user.displayName || 'مستخدم'}</span>
+                <button 
+                  onClick={() => auth.signOut()}
+                  className="text-gray-500 hover:text-red-400 transition-colors p-1"
+                  title="تسجيل الخروج"
+                >
+                  <LogOut size={18} />
+                </button>
               </div>
-              <button 
-                onClick={logout}
-                className="p-2 text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
-                title="تسجيل الخروج"
-              >
-                <LogOut size={20} />
-              </button>
             </div>
           ) : (
             <Link 
               to="/login" 
-              className="flex items-center gap-2 text-gray-400 hover:text-white font-bold transition-colors"
+              className="flex items-center gap-2 bg-primary text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-primary-dark transition-all shadow-lg shadow-primary/20"
             >
-              <LogIn size={20} />
+              <LogIn size={18} />
               دخول
             </Link>
           )}

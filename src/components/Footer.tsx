@@ -1,65 +1,59 @@
+import { ShoppingBag, Instagram, Twitter, Mail, Phone } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Instagram, Twitter, MessageCircle, Moon } from 'lucide-react';
 
 export default function Footer() {
   return (
-    <footer className="bg-dark-light border-t border-white/5 pt-16 pb-8 mt-20 relative z-10">
-      <div className="max-w-7xl mx-auto px-4 md:px-8">
+    <footer className="bg-dark-light/30 border-t border-white/5 pt-16 pb-8">
+      <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-          {/* Brand */}
-          <div className="md:col-span-2 space-y-4">
-            <Link to="/" className="flex items-center gap-2 text-2xl font-black text-white">
-              <div className="bg-gradient-to-br from-gold to-yellow-600 p-2 rounded-xl">
-                <Moon size={24} className="text-dark" />
+          <div className="col-span-1 md:col-span-2 space-y-6">
+            <Link to="/" className="flex items-center gap-3">
+              <div className="bg-primary p-2 rounded-xl">
+                <ShoppingBag className="text-white" size={24} />
               </div>
-              Monnlight
+              <span className="text-2xl font-black tracking-tighter text-white">Moonlight</span>
             </Link>
-            <p className="text-gray-400 font-medium max-w-sm leading-relaxed">
-              وكالة تصميم رقمي متخصصة في بناء الهويات البصرية، تصميم الشعارات، وتطوير المواقع والتطبيقات بأعلى معايير الجودة.
+            <p className="text-gray-400 max-w-sm leading-relaxed font-medium">
+              نصمم مستقبلك الرقمي باحترافية. متجر Moonlight يقدم أفضل الخدمات الرقمية والتصاميم العصرية لمشاريعك.
             </p>
-          </div>
-
-          {/* Quick Links */}
-          <div className="space-y-4">
-            <h4 className="text-white font-black text-lg">روابط سريعة</h4>
-            <ul className="space-y-2">
-              <li>
-                <Link to="/" className="text-gray-400 hover:text-primary transition-colors font-medium">الرئيسية</Link>
-              </li>
-              <li>
-                <a href="/#products" className="text-gray-400 hover:text-primary transition-colors font-medium">خدماتنا</a>
-              </li>
-              <li>
-                <Link to="/login" className="text-gray-400 hover:text-primary transition-colors font-medium">تسجيل الدخول</Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Social & Contact */}
-          <div className="space-y-4">
-            <h4 className="text-white font-black text-lg">تواصل معنا</h4>
-            <div className="flex gap-4">
-              <a href="https://wa.me/96569929627" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:bg-[#25D366] hover:text-white transition-all">
-                <MessageCircle size={20} />
-              </a>
-              <a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:bg-gradient-to-tr hover:from-yellow-400 hover:via-pink-500 hover:to-purple-500 hover:text-white transition-all">
+            <div className="flex items-center gap-4">
+              <a href="#" className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:bg-primary hover:text-white transition-all">
                 <Instagram size={20} />
               </a>
-              <a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:bg-blue-400 hover:text-white transition-all">
+              <a href="#" className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:bg-primary hover:text-white transition-all">
                 <Twitter size={20} />
               </a>
             </div>
           </div>
+
+          <div>
+            <h4 className="text-white font-black mb-6 uppercase tracking-widest text-xs">روابط سريعة</h4>
+            <ul className="space-y-4 text-gray-400 font-bold text-sm">
+              <li><Link to="/" className="hover:text-primary transition-colors">المتجر</Link></li>
+              <li><a href="#products" className="hover:text-primary transition-colors">المنتجات</a></li>
+              <li><Link to="/login" className="hover:text-primary transition-colors">تسجيل الدخول</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-white font-black mb-6 uppercase tracking-widest text-xs">تواصل معنا</h4>
+            <ul className="space-y-4 text-gray-400 font-bold text-sm">
+              <li className="flex items-center gap-3">
+                <Mail size={18} className="text-primary" />
+                <span>support@moonlight.com</span>
+              </li>
+              <li className="flex items-center gap-3">
+                <Phone size={18} className="text-primary" />
+                <span>+965 69929627</span>
+              </li>
+            </ul>
+          </div>
         </div>
 
-        <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-gray-500 text-sm font-medium">
-            جميع الحقوق محفوظة © {new Date().getFullYear()} Monnlight
+        <div className="pt-8 border-t border-white/5 text-center">
+          <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">
+            © {new Date().getFullYear()} Moonlight Store. جميع الحقوق محفوظة.
           </p>
-          <div className="flex gap-4 text-sm text-gray-500 font-medium">
-            <Link to="/privacy" className="hover:text-white transition-colors">سياسة الخصوصية</Link>
-            <Link to="/terms" className="hover:text-white transition-colors">الشروط والأحكام</Link>
-          </div>
         </div>
       </div>
     </footer>
