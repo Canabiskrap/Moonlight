@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { upload } from '@vercel/blob/client';
+// Force sync comment
 import { 
   db, 
   auth, 
