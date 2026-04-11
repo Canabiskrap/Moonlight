@@ -200,7 +200,11 @@ export default function Dashboard() {
       setShowToast(true);
     } catch (err: any) {
       console.error("Logo Upload Error:", err);
-      addLog(`خطأ في رفع الشعار: ${err.message}`);
+      if (err.message.includes('client token') || err.message.includes('Vercel Blob')) {
+        addLog("فشل الرفع: يرجى التأكد من إضافة BLOB_READ_WRITE_TOKEN في إعدادات Vercel.");
+      } else {
+        addLog(`خطأ في رفع الشعار: ${err.message}`);
+      }
     } finally {
       setIsUploadingLogo(false);
     }
@@ -255,6 +259,9 @@ export default function Dashboard() {
           finalImageUrl = blob.url;
           addLog("تم رفع الصورة بنجاح");
         } catch (imgErr: any) {
+          if (imgErr.message.includes('client token') || imgErr.message.includes('Vercel Blob')) {
+            throw new Error("فشل الرفع: يرجى التأكد من إضافة BLOB_READ_WRITE_TOKEN في إعدادات Vercel.");
+          }
           throw new Error("فشل رفع الصورة: " + imgErr.message);
         }
       } else if (uploadMethod === 'link' && imageUploadType === 'file' && imageFile) {
@@ -274,6 +281,9 @@ export default function Dashboard() {
           finalImageUrl = blob.url;
           addLog("تم رفع الصورة بنجاح");
         } catch (imgErr: any) {
+          if (imgErr.message.includes('client token') || imgErr.message.includes('Vercel Blob')) {
+            throw new Error("فشل الرفع: يرجى التأكد من إضافة BLOB_READ_WRITE_TOKEN في إعدادات Vercel.");
+          }
           throw new Error("فشل رفع الصورة: " + imgErr.message);
         }
       }
@@ -297,6 +307,9 @@ export default function Dashboard() {
           finalDownloadUrl = blob.url;
           addLog("تم رفع الملف بنجاح");
         } catch (uploadErr: any) {
+          if (uploadErr.message.includes('client token') || uploadErr.message.includes('Vercel Blob')) {
+            throw new Error("فشل الرفع: يرجى التأكد من إضافة BLOB_READ_WRITE_TOKEN في إعدادات Vercel.");
+          }
           throw new Error("فشل رفع الملف الرقمي: " + uploadErr.message);
         }
       }
@@ -1230,17 +1243,25 @@ export default function Dashboard() {
                           ? `جاري الحفظ... ${Math.round(uploadProgress)}%` 
                           : "جاري التحضير..."}
                       </div>
-                      <button 
-                        type="button"
+                      <div 
+                        role="button"
+                        tabIndex={0}
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
                           handleCancelUpload();
                         }}
-                        className="text-[10px] text-white/60 hover:text-white underline font-bold mt-1 transition-colors"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleCancelUpload();
+                          }
+                        }}
+                        className="text-[10px] text-white/60 hover:text-white underline font-bold mt-1 transition-colors cursor-pointer"
                       >
                         إلغاء العملية
-                      </button>
+                      </div>
                     </div>
                   ) : status === 'success' ? (
                     <span className="relative z-10 flex items-center justify-center gap-2">
