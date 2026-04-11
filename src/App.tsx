@@ -101,6 +101,7 @@ export default function App() {
           </main>
           <Footer />
           <FloatingActions />
+          {/* Vercel Speed Insights */}
           <SpeedInsights />
         </div>
       </Router>
