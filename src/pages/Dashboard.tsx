@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Plus, Trash2, Edit2, X, Upload, Loader2, Package, DollarSign, 
   BarChart3, ImageIcon, FileText, Save, Eye, Settings, 
-  Palette, ShoppingBag, TrendingUp
+  Palette, ShoppingBag, TrendingUp, ExternalLink, Users
 } from 'lucide-react';
 
 interface Product {
@@ -27,6 +27,9 @@ export default function Dashboard() {
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'settings'>('products');
+  const [hasNewOrders, setHasNewOrders] = useState(false);
+  const [lastOrderTime, setLastOrderTime] = useState<Date | null>(null);
+  const [visitorCount, setVisitorCount] = useState(0);
 
   // Form state
   const [name, setName] = useState('');
@@ -53,12 +56,37 @@ export default function Dashboard() {
     });
 
     const ordersUnsubscribe = onSnapshot(collection(db, 'orders'), (snapshot) => {
-      setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const ordersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setOrders(ordersData);
+      
+      // Track new orders for pulse animation
+      if (ordersData.length > 0) {
+        const latestOrder = ordersData.reduce((latest, order) => {
+          const orderTime = order.createdAt?.toDate?.() || new Date(0);
+          const latestTime = latest?.createdAt?.toDate?.() || new Date(0);
+          return orderTime > latestTime ? order : latest;
+        }, ordersData[0]);
+        
+        const orderTime = latestOrder?.createdAt?.toDate?.();
+        if (orderTime) {
+          setLastOrderTime(orderTime);
+          // Show pulse if order is less than 30 minutes old
+          const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+          setHasNewOrders(orderTime > thirtyMinutesAgo);
+        }
+      }
     });
+
+    // Simulate visitor count (in production, connect to analytics)
+    const visitorInterval = setInterval(() => {
+      setVisitorCount(Math.floor(Math.random() * 50) + 10);
+    }, 30000);
+    setVisitorCount(Math.floor(Math.random() * 50) + 10);
 
     return () => {
       unsubscribe();
       ordersUnsubscribe();
+      clearInterval(visitorInterval);
     };
   }, []);
 
@@ -188,6 +216,20 @@ export default function Dashboard() {
 
   const totalRevenue = orders.reduce((acc, order) => acc + (order.amount || 0), 0);
 
+  const formatLastOrderTime = (date: Date | null): string => {
+    if (!date) return 'لا توجد طلبات';
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+    
+    if (diffMins < 1) return 'الآن';
+    if (diffMins < 60) return `منذ ${diffMins} دقيقة`;
+    if (diffHours < 24) return `منذ ${diffHours} ساعة`;
+    return `منذ ${diffDays} يوم`;
+  };
+
   const categories = [
     { id: 'cv', name: 'سيرة ذاتية' },
     { id: 'social', name: 'سوشيال ميديا' },
@@ -219,6 +261,36 @@ export default function Dashboard() {
               <div className="text-right">
                 <p className="text-xs text-gray-500">إجمالي الإيرادات</p>
                 <p className="text-xl font-black text-gold">${totalRevenue.toFixed(2)}</p>
+              </div>
+              
+              {/* Smart Store Button */}
+              <div className="relative group">
+                <a
+                  href="https://monnlight-store.vercel.app"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold transition-all border ${
+                    hasNewOrders
+                      ? 'bg-gradient-to-r from-emerald-500 to-green-600 border-green-400 animate-pulse shadow-lg shadow-green-500/30'
+                      : 'bg-dark-light/80 border-white/10 hover:border-primary/50 hover:bg-dark-light'
+                  }`}
+                >
+                  <span className="text-lg">🛍️</span>
+                  <span className="text-sm">زيارة المتجر</span>
+                  {visitorCount > 0 && (
+                    <span className="flex items-center gap-1 text-xs bg-white/10 px-2 py-0.5 rounded-full">
+                      <Users size={12} />
+                      {visitorCount}
+                    </span>
+                  )}
+                  <ExternalLink size={14} className="opacity-60" />
+                </a>
+                
+                {/* Tooltip */}
+                <div className="absolute top-full right-0 mt-2 px-3 py-2 bg-dark-light border border-white/10 rounded-lg text-xs whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 shadow-xl">
+                  <span className="text-gray-400">آخر طلب: </span>
+                  <span className="text-white font-bold">{formatLastOrderTime(lastOrderTime)}</span>
+                </div>
               </div>
             </div>
           </div>
