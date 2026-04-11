@@ -181,7 +181,7 @@ export default function Dashboard() {
     try {
       const blob = await upload(logoFile.name, logoFile, {
         access: 'public',
-        handleUploadUrl: '/api/upload',
+        handleUploadUrl: `${window.location.origin}/api/upload`,
       });
       
       const url = blob.url;
@@ -242,9 +242,10 @@ export default function Dashboard() {
         try {
           const blob = await upload(imageFile.name, imageFile, {
             access: 'public',
-            handleUploadUrl: '/api/upload',
+            handleUploadUrl: `${window.location.origin}/api/upload`,
             onUploadProgress: (progressEvent) => {
-              const progress = (progressEvent.loaded / progressEvent.total) * 40;
+              const total = progressEvent.total || 1;
+              const progress = (progressEvent.loaded / total) * 40;
               setUploadProgress(Math.round(progress));
             },
           });
@@ -252,8 +253,9 @@ export default function Dashboard() {
           finalImageUrl = blob.url;
           addLog("تم رفع الصورة بنجاح");
         } catch (imgErr: any) {
+          console.error("Image upload error details:", imgErr);
           if (imgErr.message.includes('client token') || imgErr.message.includes('Vercel Blob')) {
-            throw new Error("فشل الرفع: يرجى التأكد من إضافة BLOB_READ_WRITE_TOKEN في إعدادات Vercel.");
+            throw new Error(`فشل الرفع: يرجى التأكد من إضافة BLOB_READ_WRITE_TOKEN في إعدادات Vercel. (الخطأ الأصلي: ${imgErr.message})`);
           }
           throw new Error("فشل رفع الصورة: " + imgErr.message);
         }
@@ -264,9 +266,10 @@ export default function Dashboard() {
         try {
           const blob = await upload(imageFile.name, imageFile, {
             access: 'public',
-            handleUploadUrl: '/api/upload',
+            handleUploadUrl: `${window.location.origin}/api/upload`,
             onUploadProgress: (progressEvent) => {
-              const progress = (progressEvent.loaded / progressEvent.total) * 40;
+              const total = progressEvent.total || 1;
+              const progress = (progressEvent.loaded / total) * 40;
               setUploadProgress(Math.round(progress));
             },
           });
@@ -274,8 +277,9 @@ export default function Dashboard() {
           finalImageUrl = blob.url;
           addLog("تم رفع الصورة بنجاح");
         } catch (imgErr: any) {
+          console.error("Image upload error details (link mode):", imgErr);
           if (imgErr.message.includes('client token') || imgErr.message.includes('Vercel Blob')) {
-            throw new Error("فشل الرفع: يرجى التأكد من إضافة BLOB_READ_WRITE_TOKEN في إعدادات Vercel.");
+            throw new Error(`فشل الرفع: يرجى التأكد من إضافة BLOB_READ_WRITE_TOKEN في إعدادات Vercel. (الخطأ الأصلي: ${imgErr.message})`);
           }
           throw new Error("فشل رفع الصورة: " + imgErr.message);
         }
@@ -288,11 +292,12 @@ export default function Dashboard() {
         try {
           const blob = await upload(productFile.name, productFile, {
             access: 'public',
-            handleUploadUrl: '/api/upload', // We'll need to set this up or use client upload
+            handleUploadUrl: `${window.location.origin}/api/upload`, // We'll need to set this up or use client upload
             onUploadProgress: (progressEvent) => {
               const baseProgress = finalImageUrl ? 40 : 0;
               const remaining = 100 - baseProgress - 10;
-              const progress = baseProgress + ((progressEvent.loaded / progressEvent.total) * remaining);
+              const total = progressEvent.total || 1;
+              const progress = baseProgress + ((progressEvent.loaded / total) * remaining);
               setUploadProgress(Math.round(progress));
             },
           });
@@ -300,8 +305,9 @@ export default function Dashboard() {
           finalDownloadUrl = blob.url;
           addLog("تم رفع الملف بنجاح");
         } catch (uploadErr: any) {
+          console.error("Product file upload error details:", uploadErr);
           if (uploadErr.message.includes('client token') || uploadErr.message.includes('Vercel Blob')) {
-            throw new Error("فشل الرفع: يرجى التأكد من إضافة BLOB_READ_WRITE_TOKEN في إعدادات Vercel.");
+            throw new Error(`فشل الرفع: يرجى التأكد من إضافة BLOB_READ_WRITE_TOKEN في إعدادات Vercel. (الخطأ الأصلي: ${uploadErr.message})`);
           }
           throw new Error("فشل رفع الملف الرقمي: " + uploadErr.message);
         }

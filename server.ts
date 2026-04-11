@@ -48,34 +48,23 @@ function decrypt(text: string) {
 app.post('/api/upload', async (request, response) => {
   const body = request.body;
 
+  console.log("Upload endpoint hit. Token present?", !!process.env.BLOB_READ_WRITE_TOKEN);
+
   try {
     const jsonResponse = await handleUpload({
       body,
       request,
       token: process.env.BLOB_READ_WRITE_TOKEN,
       onBeforeGenerateToken: async (pathname, clientPayload) => {
-        // Generate a client token for the browser to upload the file
-        // ⚠️ Authenticate and authorize users before generating the token.
-        // Otherwise, you're allowing anonymous uploads.
-        
         return {
-          allowedContentTypes: ['image/jpeg', 'image/png', 'image/gif', 'application/zip', 'application/x-zip-compressed'],
-          tokenPayload: JSON.stringify({
-            // optional, sent to your server on upload completion
-            // you could pass a user id from auth, or a value from clientPayload
-          }),
+          tokenPayload: JSON.stringify({}),
         };
-      },
-      onUploadCompleted: async ({ blob, tokenPayload }) => {
-        // Get notified of client upload completion
-        // ⚠️ This will not work on localhost if you're not using
-        // ngrok or similar to expose the local server to the internet.
-        console.log('blob upload completed', blob, tokenPayload);
       },
     });
 
     response.status(200).json(jsonResponse);
   } catch (error) {
+    console.error("handleUpload error:", error);
     response.status(400).json({ error: (error as Error).message });
   }
 });
