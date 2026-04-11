@@ -18,7 +18,7 @@ export default function Navbar({ user, isAdmin }: NavbarProps) {
             <div className="bg-primary p-2 rounded-xl shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform">
               <ShoppingBag className="text-white" size={24} />
             </div>
-            <span className="text-2xl font-black tracking-tighter text-white group-hover:text-primary transition-colors">Moonlight</span>
+            <span className="text-2xl font-black tracking-tighter text-white group-hover:text-primary transition-colors">Monnlight Store</span>
           </Link>
 
           <div className="hidden md:flex items-center gap-6">

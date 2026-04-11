@@ -181,6 +181,17 @@ export default function Dashboard() {
     setUploadProgress(1); // Start at 1% to show "Saving..." instead of "Preparing..."
     addLog("بدء عملية الحفظ...");
 
+    // Safety timeout: Reset status to idle if stuck for 15 minutes
+    const safetyTimeout = setTimeout(() => {
+      setStatus(current => {
+        if (current === 'uploading') {
+          addLog("تنبيه: استغرقت العملية وقتاً طويلاً جداً، تم إعادة تعيين الحالة.");
+          return 'idle';
+        }
+        return current;
+      });
+    }, 900000); // 15 minutes
+
     try {
       if (!auth.currentUser) {
         throw new Error("يجب تسجيل الدخول كمسؤول للقيام بهذه العملية.");
@@ -271,6 +282,7 @@ export default function Dashboard() {
           addLog("جاري رفع الصورة (طريقة الرابط)...");
           const imageRef = ref(activeStorage, `products/images/${Date.now()}_${imageFile.name}`);
           const imageUploadTask = uploadBytesResumable(imageRef, imageFile);
+          uploadTaskRef.current = imageUploadTask;
           
           imageUploadTask.on('state_changed', (snapshot) => {
             const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 50;
@@ -285,8 +297,13 @@ export default function Dashboard() {
             finalImageUrl = await getDownloadURL(imageRef);
             addLog("تم رفع الصورة بنجاح");
           } catch (imgErr: any) {
+            if (imgErr.code === 'storage/canceled') {
+              throw new Error("UPLOAD_CANCELED");
+            }
             addLog(`خطأ في رفع الصورة: ${imgErr.message}`);
             throw new Error("فشل رفع الصورة: " + imgErr.message);
+          } finally {
+            uploadTaskRef.current = null;
           }
         } else if (imageUploadType === 'link' || !imageFile) {
           if (imageUrl) {
@@ -379,14 +396,7 @@ export default function Dashboard() {
         setErrorMessage(err.message || "فشل حفظ المنتج");
       }
     } finally {
-      // If we are still in uploading state and no success/error was set, reset to idle
-      // This prevents the UI from being stuck if an uncaught error occurs
-      setTimeout(() => {
-        setStatus(current => {
-          if (current === 'uploading') return 'idle';
-          return current;
-        });
-      }, 10000); // 10 second safety timeout
+      clearTimeout(safetyTimeout);
     }
   };
 
@@ -448,12 +458,16 @@ export default function Dashboard() {
 
   const handleCancelUpload = () => {
     if (uploadTaskRef.current) {
-      uploadTaskRef.current.cancel();
+      try {
+        uploadTaskRef.current.cancel();
+      } catch (e) {
+        console.warn("Error canceling upload:", e);
+      }
       uploadTaskRef.current = null;
-      setStatus('idle');
-      setUploadProgress(0);
-      addLog("تم إلغاء عملية الرفع.");
     }
+    setStatus('idle');
+    setUploadProgress(0);
+    addLog("تم إلغاء عملية الرفع.");
   };
 
   const testAI = async () => {

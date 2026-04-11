@@ -86,12 +86,14 @@ export default function FloatingActions() {
       >
         {showBot ? <X size={28} /> : (
           <div className="relative w-full h-full rounded-full overflow-hidden flex items-center justify-center">
-            <Bot size={28} className="absolute z-0" />
+            <Bot size={28} className="text-white" />
             <img 
               src="/bot-avatar.png" 
               alt="Bot Avatar" 
-              className="w-full h-full object-cover absolute inset-0 z-10 transition-opacity duration-300" 
+              className="w-full h-full object-cover absolute inset-0 transition-opacity duration-300" 
+              onLoad={(e) => e.currentTarget.style.opacity = '1'}
               onError={(e) => e.currentTarget.style.opacity = '0'} 
+              style={{ opacity: 0 }}
             />
           </div>
         )}
@@ -119,12 +121,14 @@ export default function FloatingActions() {
                   <RefreshCw size={16} />
                 </button>
                 <div className="bg-white/20 w-10 h-10 rounded-xl relative overflow-hidden flex items-center justify-center">
-                  <Bot size={24} className="text-white absolute z-0" />
+                  <Bot size={24} className="text-white" />
                   <img 
                     src="/bot-avatar.png" 
                     alt="Bot Avatar" 
-                    className="w-full h-full object-cover absolute inset-0 z-10 transition-opacity duration-300" 
+                    className="w-full h-full object-cover absolute inset-0 transition-opacity duration-300" 
+                    onLoad={(e) => e.currentTarget.style.opacity = '1'}
                     onError={(e) => e.currentTarget.style.opacity = '0'} 
+                    style={{ opacity: 0 }}
                   />
                 </div>
               </div>

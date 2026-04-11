@@ -11,10 +11,10 @@ export default function Footer() {
               <div className="bg-primary p-2 rounded-xl">
                 <ShoppingBag className="text-white" size={24} />
               </div>
-              <span className="text-2xl font-black tracking-tighter text-white">Moonlight</span>
+              <span className="text-2xl font-black tracking-tighter text-white">Monnlight Store</span>
             </Link>
             <p className="text-gray-400 max-w-sm leading-relaxed font-medium">
-              نصمم مستقبلك الرقمي باحترافية. متجر Moonlight يقدم أفضل الخدمات الرقمية والتصاميم العصرية لمشاريعك.
+              نصمم مستقبلك الرقمي باحترافية. متجر Monnlight Store يقدم أفضل الخدمات الرقمية والتصاميم العصرية لمشاريعك.
             </p>
             <div className="flex items-center gap-4">
               <a href="#" className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:bg-primary hover:text-white transition-all">
