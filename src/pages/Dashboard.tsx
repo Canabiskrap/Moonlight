@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ref, uploadBytesResumable, getDownloadURL, uploadBytes, getStorage } from 'firebase/storage';
+import { upload } from '@vercel/blob/client';
 import { 
   db, 
   storage, 
@@ -178,13 +179,15 @@ export default function Dashboard() {
   const handleLogoUpload = async () => {
     if (!logoFile) return;
     setIsUploadingLogo(true);
-    addLog("جاري رفع الشعار الجديد...");
+    addLog("جاري رفع الشعار الجديد (Vercel Blob)...");
     
     try {
-      const activeStorage = customBucket ? getStorage(storage.app, customBucket) : storage;
-      const logoRef = ref(activeStorage, 'site/logo.png');
-      await uploadBytes(logoRef, logoFile);
-      const url = await getDownloadURL(logoRef);
+      const blob = await upload(logoFile.name, logoFile, {
+        access: 'public',
+        handleUploadUrl: '/api/upload',
+      });
+      
+      const url = blob.url;
       
       // Update a settings document in Firestore to store the logo URL
       await setDoc(doc(db, 'settings', 'appearance'), {
@@ -237,82 +240,64 @@ export default function Dashboard() {
 
       // 1. Handle Image Upload
       if (uploadMethod === 'direct' && imageFile) {
-        addLog("جاري رفع الصورة...");
-        const imageRef = ref(activeStorage, `products/images/${Date.now()}_${imageFile.name}`);
-        const imageUploadTask = uploadBytesResumable(imageRef, imageFile);
-        uploadTaskRef.current = imageUploadTask;
+        addLog("جاري رفع الصورة (Vercel Blob)...");
         
-        imageUploadTask.on('state_changed', (snapshot) => {
-          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 40;
-          setUploadProgress(Math.round(progress));
-        });
-
         try {
-          await Promise.race([
-            imageUploadTask,
-            createTimeout(120000, "انتهت مهلة رفع الصورة (دقيقتان).")
-          ]);
-          finalImageUrl = await getDownloadURL(imageRef);
+          const blob = await upload(imageFile.name, imageFile, {
+            access: 'public',
+            handleUploadUrl: '/api/upload',
+            onUploadProgress: (progressEvent) => {
+              const progress = (progressEvent.loaded / progressEvent.total) * 40;
+              setUploadProgress(Math.round(progress));
+            },
+          });
+          
+          finalImageUrl = blob.url;
           addLog("تم رفع الصورة بنجاح");
         } catch (imgErr: any) {
-          if (imgErr.code === 'storage/canceled') throw new Error("UPLOAD_CANCELED");
           throw new Error("فشل رفع الصورة: " + imgErr.message);
-        } finally {
-          uploadTaskRef.current = null;
         }
       } else if (uploadMethod === 'link' && imageUploadType === 'file' && imageFile) {
         // Handle file upload even in link mode if imageUploadType is 'file'
-        addLog("جاري رفع الصورة (طريقة الرابط)...");
-        const imageRef = ref(activeStorage, `products/images/${Date.now()}_${imageFile.name}`);
-        const imageUploadTask = uploadBytesResumable(imageRef, imageFile);
-        uploadTaskRef.current = imageUploadTask;
+        addLog("جاري رفع الصورة (Vercel Blob)...");
         
-        imageUploadTask.on('state_changed', (snapshot) => {
-          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 40;
-          setUploadProgress(Math.round(progress));
-        });
-
         try {
-          await Promise.race([
-            imageUploadTask,
-            createTimeout(120000, "انتهت مهلة رفع الصورة.")
-          ]);
-          finalImageUrl = await getDownloadURL(imageRef);
+          const blob = await upload(imageFile.name, imageFile, {
+            access: 'public',
+            handleUploadUrl: '/api/upload',
+            onUploadProgress: (progressEvent) => {
+              const progress = (progressEvent.loaded / progressEvent.total) * 40;
+              setUploadProgress(Math.round(progress));
+            },
+          });
+          
+          finalImageUrl = blob.url;
           addLog("تم رفع الصورة بنجاح");
         } catch (imgErr: any) {
-          if (imgErr.code === 'storage/canceled') throw new Error("UPLOAD_CANCELED");
           throw new Error("فشل رفع الصورة: " + imgErr.message);
-        } finally {
-          uploadTaskRef.current = null;
         }
       }
 
       // 2. Handle Product File Upload
       if (uploadMethod === 'direct' && productFile) {
-        addLog("جاري رفع الملف الرقمي...");
-        const fileRef = ref(activeStorage, `products/files/${Date.now()}_${productFile.name}`);
-        const fileUploadTask = uploadBytesResumable(fileRef, productFile);
-        uploadTaskRef.current = fileUploadTask;
+        addLog("جاري رفع الملف الرقمي (Vercel Blob)...");
         
-        fileUploadTask.on('state_changed', (snapshot) => {
-          const baseProgress = finalImageUrl ? 40 : 0;
-          const remaining = 100 - baseProgress - 10; // Reserve 10% for firestore
-          const progress = baseProgress + ((snapshot.bytesTransferred / snapshot.totalBytes) * remaining);
-          setUploadProgress(Math.round(progress));
-        });
-
         try {
-          await Promise.race([
-            fileUploadTask,
-            createTimeout(600000, "انتهت مهلة رفع الملف (10 دقائق).")
-          ]);
-          finalDownloadUrl = await getDownloadURL(fileRef);
+          const blob = await upload(productFile.name, productFile, {
+            access: 'public',
+            handleUploadUrl: '/api/upload', // We'll need to set this up or use client upload
+            onUploadProgress: (progressEvent) => {
+              const baseProgress = finalImageUrl ? 40 : 0;
+              const remaining = 100 - baseProgress - 10;
+              const progress = baseProgress + ((progressEvent.loaded / progressEvent.total) * remaining);
+              setUploadProgress(Math.round(progress));
+            },
+          });
+          
+          finalDownloadUrl = blob.url;
           addLog("تم رفع الملف بنجاح");
         } catch (uploadErr: any) {
-          if (uploadErr.code === 'storage/canceled') throw new Error("UPLOAD_CANCELED");
           throw new Error("فشل رفع الملف الرقمي: " + uploadErr.message);
-        } finally {
-          uploadTaskRef.current = null;
         }
       }
 

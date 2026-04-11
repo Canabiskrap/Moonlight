@@ -19,6 +19,7 @@ import Terms from './pages/Terms';
 import FloatingActions from './components/FloatingActions';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { motion, AnimatePresence } from 'motion/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 import Status from './pages/Status';
 
@@ -100,6 +101,7 @@ export default function App() {
           </main>
           <Footer />
           <FloatingActions />
+          <SpeedInsights />
         </div>
       </Router>
     </ErrorBoundary>

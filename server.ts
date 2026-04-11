@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
+import { handleUpload } from '@vercel/blob/client';
 
 dotenv.config();
 
@@ -42,6 +43,41 @@ function decrypt(text: string) {
 }
 
 // API Routes
+
+// Vercel Blob Upload Endpoint
+app.post('/api/upload', async (request, response) => {
+  const body = request.body;
+
+  try {
+    const jsonResponse = await handleUpload({
+      body,
+      request,
+      onBeforeGenerateToken: async (pathname, clientPayload) => {
+        // Generate a client token for the browser to upload the file
+        // ⚠️ Authenticate and authorize users before generating the token.
+        // Otherwise, you're allowing anonymous uploads.
+        
+        return {
+          allowedContentTypes: ['image/jpeg', 'image/png', 'image/gif', 'application/zip', 'application/x-zip-compressed'],
+          tokenPayload: JSON.stringify({
+            // optional, sent to your server on upload completion
+            // you could pass a user id from auth, or a value from clientPayload
+          }),
+        };
+      },
+      onUploadCompleted: async ({ blob, tokenPayload }) => {
+        // Get notified of client upload completion
+        // ⚠️ This will not work on localhost if you're not using
+        // ngrok or similar to expose the local server to the internet.
+        console.log('blob upload completed', blob, tokenPayload);
+      },
+    });
+
+    response.status(200).json(jsonResponse);
+  } catch (error) {
+    response.status(400).json({ error: (error as Error).message });
+  }
+});
 
 // 1. Encrypt URL (Used by Dashboard when adding a product)
 app.post('/api/encrypt', (req, res) => {
