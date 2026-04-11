@@ -209,151 +209,74 @@ export default function Dashboard() {
     setUploadProgress(1);
     addLog("بدء عملية الحفظ...");
 
-    const safetyTimeout = setTimeout(() => {
-      setStatus(current => {
-        if (current === 'uploading') {
-          addLog("تنبيه: استغرقت العملية وقتاً طويلاً جداً، تم إعادة تعيين الحالة.");
-          return 'idle';
-        }
-        return current;
-      });
-    }, 900000);
-
     try {
       if (!auth.currentUser) throw new Error("يجب تسجيل الدخول كمسؤول.");
       if (!isAdminUser) throw new Error(`حسابك ليس لديه صلاحيات المسؤول.`);
       if (!isEmailVerified) throw new Error("يرجى تأكيد بريدك الإلكتروني.");
 
-      let finalImageUrl = convertDriveLink(imageUrl);
-      let finalDownloadUrl = downloadUrl;
-
-      // 1. Handle Image Upload
-      if (uploadMethod === 'direct' && imageFile) {
-        addLog("جاري رفع الصورة (Vercel Blob)...");
-        
-        try {
-          const blob = await upload(`${Date.now()}_${imageFile.name}`, imageFile, {
-            access: 'public',
-            handleUploadUrl: `${window.location.origin}/api/upload`,
-            onUploadProgress: (progressEvent) => {
-              const total = progressEvent.total || 1;
-              const progress = (progressEvent.loaded / total) * 40;
-              setUploadProgress(Math.round(progress));
-            },
-          });
-          
-          finalImageUrl = blob.url;
-          addLog("تم رفع الصورة بنجاح");
-        } catch (imgErr: any) {
-          console.error("Image upload error details:", imgErr);
-          throw new Error("فشل رفع الصورة: " + imgErr.message);
-        }
-      } else if (uploadMethod === 'link' && imageUploadType === 'file' && imageFile) {
-        // Handle file upload even in link mode if imageUploadType is 'file'
-        addLog("جاري رفع الصورة (Vercel Blob)...");
-        
-        try {
-          const blob = await upload(`${Date.now()}_${imageFile.name}`, imageFile, {
-            access: 'public',
-            handleUploadUrl: `${window.location.origin}/api/upload`,
-            onUploadProgress: (progressEvent) => {
-              const total = progressEvent.total || 1;
-              const progress = (progressEvent.loaded / total) * 40;
-              setUploadProgress(Math.round(progress));
-            },
-          });
-          
-          finalImageUrl = blob.url;
-          addLog("تم رفع الصورة بنجاح");
-        } catch (imgErr: any) {
-          console.error("Image upload error details (link mode):", imgErr);
-          throw new Error("فشل رفع الصورة: " + imgErr.message);
-        }
-      }
-
-      // 2. Handle Product File Upload
-      if (uploadMethod === 'direct' && productFile) {
-        addLog("جاري رفع الملف الرقمي (Vercel Blob)...");
-        
-        try {
-          const blob = await upload(`${Date.now()}_${productFile.name}`, productFile, {
-            access: 'public',
-            handleUploadUrl: `${window.location.origin}/api/upload`,
-            onUploadProgress: (progressEvent) => {
-              const baseProgress = finalImageUrl ? 40 : 0;
-              const remaining = 100 - baseProgress - 10;
-              const total = progressEvent.total || 1;
-              const progress = baseProgress + ((progressEvent.loaded / total) * remaining);
-              setUploadProgress(Math.round(progress));
-            },
-          });
-          
-          finalDownloadUrl = blob.url;
-          addLog("تم رفع الملف بنجاح");
-        } catch (uploadErr: any) {
-          console.error("Product file upload error details:", uploadErr);
-          throw new Error("فشل رفع الملف الرقمي: " + uploadErr.message);
-        }
-      }
-
-      // 3. Validation and URL conversion
-      if (finalImageUrl) {
-        finalImageUrl = convertDriveLink(finalImageUrl);
-        if (!isValidUrl(finalImageUrl)) {
-          if (finalImageUrl.includes('.') && !finalImageUrl.startsWith('http')) {
-            finalImageUrl = `https://${finalImageUrl}`;
-          } else {
-            throw new Error("رابط الصورة غير صالح.");
-          }
-        }
-      }
-
-      if (finalDownloadUrl) {
-        if (!isValidUrl(finalDownloadUrl)) {
-          if (finalDownloadUrl.includes('.') && !finalDownloadUrl.startsWith('http')) {
-            finalDownloadUrl = `https://${finalDownloadUrl}`;
-          } else {
-            throw new Error("رابط التحميل غير صالح.");
-          }
-        }
-      }
-
-      if (!finalImageUrl || !finalDownloadUrl) {
-        throw new Error("يرجى التأكد من رفع الملفات أو وضع الروابط الصحيحة");
-      }
-
-      setUploadProgress(95);
       const numericPrice = parseFloat(price);
       if (isNaN(numericPrice)) throw new Error("يرجى إدخال سعر صحيح");
 
+      // 1. Save to Firestore FIRST (with initial data)
+      addLog("جاري حفظ البيانات الأساسية في قاعدة البيانات...");
+      let docId = editingId;
       const productData = {
         name,
         description,
         price: numericPrice,
-        imageUrl: finalImageUrl,
-        downloadUrl: finalDownloadUrl,
         category,
         updatedAt: Timestamp.now()
       };
 
-      console.log("Attempting to save product data:", productData);
-
       if (editingId) {
-        addLog("جاري تحديث البيانات...");
-        console.log("Updating document:", editingId);
-        await updateDoc(doc(db, 'products', editingId), productData);
-        console.log("Document updated successfully");
+        await updateDoc(doc(db, 'products', editingId), { ...productData });
       } else {
-        addLog("جاري إضافة المنتج...");
-        console.log("Adding new document to 'products' collection");
-        await addDoc(collection(db, 'products'), {
-          ...productData,
-          createdAt: Timestamp.now()
+        const docRef = await addDoc(collection(db, 'products'), { 
+          ...productData, 
+          createdAt: Timestamp.now(),
+          imageUrl: '',
+          downloadUrl: '',
+          status: 'uploading'
         });
-        console.log("Document added successfully");
+        docId = docRef.id;
       }
+      addLog("تم حفظ البيانات الأساسية بنجاح (ID: " + docId + ")");
+
+      // 2. Handle Uploads
+      let finalImageUrl = imageUrl;
+      let finalDownloadUrl = downloadUrl;
+
+      if (imageFile) {
+        addLog("جاري رفع الصورة...");
+        const blob = await upload(`${Date.now()}_${imageFile.name}`, imageFile, {
+          access: 'public',
+          handleUploadUrl: `${window.location.origin}/api/upload`,
+        });
+        finalImageUrl = blob.url;
+        addLog("تم رفع الصورة.");
+        await updateDoc(doc(db, 'products', docId!), { imageUrl: finalImageUrl });
+      }
+
+      if (productFile) {
+        addLog("جاري رفع الملف الرقمي...");
+        const blob = await upload(`${Date.now()}_${productFile.name}`, productFile, {
+          access: 'public',
+          handleUploadUrl: `${window.location.origin}/api/upload`,
+        });
+        finalDownloadUrl = blob.url;
+        addLog("تم رفع الملف.");
+        await updateDoc(doc(db, 'products', docId!), { downloadUrl: finalDownloadUrl });
+      }
+
+      // 3. Finalize
+      await updateDoc(doc(db, 'products', docId!), { 
+        imageUrl: finalImageUrl,
+        downloadUrl: finalDownloadUrl,
+        status: 'completed'
+      });
       
       setUploadProgress(100);
+      addLog("تم حفظ المنتج بالكامل بنجاح!");
       setStatus('success');
       setShowToast(true);
       resetForm();
@@ -364,17 +287,10 @@ export default function Dashboard() {
       }, 3000);
       
     } catch (err: any) {
-      if (err.message === 'UPLOAD_CANCELED') return;
       console.error("Submit Error:", err);
+      addLog("❌ خطأ: " + err.message);
       setStatus('error');
-      try {
-        const parsed = JSON.parse(err.message);
-        setErrorMessage(`خطأ: ${parsed.error}`);
-      } catch {
-        setErrorMessage(err.message || "فشل حفظ المنتج");
-      }
-    } finally {
-      clearTimeout(safetyTimeout);
+      setErrorMessage(err.message || "فشل حفظ المنتج");
     }
   };
 
