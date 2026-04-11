@@ -79,9 +79,9 @@ export default function Dashboard() {
       try {
         const blobFile = new File(["connection test"], `test_connection_${Date.now()}.txt`, { type: "text/plain" });
         
-        await put(blobFile.name, blobFile, {
+        await upload(blobFile.name, blobFile, {
           access: 'public',
-          token: import.meta.env.VITE_BLOB_READ_WRITE_TOKEN
+          handleUploadUrl: `${window.location.origin}/api/upload`,
         });
         
         addLog("✅ Vercel Blob: متصل (تم رفع ملف تجريبي)");
@@ -171,9 +171,9 @@ export default function Dashboard() {
     addLog("جاري رفع الشعار الجديد (Vercel Blob)...");
     
     try {
-      const { url } = await put(logoFile.name, logoFile, {
+      const { url } = await upload(logoFile.name, logoFile, {
         access: 'public',
-        token: import.meta.env.VITE_BLOB_READ_WRITE_TOKEN
+        handleUploadUrl: `${window.location.origin}/api/upload`,
       });
       
       // Update a settings document in Firestore to store the logo URL
