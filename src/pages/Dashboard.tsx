@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ref, uploadBytesResumable, getDownloadURL, uploadBytes, getStorage } from 'firebase/storage';
 import { upload } from '@vercel/blob/client';
 import { 
   db, 
-  storage, 
   auth, 
   logout,
   deleteFile, 
@@ -76,27 +74,26 @@ export default function Dashboard() {
       });
       addLog("✅ Firestore: متصل");
 
-      // 2. Test Storage
-      addLog("2. اختبار Storage...");
+      // 2. Test Storage (Vercel Blob)
+      addLog("2. اختبار Storage (Vercel Blob)...");
       try {
-        const activeStorage = customBucket ? getStorage(storage.app, customBucket) : storage;
-        if (customBucket) addLog(`استخدام Bucket مخصص: ${customBucket}`);
+        const blobFile = new File(["connection test"], `test_connection_${Date.now()}.txt`, { type: "text/plain" });
         
-        const storageTestRef = ref(activeStorage, `test/connection_${Date.now()}.txt`);
-        const blob = new Blob(["connection test"], { type: "text/plain" });
+        const uploadPromise = upload(blobFile.name, blobFile, {
+          access: 'public',
+          handleUploadUrl: '/api/upload',
+        });
         
-        const uploadPromise = uploadBytes(storageTestRef, blob);
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error("انتهت مهلة اختبار التخزين (30 ثانية). قد يكون هناك حظر للاتصال أو الـ Bucket غير صحيح.")), 30000)
+          setTimeout(() => reject(new Error("انتهت مهلة اختبار التخزين (30 ثانية).")), 30000)
         );
 
         await Promise.race([uploadPromise, timeoutPromise]);
-        addLog("✅ Storage: متصل (تم رفع ملف تجريبي)");
+        addLog("✅ Vercel Blob: متصل (تم رفع ملف تجريبي)");
       } catch (sErr: any) {
-        addLog(`❌ Storage: فشل (${sErr.code || sErr.message})`);
-        if (sErr.code === 'storage/retry-limit-exceeded' || sErr.message.includes('مهلة')) {
-          addLog("تنبيه: يبدو أن هناك مشكلة في إعدادات الـ Bucket أو جدار حماية يمنع الاتصال.");
-          addLog("نصيحة: جرب استخدام 'روابط خارجية' ووضع رابط مباشر للصورة والملف لتجاوز هذه المشكلة.");
+        addLog(`❌ Vercel Blob: فشل (${sErr.message})`);
+        if (sErr.message.includes('client token') || sErr.message.includes('Vercel Blob')) {
+          addLog("تنبيه: يرجى التأكد من إضافة BLOB_READ_WRITE_TOKEN في إعدادات Vercel.");
         }
       }
 
@@ -237,10 +234,6 @@ export default function Dashboard() {
 
       let finalImageUrl = convertDriveLink(imageUrl);
       let finalDownloadUrl = downloadUrl;
-
-      const activeStorage = customBucket ? getStorage(storage.app, customBucket) : storage;
-      const createTimeout = (ms: number, msg: string) => 
-        new Promise((_, reject) => setTimeout(() => reject(new Error(msg)), ms));
 
       // 1. Handle Image Upload
       if (uploadMethod === 'direct' && imageFile) {
@@ -812,8 +805,8 @@ export default function Dashboard() {
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="text-right hidden sm:block">
-                    <p className="text-[10px] text-gray-500 font-bold uppercase">Storage Bucket</p>
-                    <p className="text-[9px] text-primary/70 font-mono">{storage.app.options.storageBucket || 'Default'}</p>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase">Storage Provider</p>
+                    <p className="text-[9px] text-primary/70 font-mono">Vercel Blob</p>
                   </div>
                   <button 
                     onClick={() => setDebugLogs([])}
