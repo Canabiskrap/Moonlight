@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { upload } from '@vercel/blob/client';
+import { put } from '@vercel/blob';
 import { 
   db, 
   auth, 
@@ -79,22 +79,14 @@ export default function Dashboard() {
       try {
         const blobFile = new File(["connection test"], `test_connection_${Date.now()}.txt`, { type: "text/plain" });
         
-        const uploadPromise = upload(blobFile.name, blobFile, {
+        await put(blobFile.name, blobFile, {
           access: 'public',
-          handleUploadUrl: '/api/upload',
+          token: import.meta.env.VITE_BLOB_READ_WRITE_TOKEN
         });
         
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error("انتهت مهلة اختبار التخزين (30 ثانية).")), 30000)
-        );
-
-        await Promise.race([uploadPromise, timeoutPromise]);
         addLog("✅ Vercel Blob: متصل (تم رفع ملف تجريبي)");
       } catch (sErr: any) {
         addLog(`❌ Vercel Blob: فشل (${sErr.message})`);
-        if (sErr.message.includes('client token') || sErr.message.includes('Vercel Blob')) {
-          addLog("تنبيه: يرجى التأكد من إضافة BLOB_READ_WRITE_TOKEN في إعدادات Vercel.");
-        }
       }
 
       alert("تم الانتهاء من الفحص. راجع سجل العمليات (Debug) للتفاصيل.");
@@ -179,12 +171,10 @@ export default function Dashboard() {
     addLog("جاري رفع الشعار الجديد (Vercel Blob)...");
     
     try {
-      const blob = await upload(logoFile.name, logoFile, {
+      const { url } = await put(logoFile.name, logoFile, {
         access: 'public',
-        handleUploadUrl: `${window.location.origin}/api/upload`,
+        token: import.meta.env.VITE_BLOB_READ_WRITE_TOKEN
       });
-      
-      const url = blob.url;
       
       // Update a settings document in Firestore to store the logo URL
       await setDoc(doc(db, 'settings', 'appearance'), {
@@ -197,11 +187,7 @@ export default function Dashboard() {
       setShowToast(true);
     } catch (err: any) {
       console.error("Logo Upload Error:", err);
-      if (err.message.includes('client token') || err.message.includes('Vercel Blob')) {
-        addLog("فشل الرفع: يرجى التأكد من إضافة BLOB_READ_WRITE_TOKEN في إعدادات Vercel.");
-      } else {
-        addLog(`خطأ في رفع الشعار: ${err.message}`);
-      }
+      addLog(`خطأ في رفع الشعار: ${err.message}`);
     } finally {
       setIsUploadingLogo(false);
     }
@@ -240,23 +226,15 @@ export default function Dashboard() {
         addLog("جاري رفع الصورة (Vercel Blob)...");
         
         try {
-          const blob = await upload(imageFile.name, imageFile, {
+          const { url } = await put(imageFile.name, imageFile, {
             access: 'public',
-            handleUploadUrl: `${window.location.origin}/api/upload`,
-            onUploadProgress: (progressEvent) => {
-              const total = progressEvent.total || 1;
-              const progress = (progressEvent.loaded / total) * 40;
-              setUploadProgress(Math.round(progress));
-            },
+            token: import.meta.env.VITE_BLOB_READ_WRITE_TOKEN
           });
           
-          finalImageUrl = blob.url;
+          finalImageUrl = url;
           addLog("تم رفع الصورة بنجاح");
         } catch (imgErr: any) {
           console.error("Image upload error details:", imgErr);
-          if (imgErr.message.includes('client token') || imgErr.message.includes('Vercel Blob')) {
-            throw new Error(`فشل الرفع: يرجى التأكد من إضافة BLOB_READ_WRITE_TOKEN في إعدادات Vercel. (الخطأ الأصلي: ${imgErr.message})`);
-          }
           throw new Error("فشل رفع الصورة: " + imgErr.message);
         }
       } else if (uploadMethod === 'link' && imageUploadType === 'file' && imageFile) {
@@ -264,23 +242,15 @@ export default function Dashboard() {
         addLog("جاري رفع الصورة (Vercel Blob)...");
         
         try {
-          const blob = await upload(imageFile.name, imageFile, {
+          const { url } = await put(imageFile.name, imageFile, {
             access: 'public',
-            handleUploadUrl: `${window.location.origin}/api/upload`,
-            onUploadProgress: (progressEvent) => {
-              const total = progressEvent.total || 1;
-              const progress = (progressEvent.loaded / total) * 40;
-              setUploadProgress(Math.round(progress));
-            },
+            token: import.meta.env.VITE_BLOB_READ_WRITE_TOKEN
           });
           
-          finalImageUrl = blob.url;
+          finalImageUrl = url;
           addLog("تم رفع الصورة بنجاح");
         } catch (imgErr: any) {
           console.error("Image upload error details (link mode):", imgErr);
-          if (imgErr.message.includes('client token') || imgErr.message.includes('Vercel Blob')) {
-            throw new Error(`فشل الرفع: يرجى التأكد من إضافة BLOB_READ_WRITE_TOKEN في إعدادات Vercel. (الخطأ الأصلي: ${imgErr.message})`);
-          }
           throw new Error("فشل رفع الصورة: " + imgErr.message);
         }
       }
@@ -290,25 +260,15 @@ export default function Dashboard() {
         addLog("جاري رفع الملف الرقمي (Vercel Blob)...");
         
         try {
-          const blob = await upload(productFile.name, productFile, {
+          const { url } = await put(productFile.name, productFile, {
             access: 'public',
-            handleUploadUrl: `${window.location.origin}/api/upload`, // We'll need to set this up or use client upload
-            onUploadProgress: (progressEvent) => {
-              const baseProgress = finalImageUrl ? 40 : 0;
-              const remaining = 100 - baseProgress - 10;
-              const total = progressEvent.total || 1;
-              const progress = baseProgress + ((progressEvent.loaded / total) * remaining);
-              setUploadProgress(Math.round(progress));
-            },
+            token: import.meta.env.VITE_BLOB_READ_WRITE_TOKEN
           });
           
-          finalDownloadUrl = blob.url;
+          finalDownloadUrl = url;
           addLog("تم رفع الملف بنجاح");
         } catch (uploadErr: any) {
           console.error("Product file upload error details:", uploadErr);
-          if (uploadErr.message.includes('client token') || uploadErr.message.includes('Vercel Blob')) {
-            throw new Error(`فشل الرفع: يرجى التأكد من إضافة BLOB_READ_WRITE_TOKEN في إعدادات Vercel. (الخطأ الأصلي: ${uploadErr.message})`);
-          }
           throw new Error("فشل رفع الملف الرقمي: " + uploadErr.message);
         }
       }

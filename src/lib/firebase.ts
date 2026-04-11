@@ -78,9 +78,21 @@ export const loginWithGoogle = async () => {
 export const logout = () => signOut(auth);
 
 // Helper for File Upload
-export const uploadFile = async (file: File, path: string) => {
+export const uploadFile = async (
+  file: File, 
+  path: string, 
+  onProgress?: (progress: number) => void
+) => {
   const storageRef = ref(storage, path);
   const uploadTask = uploadBytesResumable(storageRef, file);
+  
+  if (onProgress) {
+    uploadTask.on('state_changed', (snapshot) => {
+      const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+      onProgress(progress);
+    });
+  }
+  
   await uploadTask;
   return getDownloadURL(storageRef);
 };
