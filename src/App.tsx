@@ -33,18 +33,23 @@ export default function App() {
   useEffect(() => {
     // Handle redirect result explicitly
     const handleRedirect = async () => {
+      console.log("Checking for redirect result...");
       try {
         const result = await getRedirectResult(auth);
         if (result?.user) {
           console.log("Redirect login success:", result.user.email);
           setUser(result.user);
+        } else {
+          console.log("No redirect result found.");
         }
       } catch (error: any) {
         console.error("Redirect Login Error:", error);
         if (error.code === 'auth/unauthorized-domain') {
-          alert("هذا النطاق (Domain) غير مصرح به في إعدادات Firebase. يرجى إضافة رابط الموقع إلى Authorized Domains في Firebase Console.");
+          alert(`هذا النطاق (${window.location.hostname}) غير مصرح به في إعدادات Firebase. يرجى إضافة رابط الموقع إلى Authorized Domains في Firebase Console.`);
         } else if (error.code === 'auth/account-exists-with-different-credential') {
           alert("هذا الحساب موجود مسبقاً بطريقة تسجيل دخول مختلفة.");
+        } else {
+          alert(`خطأ في تسجيل الدخول: ${error.message}`);
         }
       }
     };

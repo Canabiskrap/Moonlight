@@ -19,8 +19,20 @@ import {
 import { getStorage, ref, uploadBytes, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import firebaseConfig from '../../firebase-applet-config.json';
 
-const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId);
+// Use environment variables if available (prefixed with VITE_ for client-side)
+// Fallback to the values in firebase-applet-config.json
+const config = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || firebaseConfig.apiKey,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || firebaseConfig.authDomain,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || firebaseConfig.projectId,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || firebaseConfig.storageBucket,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseConfig.messagingSenderId,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || firebaseConfig.appId,
+  firestoreDatabaseId: import.meta.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID || (firebaseConfig as any).firestoreDatabaseId
+};
+
+const app = initializeApp(config);
+export const db = getFirestore(app, config.firestoreDatabaseId);
 export const auth = getAuth(app);
 
 export { 
@@ -50,22 +62,40 @@ googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 // Helper for Google Login
 export const loginWithGoogle = async () => {
+  console.log("Attempting Google Login...");
   try {
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const isIframe = window.self !== window.top;
+
+    console.log("Environment check:", { isMobile, isIframe });
+
+    // In iframes, popups are often blocked. Redirect is safer but reloads the page.
+    // However, on Vercel (not an iframe), popup is usually better.
     
-    // Use popup by default as it was working before
-    // Only fallback to redirect if popup fails
-    const result = await signInWithPopup(auth, googleProvider);
-    return result.user;
-  } catch (error: any) {
-    console.error("Login Error:", error);
-    
-    // If popup fails, try redirect as a last resort
-    if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
+    if (isIframe) {
+      console.log("In iframe, using signInWithRedirect...");
       await signInWithRedirect(auth, googleProvider);
       return null;
     }
-    
+
+    try {
+      console.log("Attempting signInWithPopup...");
+      const result = await signInWithPopup(auth, googleProvider);
+      console.log("Login success:", result.user.email);
+      return result.user;
+    } catch (popupError: any) {
+      console.error("Popup Login Error:", popupError);
+      
+      if (popupError.code === 'auth/popup-blocked' || popupError.code === 'auth/popup-closed-by-user' || popupError.code === 'auth/cancelled-popup-request') {
+        console.log("Popup blocked or closed, falling back to signInWithRedirect...");
+        await signInWithRedirect(auth, googleProvider);
+        return null;
+      }
+      
+      throw popupError;
+    }
+  } catch (error: any) {
+    console.error("General Login Error:", error);
     throw error;
   }
 };

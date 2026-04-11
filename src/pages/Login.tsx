@@ -11,6 +11,7 @@ interface LoginProps {
 
 export default function Login({ user }: LoginProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (user) {
     return <Navigate to="/" />;
@@ -19,18 +20,24 @@ export default function Login({ user }: LoginProps) {
   const handleLogin = async () => {
     if (isLoading) return;
     setIsLoading(true);
+    setError(null);
     try {
       await loginWithGoogle();
     } catch (err: any) {
       console.error(err);
-      // Handle specific Firebase errors
+      let message = "حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.";
+      
       if (err.code === 'auth/popup-blocked') {
-        alert("تم حظر النافذة المنبثقة. يرجى السماح بالمنبثقات لهذا الموقع أو المحاولة من متصفح آخر.");
+        message = "تم حظر النافذة المنبثقة. يرجى السماح بالمنبثقات لهذا الموقع أو المحاولة من متصفح آخر.";
       } else if (err.code === 'auth/unauthorized-domain') {
-        alert("هذا النطاق (Domain) غير مصرح به في إعدادات Firebase. يرجى إضافة رابط الموقع إلى Authorized Domains في Firebase Console.");
-      } else {
-        alert(`فشل تسجيل الدخول: ${err.message || "خطأ غير معروف"}`);
+        message = "هذا النطاق (Domain) غير مصرح به في إعدادات Firebase. يرجى إضافة رابط الموقع إلى Authorized Domains في Firebase Console.";
+      } else if (err.code === 'auth/network-request-failed') {
+        message = "خطأ في الاتصال بالشبكة. يرجى التحقق من اتصالك بالإنترنت.";
+      } else if (err.message) {
+        message = `فشل تسجيل الدخول: ${err.message}`;
       }
+      
+      setError(message);
     } finally {
       setIsLoading(false);
     }
@@ -58,6 +65,16 @@ export default function Login({ user }: LoginProps) {
         <div className="space-y-3">
           <h1 className="text-4xl font-black tracking-tighter text-white">مرحباً بك</h1>
           <p className="text-gray-500 text-sm font-medium leading-relaxed">سجل دخولك للوصول إلى لوحة التحكم أو متابعة مشترياتك في متجر Moonlight</p>
+          
+          {error && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl text-red-400 text-sm font-bold text-right"
+            >
+              {error}
+            </motion.div>
+          )}
         </div>
 
         <button 
