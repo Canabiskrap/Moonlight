@@ -124,3 +124,20 @@ export async function chatWithBot(userMessage: string, history: {role: 'user' | 
     throw error;
   }
 }
+
+export async function generateFixSuggestion(prompt: string): Promise<string> {
+  if (!ai) throw new Error("AI service not initialized. Missing API Key.");
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-flash-latest",
+      contents: prompt,
+      config: {
+        systemInstruction: "You are an expert developer. Provide concise, production-ready code fixes.",
+      }
+    });
+    return response.text || "No fix suggestion available.";
+  } catch (error) {
+    console.error("Gemini Error:", error);
+    throw error;
+  }
+}

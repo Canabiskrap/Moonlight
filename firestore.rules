@@ -1,66 +1,13 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // ===============================================================
-    // Helper Functions
-    // ===============================================================
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-
+    // Helper to check if user is authenticated and admin
     function isAdmin() {
-      return isAuthenticated() && (
-        (request.auth.token.email != null && request.auth.token.email_verified == true && request.auth.token.email.lower() in ["canabiskrap07@gmail.com", "esraa0badr@gmail.com"]) ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
-      );
+      return request.auth != null && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    function isValidProduct(data) {
-      return data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
-             data.description is string && data.description.size() < 2000 &&
-             data.price is number && data.price >= 0 &&
-             data.imageUrl is string && data.imageUrl.matches("^https?://.*") &&
-             data.downloadUrl is string && data.downloadUrl.matches("^https?://.*") &&
-             data.category in ['cv', 'social', 'web', 'other'] &&
-             (data.createdAt == null || data.createdAt is timestamp);
-    }
-
-    function isValidOrder(data) {
-      return data.productId is string &&
-             data.customerEmail is string && data.customerEmail.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$") &&
-             data.amount is number && data.amount >= 0 &&
-             data.status in ['pending', 'completed', 'failed'];
-    }
-
-    // ===============================================================
-    // Rules
-    // ===============================================================
-
-    // Products: Everyone can read, only Admin can write
-    match /products/{productId} {
-      allow read: if true;
-      allow create: if isAdmin() && isValidProduct(request.resource.data);
-      allow update: if isAdmin() && isValidProduct(request.resource.data);
-      allow delete: if isAdmin();
-    }
-
-    // Orders: Admin can read all, users can only create (via client-side after payment)
-    // In a real app, orders should be verified via webhook, but here we allow client-side creation for simplicity
-    match /orders/{orderId} {
-      allow read: if isAdmin();
-      allow create: if true; // Allow anyone to create an order record (ideally restricted to authenticated users or verified payments)
-      allow update, delete: if isAdmin();
-    }
-
-    // Users: Users can read their own, Admin can read/write all
-    match /users/{userId} {
-      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
-      allow create, update: if isAdmin();
-    }
-
-    // Test Connection
-    match /test_connection/{docId} {
+    match /{document=**} {
       allow read, write: if isAdmin();
     }
   }
