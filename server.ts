@@ -48,13 +48,19 @@ function decrypt(text: string) {
 app.post('/api/upload', async (request, response) => {
   const body = request.body;
 
-  console.log("Upload endpoint hit. Token present?", !!process.env.VITE_BLOB_READ_WRITE_TOKEN);
+  console.log("Upload endpoint hit.");
+  
+  const token = process.env.VITE_BLOB_READ_WRITE_TOKEN;
+  if (!token) {
+    console.error("VITE_BLOB_READ_WRITE_TOKEN is missing on server!");
+    return response.status(500).json({ error: 'Server configuration error: Token missing' });
+  }
 
   try {
     const jsonResponse = await handleUpload({
       body,
       request,
-      token: process.env.VITE_BLOB_READ_WRITE_TOKEN,
+      token: token,
       onBeforeGenerateToken: async (pathname, clientPayload) => {
         return {
           tokenPayload: JSON.stringify({}),
