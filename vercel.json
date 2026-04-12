@@ -1,5 +1,5 @@
 {
-  "buildCommand": "NODE_ENV=production npx vite build",
+  "buildCommand": "npx cross-env NODE_ENV=production npx vite build",
   "outputDirectory": "dist",
   "framework": "vite",
   "rewrites": [
