@@ -18,7 +18,7 @@
     "@google/genai": "^1.49.0",
     "@tailwindcss/vite": "^4.2.2",
     "@vercel/blob": "^2.3.3",
-    "@vercel/speed-insights": "^1.0.0",
+    "@vercel/speed-insights": "2.0.0",
     "@vitejs/plugin-react": "^5.2.0",
     "autoprefixer": "^10.4.21",
     "class-variance-authority": "^0.7.1",
