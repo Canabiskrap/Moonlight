@@ -221,7 +221,7 @@ export default function Dashboard() {
       const fileName = `${Date.now()}-${logoFile.name}`;
         await upload(fileName, logoFile, {
           access: 'public',
-          handleUploadUrl: `${window.location.origin}/api/upload`,
+          handleUploadUrl: '/api/upload',
         });
       
       // Update a settings document in Firestore to store the logo URL
@@ -250,7 +250,7 @@ export default function Dashboard() {
       const fileName = `${Date.now()}-${heroVideoFile.name}`;
       const { url } = await upload(fileName, heroVideoFile, {
         access: 'public',
-        handleUploadUrl: `${window.location.origin}/api/upload`,
+        handleUploadUrl: '/api/upload',
       });
       
       await setDoc(doc(db, 'settings', 'appearance'), {
@@ -315,7 +315,7 @@ export default function Dashboard() {
           addLog("جاري رفع صورة الخدمة...");
           const blob = await upload(`${Date.now()}_${imageFile.name}`, imageFile, {
             access: 'public',
-            handleUploadUrl: `${window.location.origin}/api/upload`,
+            handleUploadUrl: '/api/upload',
             onUploadProgress: (progressEvent) => {
               setUploadProgress(Math.round((progressEvent.loaded / progressEvent.total) * 100));
             }
@@ -360,7 +360,7 @@ export default function Dashboard() {
           addLog("جاري رفع الصورة...");
           const blob = await upload(`${Date.now()}_${imageFile.name}`, imageFile, {
             access: 'public',
-            handleUploadUrl: `${window.location.origin}/api/upload`,
+            handleUploadUrl: '/api/upload',
             onUploadProgress: (progressEvent) => {
               setUploadProgress(Math.round((progressEvent.loaded / progressEvent.total) * 50));
             }
@@ -374,7 +374,7 @@ export default function Dashboard() {
           addLog("جاري رفع الملف الرقمي...");
           const blob = await upload(`${Date.now()}_${productFile.name}`, productFile, {
             access: 'public',
-            handleUploadUrl: `${window.location.origin}/api/upload`,
+            handleUploadUrl: '/api/upload',
             onUploadProgress: (progressEvent) => {
               const baseProgress = imageFile ? 50 : 0;
               const currentProgress = Math.round((progressEvent.loaded / progressEvent.total) * 50);
