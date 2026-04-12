@@ -38,6 +38,30 @@
         "role": { "type": "string", "enum": ["admin", "user"] }
       },
       "required": ["email", "role"]
+    },
+    "Service": {
+      "title": "Service",
+      "description": "A service offered by the studio",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "Service title" },
+        "description": { "type": "string", "description": "Service description" },
+        "icon": { "type": "string", "description": "Emoji or icon name" },
+        "price": { "type": "number", "description": "Starting price" },
+        "imageUrl": { "type": "string", "format": "uri", "description": "URL of the service image" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "description", "price"]
+    },
+    "Settings": {
+      "title": "Settings",
+      "description": "Application settings",
+      "type": "object",
+      "properties": {
+        "logoUrl": { "type": "string", "format": "uri" },
+        "heroVideoUrl": { "type": "string", "format": "uri" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "firestore": {
@@ -52,6 +76,14 @@
     "/users/{userId}": {
       "schema": "User",
       "description": "User roles and metadata"
+    },
+    "/services/{serviceId}": {
+      "schema": "Service",
+      "description": "Collection of services offered"
+    },
+    "/settings/{settingId}": {
+      "schema": "Settings",
+      "description": "Global application settings"
     }
   }
 }

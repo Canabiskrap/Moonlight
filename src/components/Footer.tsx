@@ -17,14 +17,14 @@ export default function Footer() {
   }, []);
 
   return (
-    <footer className="bg-dark-light/30 border-t border-white/5 pt-16 pb-8">
-      <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-          <div className="col-span-1 md:col-span-2 space-y-6">
-            <Link to="/" className="flex items-center gap-3">
-              <div className="bg-primary p-2 rounded-xl overflow-hidden flex items-center justify-center w-10 h-10">
+    <footer className="relative mt-20 pb-10">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="glass-card rounded-[3rem] p-12 grid grid-cols-1 md:grid-cols-4 gap-12 border-white/5">
+          <div className="md:col-span-2 space-y-6">
+            <Link to="/" className="flex items-center gap-3 group">
+              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 overflow-hidden">
                 <img 
-                  src={logoUrl || "/logo.png"} 
+                  src={logoUrl || "https://i.ibb.co/6cJ5wS0h/nf9gthbcbxrmw0cxg8993rpk28-result-0.png"} 
                   alt="Moonlight Logo" 
                   className="w-full h-full object-contain"
                   onError={(e) => {
@@ -42,10 +42,10 @@ export default function Footer() {
                   }}
                 />
               </div>
-              <span className="text-2xl font-black tracking-tighter text-white">Moonlight 🌕</span>
+              <span className="text-2xl font-black tracking-tighter">MOONLIGHT</span>
             </Link>
-            <p className="text-gray-400 max-w-sm leading-relaxed font-medium">
-              نصمم مستقبلك الرقمي باحترافية. Moonlight 🌕 يقدم أفضل الخدمات الرقمية والتصاميم العصرية لمشاريعك.
+            <p className="text-gray-500 font-medium leading-relaxed max-w-sm">
+              نحن نؤمن بأن كل فكرة تستحق أن تظهر بأفضل صورة ممكنة. Moonlight هو شريكك في رحلة النجاح الرقمي.
             </p>
             <div className="flex items-center gap-4">
               <a href="#" className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:bg-primary hover:text-white transition-all">
@@ -57,24 +57,25 @@ export default function Footer() {
             </div>
           </div>
 
-          <div>
-            <h4 className="text-white font-black mb-6 uppercase tracking-widest text-xs">روابط سريعة</h4>
-            <ul className="space-y-4 text-gray-400 font-bold text-sm">
-              <li><Link to="/" className="hover:text-primary transition-colors">المتجر</Link></li>
-              <li><a href="#products" className="hover:text-primary transition-colors">المنتجات</a></li>
-              <li><Link to="/login" className="hover:text-primary transition-colors">تسجيل الدخول</Link></li>
-              <li><Link to="/status" className="hover:text-primary transition-colors">حالة النظام</Link></li>
+          <div className="space-y-6">
+            <h4 className="text-sm font-black uppercase tracking-widest text-primary">روابط سريعة</h4>
+            <ul className="space-y-4">
+              <li><Link to="/" className="text-gray-400 hover:text-white font-bold transition-colors">الرئيسية</Link></li>
+              <li><a href="/#products" className="text-gray-400 hover:text-white font-bold transition-colors">المنتجات</a></li>
+              <li><a href="/#services" className="text-gray-400 hover:text-white font-bold transition-colors">خدماتنا</a></li>
+              <li><Link to="/terms" className="text-gray-400 hover:text-white font-bold transition-colors">الشروط والأحكام</Link></li>
+              <li><Link to="/privacy" className="text-gray-400 hover:text-white font-bold transition-colors">سياسة الخصوصية</Link></li>
             </ul>
           </div>
 
-          <div>
-            <h4 className="text-white font-black mb-6 uppercase tracking-widest text-xs">تواصل معنا</h4>
-            <ul className="space-y-4 text-gray-400 font-bold text-sm">
-              <li className="flex items-center gap-3">
+          <div className="space-y-6">
+            <h4 className="text-sm font-black uppercase tracking-widest text-primary">تواصل معنا</h4>
+            <ul className="space-y-4">
+              <li className="flex items-center gap-3 text-gray-400 font-bold">
                 <Mail size={18} className="text-primary" />
-                <span>support@moonlight.com</span>
+                <span>esraa0badr@gmail.com</span>
               </li>
-              <li className="flex items-center gap-3">
+              <li className="flex items-center gap-3 text-gray-400 font-bold">
                 <Phone size={18} className="text-primary" />
                 <span>+965 69929627</span>
               </li>
@@ -82,10 +83,8 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="pt-8 border-t border-white/5 text-center">
-          <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">
-            © {new Date().getFullYear()} Moonlight 🌕. جميع الحقوق محفوظة.
-          </p>
+        <div className="mt-12 text-center text-gray-600 text-xs font-black uppercase tracking-[0.3em]">
+          &copy; {new Date().getFullYear()} Moonlight Store. All Rights Reserved.
         </div>
       </div>
     </footer>

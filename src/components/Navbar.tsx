@@ -24,18 +24,18 @@ export default function Navbar({ user, isAdmin }: NavbarProps) {
   }, []);
 
   return (
-    <nav className="bg-dark/80 backdrop-blur-xl border-b border-white/5 sticky top-0 z-50">
-      <div className="container mx-auto px-4 h-20 flex items-center justify-between">
+    <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4">
+      <div className="max-w-7xl mx-auto glass-card rounded-2xl px-6 py-3 flex items-center justify-between border-white/10">
         <div className="flex items-center gap-8">
           <Link to="/" className="flex items-center gap-3 group">
-            <div className="bg-primary p-2 rounded-xl shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform overflow-hidden flex items-center justify-center w-10 h-10">
+            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 group-hover:rotate-12 transition-transform duration-500 overflow-hidden">
               <img 
-                src={logoUrl || "/logo.png"} 
+                src={logoUrl || "https://i.ibb.co/6cJ5wS0h/nf9gthbcbxrmw0cxg8993rpk28-result-0.png"} 
                 alt="Moonlight Logo" 
                 className="w-full h-full object-contain"
                 onError={(e) => {
                   if (logoUrl) {
-                    setLogoUrl(null); // Fallback to local logo
+                    setLogoUrl(null);
                   } else {
                     e.currentTarget.style.display = 'none';
                     const parent = e.currentTarget.parentElement;
@@ -48,12 +48,13 @@ export default function Navbar({ user, isAdmin }: NavbarProps) {
                 }}
               />
             </div>
-            <span className="text-2xl font-black tracking-tighter text-white group-hover:text-primary transition-colors">Moonlight 🌕</span>
+            <span className="text-xl font-black tracking-tighter text-glow">MOONLIGHT</span>
           </Link>
-
+          
           <div className="hidden md:flex items-center gap-6">
-            <Link to="/" className="text-sm font-bold text-gray-400 hover:text-white transition-colors">المتجر</Link>
+            <Link to="/" className="text-sm font-bold text-gray-400 hover:text-white transition-colors">الرئيسية</Link>
             <a href="#products" className="text-sm font-bold text-gray-400 hover:text-white transition-colors">المنتجات</a>
+            <a href="#services" className="text-sm font-bold text-gray-400 hover:text-white transition-colors">خدماتنا</a>
           </div>
         </div>
 

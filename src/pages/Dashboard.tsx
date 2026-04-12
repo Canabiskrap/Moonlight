@@ -1,806 +1,1577 @@
-import { useState, useEffect } from 'react';
-import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, Timestamp, query, orderBy } from 'firebase/firestore';
-import { db } from '../lib/firebase';
-import { put } from '@vercel/blob';
-import { motion, AnimatePresence } from 'motion/react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { upload } from '@vercel/blob/client';
+// Force sync comment
 import { 
-  Plus, Trash2, Edit2, X, Upload, Loader2, Package, DollarSign, 
-  BarChart3, ImageIcon, FileText, Save, Eye, Settings, 
-  Palette, ShoppingBag, TrendingUp, ExternalLink, Users, Sparkles
-} from 'lucide-react';
-import VisitorAnalytics from '../components/VisitorAnalytics';
-import { generateProductDescription } from '../services/geminiService';
+  db, 
+  auth, 
+  logout,
+  deleteFile, 
+  handleFirestoreError, 
+  OperationType,
+  collection,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  query,
+  orderBy,
+  Timestamp,
+  setDoc
+} from '../lib/firebase';
+import { convertDriveLink, isValidUrl } from '../lib/utils';
+import { SmartDiagnosticService } from '../lib/smartDiagnostic';
+import { motion, AnimatePresence } from 'motion/react';
+import { Plus, Trash2, Package, DollarSign, Image as ImageIcon, Link as LinkIcon, FileText, Upload, CheckCircle2, Globe, Search, RefreshCw, Sparkles, ShoppingBag, AlertCircle, Settings, Activity, LogOut, Loader2, Zap, Brain } from 'lucide-react';
 
-interface Product {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  category: string;
-  imageUrl: string;
-  downloadUrl: string;
-  createdAt: any;
-}
+import { getProductInsights, chatWithBot } from '../services/geminiService';
+import DashboardAnalytics from '../components/DashboardAnalytics';
+import SmartAIAssistant from '../components/SmartAIAssistant';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 
 export default function Dashboard() {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [services, setServices] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'analytics' | 'settings'>('products');
-  const [hasNewOrders, setHasNewOrders] = useState(false);
-  const [lastOrderTime, setLastOrderTime] = useState<Date | null>(null);
-  const [visitorCount, setVisitorCount] = useState(0);
-
-  // Form state
+  
+  // Form State
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
-  const [category, setCategory] = useState('cv');
+  const [serviceIcon, setServiceIcon] = useState('🎨');
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [downloadFile, setDownloadFile] = useState<File | null>(null);
+  const [productFile, setProductFile] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState('');
   const [downloadUrl, setDownloadUrl] = useState('');
-  const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState('');
-  
-  // AI Description state
-  const [generatingDescription, setGeneratingDescription] = useState(false);
-  const [suggestedDescriptions, setSuggestedDescriptions] = useState<string[]>([]);
+  const [uploadMethod, setUploadMethod] = useState<'direct' | 'link'>('direct');
+  const [category, setCategory] = useState('cv');
+  const [status, setStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [showToast, setShowToast] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [imageUploadType, setImageUploadType] = useState<'file' | 'link'>('file');
+  const [customBucket, setCustomBucket] = useState('');
+  const navigate = useNavigate();
 
-  // Settings state
-  const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [savingSettings, setSavingSettings] = useState(false);
+  const addLog = (msg: string) => {
+    console.log(`[Dashboard] ${msg}`);
+    const time = new Date().toLocaleTimeString();
+    setDebugLogs(prev => [`[${time}] ${msg}`, ...prev].slice(0, 10));
+  };
+
+  const testConnection = async () => {
+    setIsTestingConnection(true);
+    setDebugLogs([]); // Clear logs
+    addLog("بدء اختبار الاتصال الشامل...");
+    try {
+      // 1. Test Firestore
+      addLog("1. اختبار Firestore...");
+      try {
+        const testCol = collection(db, 'test_connection');
+        await addDoc(testCol, { 
+          lastTest: Timestamp.now(),
+          user: auth.currentUser?.email,
+          status: 'ok'
+        });
+        addLog("✅ Firestore: متصل");
+      } catch (fErr: any) {
+        addLog(`❌ Firestore: فشل (${fErr.message})`);
+      }
+
+      // 2. Test Storage (Vercel Blob)
+      addLog("2. اختبار Storage (Vercel Blob)...");
+      try {
+        const blobFile = new File(["connection test"], `test_connection_${Date.now()}.txt`, { type: "text/plain" });
+        
+        addLog("جاري استدعاء upload()...");
+        await upload(blobFile.name, blobFile, {
+          access: 'public',
+          handleUploadUrl: `${window.location.origin}/api/upload`,
+        });
+        
+        addLog("✅ Vercel Blob: متصل (تم رفع ملف تجريبي)");
+      } catch (sErr: any) {
+        addLog(`❌ Vercel Blob: فشل (الرسالة: ${sErr.message})`);
+        console.error("Blob Diagnostic Error:", sErr);
+      }
+
+      addLog("تم الانتهاء من الفحص.");
+    } catch (err: any) {
+      addLog(`❌ فشل عام: ${err.message}`);
+      console.error("Diagnostic Error:", err);
+    } finally {
+      setIsTestingConnection(false);
+    }
+  };
 
   useEffect(() => {
-    const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const prods = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
-      setProducts(prods);
-      setLoading(false);
-    });
+    setCurrentUser(auth.currentUser);
+    const qProds = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
+    const qServices = query(collection(db, 'services'), orderBy('createdAt', 'desc'));
+    const qOrders = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
 
-    const ordersUnsubscribe = onSnapshot(collection(db, 'orders'), (snapshot) => {
-      const ordersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setOrders(ordersData);
-      
-      // Track new orders for pulse animation
-      if (ordersData.length > 0) {
-        const latestOrder = ordersData.reduce((latest, order) => {
-          const orderTime = order.createdAt?.toDate?.() || new Date(0);
-          const latestTime = latest?.createdAt?.toDate?.() || new Date(0);
-          return orderTime > latestTime ? order : latest;
-        }, ordersData[0]);
-        
-        const orderTime = latestOrder?.createdAt?.toDate?.();
-        if (orderTime) {
-          setLastOrderTime(orderTime);
-          // Show pulse if order is less than 30 minutes old
-          const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
-          setHasNewOrders(orderTime > thirtyMinutesAgo);
-        }
+    const unsubProds = onSnapshot(qProds, 
+      (snapshot) => {
+        setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Products Snapshot Error:", error);
+        setErrorMessage("فشل تحميل المنتجات: " + error.message);
+        setLoading(false);
       }
-    });
+    );
 
-    // Simulate visitor count (in production, connect to analytics)
-    const visitorInterval = setInterval(() => {
-      setVisitorCount(Math.floor(Math.random() * 50) + 10);
-    }, 30000);
-    setVisitorCount(Math.floor(Math.random() * 50) + 10);
+    const unsubServices = onSnapshot(qServices, 
+      (snapshot) => {
+        setServices(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      },
+      (error) => {
+        console.error("Services Snapshot Error:", error);
+      }
+    );
+
+    const unsubOrders = onSnapshot(qOrders, 
+      (snapshot) => {
+        setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      },
+      (error) => {
+        console.error("Orders Snapshot Error:", error);
+      }
+    );
 
     return () => {
-      unsubscribe();
-      ordersUnsubscribe();
-      clearInterval(visitorInterval);
+      unsubProds();
+      unsubServices();
+      unsubOrders();
     };
   }, []);
 
-  const uploadToBlob = async (file: File, prefix: string): Promise<string> => {
-    const token = import.meta.env.VITE_BLOB_READ_WRITE_TOKEN;
-    const filename = `${prefix}/${Date.now()}-${file.name}`;
-    
-    const { url } = await put(filename, file, {
-      access: 'public',
-      token,
-      addRandomSuffix: true,
-    });
-    
-    return url;
+  const isAdminUser = currentUser && 
+    ["canabiskrap07@gmail.com", "esraa0badr@gmail.com"].includes(currentUser.email?.toLowerCase() || "");
+
+  const isEmailVerified = currentUser?.emailVerified;
+
+  const handleEdit = (product: any) => {
+    setEditingId(product.id);
+    setEditingServiceId(null);
+    setName(product.name);
+    setDescription(product.description);
+    setPrice(product.price.toString());
+    setCategory(product.category);
+    setImageUrl(product.imageUrl);
+    setDownloadUrl(product.downloadUrl);
+    setUploadMethod('link'); // Default to link when editing to avoid re-uploading unless needed
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleEditService = (service: any) => {
+    setEditingServiceId(service.id);
+    setEditingId(null);
+    setName(service.title);
+    setDescription(service.description);
+    setPrice(service.price.toString());
+    setServiceIcon(service.icon || '🎨');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const resetForm = () => {
+    setEditingId(null);
+    setEditingServiceId(null);
     setName('');
     setDescription('');
     setPrice('');
-    setCategory('cv');
+    setServiceIcon('🎨');
     setImageFile(null);
-    setDownloadFile(null);
+    setProductFile(null);
     setImageUrl('');
     setDownloadUrl('');
-    setEditingProduct(null);
-    setSuggestedDescriptions([]);
+    setStatus('idle');
+    setUploadProgress(0);
   };
 
-  const handleGenerateDescription = async () => {
-    if (!name.trim()) {
-      alert('يرجى إدخال اسم المنتج أولاً');
-      return;
-    }
-    
-    setGeneratingDescription(true);
-    setSuggestedDescriptions([]);
+  const [activeTab, setActiveTab] = useState<'products' | 'services' | 'orders' | 'settings' | 'analytics' | 'ai'>('analytics');
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [heroVideoFile, setHeroVideoFile] = useState<File | null>(null);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isUploadingHeroVideo, setIsUploadingHeroVideo] = useState(false);
+  const [heroVideoUrl, setHeroVideoUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'settings', 'appearance'), (doc) => {
+      if (doc.exists()) {
+        setHeroVideoUrl(doc.data().heroVideoUrl || null);
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  const handleLogoUpload = async () => {
+    if (!logoFile) return;
+    setIsUploadingLogo(true);
+    addLog("جاري رفع الشعار الجديد (Vercel Blob)...");
     
     try {
-      const descriptions = await generateProductDescription(name, category, price || '0');
-      setSuggestedDescriptions(descriptions);
-    } catch (error) {
-      console.error('Error generating descriptions:', error);
-      alert('حدث خطأ أثناء توليد الوصف. تأكد من إعداد مفتاح Gemini API.');
+      const fileName = `${Date.now()}-${logoFile.name}`;
+      const { url } = await upload(fileName, logoFile, {
+        access: 'public',
+        handleUploadUrl: `${window.location.origin}/api/upload`,
+      });
+      
+      // Update a settings document in Firestore to store the logo URL
+      await setDoc(doc(db, 'settings', 'appearance'), {
+        logoUrl: url,
+        updatedAt: Timestamp.now()
+      }, { merge: true });
+      
+      addLog("تم تحديث الشعار بنجاح! سيظهر التغيير بعد تحديث الصفحة.");
+      setLogoFile(null);
+      setShowToast(true);
+    } catch (err: any) {
+      console.error("Logo Upload Error:", err);
+      addLog(`خطأ في رفع الشعار: ${err.message}`);
     } finally {
-      setGeneratingDescription(false);
+      setIsUploadingLogo(false);
     }
   };
 
-  const openEditModal = (product: Product) => {
-    setEditingProduct(product);
-    setName(product.name);
-    setDescription(product.description || '');
-    setPrice(product.price.toString());
-    setCategory(product.category || 'cv');
-    setImageUrl(product.imageUrl || '');
-    setDownloadUrl(product.downloadUrl || '');
-    setShowModal(true);
+  const handleHeroVideoUpload = async () => {
+    if (!heroVideoFile) return;
+    setIsUploadingHeroVideo(true);
+    addLog("جاري رفع فيديو الواجهة الجديد (Vercel Blob)...");
+    
+    try {
+      const fileName = `${Date.now()}-${heroVideoFile.name}`;
+      const { url } = await upload(fileName, heroVideoFile, {
+        access: 'public',
+        handleUploadUrl: `${window.location.origin}/api/upload`,
+      });
+      
+      await setDoc(doc(db, 'settings', 'appearance'), {
+        heroVideoUrl: url,
+        updatedAt: Timestamp.now()
+      }, { merge: true });
+      
+      addLog("تم تحديث فيديو الواجهة بنجاح!");
+      setHeroVideoFile(null);
+      setShowToast(true);
+    } catch (err: any) {
+      console.error("Hero Video Upload Error:", err);
+      addLog(`خطأ في رفع الفيديو: ${err.message}`);
+    } finally {
+      setIsUploadingHeroVideo(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setUploading(true);
+    if (status === 'uploading') return;
+    
+    setStatus('uploading');
+    setErrorMessage('');
+    setShowToast(false);
+    setUploadProgress(1);
+    addLog("بدء عملية الحفظ...");
 
     try {
-      let finalImageUrl = imageUrl;
-      let finalDownloadUrl = downloadUrl;
+      if (!auth.currentUser) throw new Error("يجب تسجيل الدخول كمسؤول.");
+      if (!isAdminUser) throw new Error(`حسابك ليس لديه صلاحيات المسؤول.`);
+      if (!isEmailVerified) throw new Error("يرجى تأكيد بريدك الإلكتروني.");
 
-      // Upload image if new file selected
-      if (imageFile) {
-        setUploadProgress('جاري رفع الصورة...');
-        finalImageUrl = await uploadToBlob(imageFile, 'products/images');
-      }
+      const numericPrice = parseFloat(price);
+      if (isNaN(numericPrice)) throw new Error("يرجى إدخال سعر صحيح");
 
-      // Upload download file if new file selected
-      if (downloadFile) {
-        setUploadProgress('جاري رفع ملف التحميل...');
-        finalDownloadUrl = await uploadToBlob(downloadFile, 'products/downloads');
-        
-        // Encrypt the download URL
-        try {
-          const encryptRes = await fetch('/api/encrypt', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url: finalDownloadUrl })
+      if (activeTab === 'services' || editingServiceId) {
+        addLog("جاري حفظ الخدمة...");
+        let docId = editingServiceId;
+        const serviceData = {
+          title: name,
+          description,
+          price: numericPrice,
+          icon: serviceIcon,
+          updatedAt: Timestamp.now()
+        };
+
+        if (editingServiceId) {
+          await updateDoc(doc(db, 'services', editingServiceId), serviceData);
+        } else {
+          const docRef = await addDoc(collection(db, 'services'), {
+            ...serviceData,
+            createdAt: Timestamp.now(),
+            imageUrl: ''
           });
-          if (encryptRes.ok) {
-            const { encryptedUrl } = await encryptRes.json();
-            finalDownloadUrl = encryptedUrl;
-          }
-        } catch (err) {
-          console.warn('Encryption failed, using plain URL:', err);
+          docId = docRef.id;
         }
-      }
 
-      const productData = {
-        name,
-        description,
-        price: parseFloat(price),
-        category,
-        imageUrl: finalImageUrl,
-        downloadUrl: finalDownloadUrl,
-        updatedAt: Timestamp.now(),
-      };
+        // Handle Image Upload for Service
+        let finalImageUrl = imageUrl;
+        if (imageFile) {
+          addLog("جاري رفع صورة الخدمة...");
+          const blob = await upload(`${Date.now()}_${imageFile.name}`, imageFile, {
+            access: 'public',
+            handleUploadUrl: `${window.location.origin}/api/upload`,
+            onUploadProgress: (progressEvent) => {
+              setUploadProgress(Math.round((progressEvent.loaded / progressEvent.total) * 100));
+            }
+          });
+          finalImageUrl = blob.url;
+          addLog("تم رفع صورة الخدمة.");
+          await updateDoc(doc(db, 'services', docId!), { imageUrl: finalImageUrl });
+        }
 
-      if (editingProduct) {
-        await updateDoc(doc(db, 'products', editingProduct.id), productData);
+        addLog("تم حفظ الخدمة بنجاح!");
       } else {
-        await addDoc(collection(db, 'products'), {
-          ...productData,
-          createdAt: Timestamp.now(),
+        // 1. Save to Firestore FIRST (with initial data)
+        addLog("جاري حفظ البيانات الأساسية في قاعدة البيانات...");
+        let docId = editingId;
+        const productData = {
+          name,
+          description,
+          price: numericPrice,
+          category,
+          updatedAt: Timestamp.now()
+        };
+
+        if (editingId) {
+          await updateDoc(doc(db, 'products', editingId), { ...productData });
+        } else {
+          const docRef = await addDoc(collection(db, 'products'), { 
+            ...productData, 
+            createdAt: Timestamp.now(),
+            imageUrl: '',
+            downloadUrl: '',
+            status: 'uploading'
+          });
+          docId = docRef.id;
+        }
+        addLog("تم حفظ البيانات الأساسية بنجاح (ID: " + docId + ")");
+
+        // 2. Handle Uploads
+        let finalImageUrl = imageUrl;
+        let finalDownloadUrl = downloadUrl;
+
+        if (imageFile) {
+          addLog("جاري رفع الصورة...");
+          const blob = await upload(`${Date.now()}_${imageFile.name}`, imageFile, {
+            access: 'public',
+            handleUploadUrl: `${window.location.origin}/api/upload`,
+            onUploadProgress: (progressEvent) => {
+              setUploadProgress(Math.round((progressEvent.loaded / progressEvent.total) * 50));
+            }
+          });
+          finalImageUrl = blob.url;
+          addLog("تم رفع الصورة.");
+          await updateDoc(doc(db, 'products', docId!), { imageUrl: finalImageUrl });
+        }
+
+        if (productFile) {
+          addLog("جاري رفع الملف الرقمي...");
+          const blob = await upload(`${Date.now()}_${productFile.name}`, productFile, {
+            access: 'public',
+            handleUploadUrl: `${window.location.origin}/api/upload`,
+            onUploadProgress: (progressEvent) => {
+              const baseProgress = imageFile ? 50 : 0;
+              const currentProgress = Math.round((progressEvent.loaded / progressEvent.total) * 50);
+              setUploadProgress(baseProgress + currentProgress);
+            }
+          });
+          finalDownloadUrl = blob.url;
+          addLog("تم رفع الملف.");
+          await updateDoc(doc(db, 'products', docId!), { downloadUrl: finalDownloadUrl });
+        }
+
+        // 3. Finalize
+        await updateDoc(doc(db, 'products', docId!), { 
+          imageUrl: finalImageUrl,
+          downloadUrl: finalDownloadUrl,
+          status: 'completed'
         });
       }
-
-      setShowModal(false);
+      
+      setUploadProgress(100);
+      addLog("تم الحفظ بنجاح!");
+      setStatus('success');
+      setShowToast(true);
       resetForm();
-    } catch (error) {
-      console.error('Error saving product:', error);
-      alert('حدث خطأ أثناء حفظ المنتج');
-    } finally {
-      setUploading(false);
-      setUploadProgress('');
+      
+      setTimeout(() => {
+        setStatus('idle');
+        setShowToast(false);
+      }, 3000);
+      
+    } catch (err: any) {
+      console.error("Submit Error:", err);
+      addLog("❌ خطأ: " + err.message);
+      setStatus('error');
+      setErrorMessage(err.message || "فشل حفظ البيانات");
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('هل أنت متأكد من حذف هذا المنتج؟')) {
-      await deleteDoc(doc(db, 'products', id));
-    }
-  };
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const handleLogoUpload = async () => {
-    if (!logoFile) return;
-    setSavingSettings(true);
-    
+  const filteredProductsList = products.filter(p => 
+    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.description.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleDelete = async (id: string, imageUrl: string, downloadUrl: string) => {
+    console.log("Attempting to delete product:", id);
     try {
-      const logoUrl = await uploadToBlob(logoFile, 'settings');
-      await updateDoc(doc(db, 'settings', 'appearance'), { logoUrl });
-      alert('تم تحديث الشعار بنجاح!');
-      setLogoFile(null);
-    } catch (error) {
-      console.error('Error uploading logo:', error);
-      alert('حدث خطأ أثناء رفع الشعار');
-    } finally {
-      setSavingSettings(false);
+      setDeletingId(id);
+      
+      // 1. Delete from Firestore first - this is the most important part
+      console.log("Deleting Firestore document...");
+      try {
+        await deleteDoc(doc(db, 'products', id));
+        console.log("Firestore document deleted successfully");
+      } catch (firestoreErr) {
+        console.error("Firestore Delete Error:", firestoreErr);
+        handleFirestoreError(firestoreErr, OperationType.DELETE, `products/${id}`);
+      }
+      
+      // 2. Delete files (don't let file deletion failure block the process)
+      if (imageUrl && imageUrl.includes('cloudinary')) {
+        console.log("Image is on Cloudinary, skipping storage delete...");
+      } else if (imageUrl) {
+        console.log("Deleting image from Storage...");
+        await deleteFile(imageUrl).catch(e => console.warn("Image delete failed:", e));
+      }
+
+      if (downloadUrl) {
+        console.log("Deleting product file from Storage...");
+        await deleteFile(downloadUrl).catch(e => console.warn("File delete failed:", e));
+      }
+      
+      setDeletingId(null);
+      setErrorMessage('');
+      console.log("Delete process finished");
+    } catch (err: any) {
+      console.error("Overall Delete Error:", err);
+      setDeletingId(null);
+      try {
+        const parsed = JSON.parse(err.message);
+        setErrorMessage(`خطأ في الحذف: ${parsed.error}`);
+      } catch {
+        setErrorMessage(err.message || "حدث خطأ أثناء الحذف. تأكد من صلاحياتك.");
+      }
     }
   };
 
-  const totalRevenue = orders.reduce((acc, order) => acc + (order.amount || 0), 0);
-
-  const formatLastOrderTime = (date: Date | null): string => {
-    if (!date) return 'لا توجد طلبات';
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-    
-    if (diffMins < 1) return 'الآن';
-    if (diffMins < 60) return `منذ ${diffMins} دقيقة`;
-    if (diffHours < 24) return `منذ ${diffHours} ساعة`;
-    return `منذ ${diffDays} يوم`;
+  const handleDeleteService = async (id: string) => {
+    try {
+      setDeletingId(id);
+      await deleteDoc(doc(db, 'services', id));
+      setDeletingId(null);
+      addLog("تم حذف الخدمة بنجاح.");
+    } catch (err: any) {
+      console.error("Delete Service Error:", err);
+      setDeletingId(null);
+      setErrorMessage(err.message || "فشل حذف الخدمة");
+    }
   };
 
-  const categories = [
-    { id: 'cv', name: 'سيرة ذاتية' },
-    { id: 'social', name: 'سوشيال ميديا' },
-    { id: 'web', name: 'قوالب ويب' },
-    { id: 'other', name: 'أخرى' }
-  ];
+  const totalRevenue = orders.reduce((sum, order) => sum + (order.amount || 0), 0);
+
+  const [isTestingAI, setIsTestingAI] = useState(false);
+  const uploadTaskRef = useRef<any>(null);
+
+  const handleCancelUpload = () => {
+    setStatus('idle');
+    setUploadProgress(0);
+    addLog("تم إلغاء عملية الرفع (ملاحظة: الرفع قد يستمر في الخلفية).");
+  };
+
+  const testAI = async () => {
+    setIsTestingAI(true);
+    addLog("جاري اختبار الذكاء الاصطناعي...");
+    try {
+      const result = await getProductInsights({
+        name: "منتج تجريبي",
+        description: "وصف تجريبي لاختبار النظام",
+        category: "test",
+        price: 10
+      });
+      addLog("✅ نجح اختبار الذكاء الاصطناعي: " + result.creativeSummary.substring(0, 50) + "...");
+      alert("الذكاء الاصطناعي يعمل بنجاح! ✅");
+    } catch (err: any) {
+      const errorStr = JSON.stringify(err);
+      let msg = err.message;
+      if (errorStr.includes('403') || errorStr.includes('PERMISSION_DENIED')) {
+        msg = "خطأ 403: ليس لديك صلاحية. يرجى التأكد من تفعيل Generative Language API لمفتاحك.";
+      }
+      addLog("❌ فشل اختبار الذكاء الاصطناعي: " + msg);
+      console.error("AI Test Error:", err);
+      alert("فشل اختبار الذكاء الاصطناعي: " + msg);
+    } finally {
+      setIsTestingAI(false);
+    }
+  };
+
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  const handleSmartLogout = async () => {
+    try {
+      addLog("جاري تسجيل الخروج...");
+      await logout();
+      navigate('/login');
+    } catch (err: any) {
+      console.error("Logout Error:", err);
+      addLog("❌ فشل تسجيل الخروج: " + err.message);
+    }
+  };
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="min-h-screen bg-[#0a0e1a] text-white"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-10 pb-64"
     >
-      {/* Header */}
-      <div className="bg-dark-light/50 backdrop-blur-xl border-b border-white/5 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-black flex items-center gap-3">
-              <div className="bg-primary p-2 rounded-xl">
-                <BarChart3 size={24} />
-              </div>
-              لوحة التحكم
-            </h1>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-xs text-gray-500">إجمالي المنتجات</p>
-                <p className="text-xl font-black text-primary">{products.length}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-gray-500">إجمالي الإيرادات</p>
-                <p className="text-xl font-black text-gold">${totalRevenue.toFixed(2)}</p>
-              </div>
-              
-              {/* Smart Store Button */}
-              <div className="relative group">
-                <a
-                  href="https://monnlight-store.vercel.app"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold transition-all border ${
-                    hasNewOrders
-                      ? 'bg-gradient-to-r from-emerald-500 to-green-600 border-green-400 animate-pulse shadow-lg shadow-green-500/30'
-                      : 'bg-dark-light/80 border-white/10 hover:border-primary/50 hover:bg-dark-light'
-                  }`}
-                >
-                  <span className="text-lg">🛍️</span>
-                  <span className="text-sm">زيارة المتجر</span>
-                  {visitorCount > 0 && (
-                    <span className="flex items-center gap-1 text-xs bg-white/10 px-2 py-0.5 rounded-full">
-                      <Users size={12} />
-                      {visitorCount}
-                    </span>
-                  )}
-                  <ExternalLink size={14} className="opacity-60" />
-                </a>
-                
-                {/* Tooltip */}
-                <div className="absolute top-full right-0 mt-2 px-3 py-2 bg-dark-light border border-white/10 rounded-lg text-xs whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 shadow-xl">
-                  <span className="text-gray-400">آخر طلب: </span>
-                  <span className="text-white font-bold">{formatLastOrderTime(lastOrderTime)}</span>
-                </div>
-              </div>
-            </div>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+        <div className="flex flex-col">
+          <div className="flex items-center gap-4">
+            <h1 className="text-4xl font-black text-white tracking-tight">لوحة التحكم</h1>
           </div>
+          <div className="flex items-center gap-2 mt-2">
+            <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+            <span className="text-[10px] text-gray-500 uppercase tracking-[0.2em] font-bold">🌕 Management System</span>
+          </div>
+        </div>
+        
+        <div className="flex flex-wrap gap-3 bg-dark-light/30 p-2 rounded-[2.5rem] border border-white/5">
+          {[
+            { id: 'analytics', label: 'التحليلات', icon: Activity, color: 'primary' },
+            { id: 'ai', label: 'الذكاء الاصطناعي', icon: Brain, color: 'gold' },
+            { id: 'products', label: 'المنتجات', icon: Package, color: 'primary' },
+            { id: 'services', label: 'الخدمات', icon: Sparkles, color: 'primary' },
+            { id: 'orders', label: 'الطلبات', icon: ShoppingBag, color: 'primary' },
+            { id: 'settings', label: 'الإعدادات', icon: Settings, color: 'primary' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`px-6 py-3.5 rounded-2xl text-sm font-black transition-all flex items-center gap-2 ${
+                activeTab === tab.id 
+                  ? tab.color === 'gold' 
+                    ? 'bg-gold text-black shadow-lg shadow-gold/20' 
+                    : 'bg-primary text-white shadow-lg shadow-primary/20' 
+                  : 'text-gray-500 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <tab.icon size={18} />
+              {tab.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-dark-light/50 backdrop-blur-xl p-6 rounded-2xl border border-white/5">
-            <div className="flex items-center justify-between mb-4">
-              <Package className="text-primary" size={24} />
-              <span className="text-xs text-green-400 font-bold">+12%</span>
-            </div>
-            <p className="text-3xl font-black">{products.length}</p>
-            <p className="text-sm text-gray-500">المنتجات</p>
-          </div>
-          
-          <div className="bg-dark-light/50 backdrop-blur-xl p-6 rounded-2xl border border-white/5">
-            <div className="flex items-center justify-between mb-4">
-              <ShoppingBag className="text-gold" size={24} />
-              <span className="text-xs text-green-400 font-bold">+8%</span>
-            </div>
-            <p className="text-3xl font-black">{orders.length}</p>
-            <p className="text-sm text-gray-500">الطلبات</p>
-          </div>
-          
-          <div className="bg-dark-light/50 backdrop-blur-xl p-6 rounded-2xl border border-white/5">
-            <div className="flex items-center justify-between mb-4">
-              <DollarSign className="text-green-400" size={24} />
-              <span className="text-xs text-green-400 font-bold">+23%</span>
-            </div>
-            <p className="text-3xl font-black">${totalRevenue.toFixed(0)}</p>
-            <p className="text-sm text-gray-500">الإيرادات</p>
-          </div>
-          
-          <div className="bg-dark-light/50 backdrop-blur-xl p-6 rounded-2xl border border-white/5">
-            <div className="flex items-center justify-between mb-4">
-              <TrendingUp className="text-blue-400" size={24} />
-              <span className="text-xs text-green-400 font-bold">+15%</span>
-            </div>
-            <p className="text-3xl font-black">{orders.length > 0 ? (totalRevenue / orders.length).toFixed(0) : 0}</p>
-            <p className="text-sm text-gray-500">متوسط الطلب</p>
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex gap-2 mb-8 bg-dark-light/30 p-2 rounded-2xl w-fit">
-          <button
-            onClick={() => setActiveTab('products')}
-            className={`px-6 py-3 rounded-xl font-bold transition-all ${
-              activeTab === 'products' ? 'bg-primary text-white' : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <Package size={18} />
-              المنتجات
-            </div>
-          </button>
-          <button
-            onClick={() => setActiveTab('orders')}
-            className={`px-6 py-3 rounded-xl font-bold transition-all ${
-              activeTab === 'orders' ? 'bg-primary text-white' : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <ShoppingBag size={18} />
-              الطلبات
-            </div>
-          </button>
-          <button
-            onClick={() => setActiveTab('analytics')}
-            className={`px-6 py-3 rounded-xl font-bold transition-all ${
-              activeTab === 'analytics' ? 'bg-primary text-white' : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <Eye size={18} />
-              التحليلات
-            </div>
-          </button>
-          <button
-            onClick={() => setActiveTab('settings')}
-            className={`px-6 py-3 rounded-xl font-bold transition-all ${
-              activeTab === 'settings' ? 'bg-primary text-white' : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <Settings size={18} />
-              الإعدادات
-            </div>
-          </button>
-        </div>
-
-        {/* Products Tab */}
-        {activeTab === 'products' && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-black">إدارة المنتجات</h2>
-              <button
-                onClick={() => { resetForm(); setShowModal(true); }}
-                className="flex items-center gap-2 bg-primary px-6 py-3 rounded-xl font-bold hover:bg-primary-dark transition-all"
-              >
-                <Plus size={20} />
-                إضافة منتج
-              </button>
-            </div>
-
-            {loading ? (
-              <div className="flex justify-center py-20">
-                <Loader2 className="animate-spin text-primary" size={40} />
-              </div>
-            ) : products.length === 0 ? (
-              <div className="text-center py-20 bg-dark-light/30 rounded-3xl border border-white/5">
-                <Package className="mx-auto text-gray-600 mb-4" size={48} />
-                <p className="text-gray-500 font-bold">لا توجد منتجات بعد</p>
-                <p className="text-gray-600 text-sm">ابدأ بإضافة منتجك الأول</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {products.map((product) => (
-                  <motion.div
-                    key={product.id}
-                    layout
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="bg-dark-light/50 backdrop-blur-xl rounded-2xl overflow-hidden border border-white/5 group"
-                  >
-                    <div className="aspect-video bg-dark relative overflow-hidden">
-                      {product.imageUrl ? (
-                        <img 
-                          src={product.imageUrl} 
-                          alt={product.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <ImageIcon className="text-gray-700" size={48} />
-                        </div>
-                      )}
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
-                        <button
-                          onClick={() => openEditModal(product)}
-                          className="bg-primary p-3 rounded-xl hover:scale-110 transition-transform"
-                        >
-                          <Edit2 size={18} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(product.id)}
-                          className="bg-red-500 p-3 rounded-xl hover:scale-110 transition-transform"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </div>
-                    <div className="p-6 space-y-3">
-                      <div className="flex justify-between items-start">
-                        <h3 className="font-bold text-lg">{product.name}</h3>
-                        <span className="text-gold font-black">${product.price}</span>
-                      </div>
-                      <p className="text-gray-500 text-sm line-clamp-2">{product.description}</p>
-                      <div className="flex items-center justify-between pt-3 border-t border-white/5">
-                        <span className="text-xs text-primary font-bold px-3 py-1 bg-primary/10 rounded-lg">
-                          {categories.find(c => c.id === product.category)?.name || product.category}
-                        </span>
-                        {product.downloadUrl && (
-                          <span className="text-xs text-green-400 flex items-center gap-1">
-                            <FileText size={12} />
-                            ملف متاح
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Orders Tab */}
-        {activeTab === 'orders' && (
-          <div className="space-y-6">
-            <h2 className="text-xl font-black">سجل الطلبات</h2>
-            
-            {orders.length === 0 ? (
-              <div className="text-center py-20 bg-dark-light/30 rounded-3xl border border-white/5">
-                <ShoppingBag className="mx-auto text-gray-600 mb-4" size={48} />
-                <p className="text-gray-500 font-bold">لا توجد طلبات بعد</p>
-              </div>
-            ) : (
-              <div className="bg-dark-light/50 backdrop-blur-xl rounded-2xl border border-white/5 overflow-hidden">
-                <table className="w-full text-right">
-                  <thead className="bg-dark/50">
-                    <tr>
-                      <th className="p-4 text-gray-500 font-bold text-sm">المنتج</th>
-                      <th className="p-4 text-gray-500 font-bold text-sm">العميل</th>
-                      <th className="p-4 text-gray-500 font-bold text-sm">المبلغ</th>
-                      <th className="p-4 text-gray-500 font-bold text-sm">الحالة</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {orders.map((order) => (
-                      <tr key={order.id} className="border-t border-white/5">
-                        <td className="p-4 font-bold">{order.productName}</td>
-                        <td className="p-4 text-gray-400">{order.customerEmail}</td>
-                        <td className="p-4 text-gold font-bold">${order.amount}</td>
-                        <td className="p-4">
-                          <span className="px-3 py-1 bg-green-500/10 text-green-400 rounded-lg text-xs font-bold">
-                            {order.status || 'مكتمل'}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Analytics Tab */}
-        {activeTab === 'analytics' && (
-          <VisitorAnalytics />
-        )}
-
-        {/* Settings Tab */}
         {activeTab === 'settings' && (
-          <div className="space-y-6 max-w-2xl">
-            <h2 className="text-xl font-black">إعدادات المتجر</h2>
-            
-            <div className="bg-dark-light/50 backdrop-blur-xl p-8 rounded-2xl border border-white/5 space-y-6">
-              <div className="flex items-center gap-4 mb-6">
-                <Palette className="text-primary" size={24} />
-                <div>
-                  <h3 className="font-bold">شعار المتجر</h3>
-                  <p className="text-sm text-gray-500">قم برفع شعار جديد للمتجر</p>
+          <div className="max-w-2xl mx-auto space-y-8">
+            <div className="bg-dark-light/30 backdrop-blur-2xl p-10 rounded-[3rem] border border-white/10 shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-32 -mt-32" />
+              
+              <div className="relative z-10 space-y-8">
+                <div className="flex items-center gap-4 mb-2">
+                  <div className="w-14 h-14 bg-primary/20 rounded-2xl flex items-center justify-center text-primary">
+                    <Settings size={28} />
+                  </div>
+                  <div>
+                    <h2 className="text-3xl font-black text-white">إعدادات المظهر</h2>
+                    <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">تخصيص هوية Moonlight 🌕</p>
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-4">
-                <label className="block">
-                  <div className="border-2 border-dashed border-white/10 rounded-2xl p-8 text-center cursor-pointer hover:border-primary/50 transition-colors">
-                    <input
-                      type="file"
+                <div className="p-8 bg-white/5 rounded-[2rem] border border-white/5 space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-black text-white mb-1">شعار المتجر (Logo)</h3>
+                      <p className="text-xs text-gray-500 font-bold">سيظهر الشعار في أعلى وأسفل الموقع</p>
+                    </div>
+                    <div className="w-20 h-20 bg-dark rounded-2xl border border-white/10 flex items-center justify-center overflow-hidden">
+                      {logoFile ? (
+                        <img src={URL.createObjectURL(logoFile)} className="w-full h-full object-contain p-2" alt="Preview" />
+                      ) : (
+                        <img src="/logo.png" className="w-full h-full object-contain p-2" alt="Current Logo" onError={(e) => e.currentTarget.src = 'https://via.placeholder.com/100?text=Logo'} />
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <input 
+                      type="file" 
                       accept="image/*"
                       onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
                       className="hidden"
+                      id="logo-upload-input"
                     />
-                    <Upload className="mx-auto text-gray-500 mb-3" size={32} />
-                    <p className="text-gray-400 font-bold">
-                      {logoFile ? logoFile.name : 'اختر صورة الشعار'}
-                    </p>
-                    <p className="text-xs text-gray-600 mt-2">PNG, JPG حتى 2MB</p>
-                  </div>
-                </label>
-
-                <button
-                  onClick={handleLogoUpload}
-                  disabled={!logoFile || savingSettings}
-                  className="w-full flex items-center justify-center gap-2 bg-primary py-4 rounded-xl font-bold hover:bg-primary-dark transition-all disabled:opacity-50"
-                >
-                  {savingSettings ? (
-                    <Loader2 className="animate-spin" size={20} />
-                  ) : (
-                    <>
-                      <Save size={20} />
-                      حفظ الشعار
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Add/Edit Product Modal */}
-      <AnimatePresence>
-        {showModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            onClick={() => setShowModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-dark-light w-full max-w-2xl rounded-3xl border border-white/10 overflow-hidden max-h-[90vh] overflow-y-auto"
-            >
-              <div className="p-6 border-b border-white/5 flex justify-between items-center sticky top-0 bg-dark-light z-10">
-                <h2 className="text-xl font-black">
-                  {editingProduct ? 'تعديل المنتج' : 'إضافة منتج جديد'}
-                </h2>
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="p-2 hover:bg-white/5 rounded-xl transition-colors"
-                >
-                  <X size={24} />
-                </button>
-              </div>
-
-              <form onSubmit={handleSubmit} className="p-6 space-y-6">
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-gray-400">اسم المنتج</label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full bg-dark p-4 rounded-xl border border-white/5 focus:border-primary/50 outline-none transition-colors"
-                    placeholder="أدخل اسم المنتج"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-sm font-bold text-gray-400">الوصف</label>
-                    <button
-                      type="button"
-                      onClick={handleGenerateDescription}
-                      disabled={generatingDescription || !name.trim()}
-                      className="flex items-center gap-2 text-xs font-bold text-primary hover:text-primary-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    <label 
+                      htmlFor="logo-upload-input"
+                      className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-white/10 rounded-3xl cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all group"
                     >
-                      {generatingDescription ? (
+                      <Upload className="text-gray-500 mb-3 group-hover:text-primary transition-colors" size={32} />
+                      <span className="text-sm font-black text-gray-400 group-hover:text-white transition-colors">
+                        {logoFile ? logoFile.name : 'اختر صورة الشعار الجديد'}
+                      </span>
+                      <span className="text-[10px] text-gray-600 mt-2">يفضل أن تكون الخلفية شفافة (PNG)</span>
+                    </label>
+
+                    <button 
+                      onClick={handleLogoUpload}
+                      disabled={!logoFile || isUploadingLogo}
+                      className="w-full py-4 bg-primary text-white rounded-2xl font-black text-sm hover:bg-primary-dark transition-all shadow-xl shadow-primary/20 disabled:opacity-50 flex items-center justify-center gap-3"
+                    >
+                      {isUploadingLogo ? (
                         <>
-                          <Loader2 size={14} className="animate-spin" />
-                          جاري التوليد...
+                          <RefreshCw size={18} className="animate-spin" />
+                          جاري الرفع...
                         </>
                       ) : (
                         <>
-                          <Sparkles size={14} />
-                          اقترح وصفا احترافيا
+                          <CheckCircle2 size={18} />
+                          حفظ الشعار الجديد
                         </>
                       )}
                     </button>
                   </div>
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    className="w-full bg-dark p-4 rounded-xl border border-white/5 focus:border-primary/50 outline-none transition-colors h-24 resize-none"
-                    placeholder="وصف مختصر للمنتج"
-                  />
-                  
-                  {/* AI Suggested Descriptions */}
-                  {suggestedDescriptions.length > 0 && (
-                    <div className="space-y-2 mt-3">
-                      <p className="text-xs text-gray-500 font-bold">اختر وصفا مقترحا:</p>
-                      <div className="space-y-2">
-                        {suggestedDescriptions.map((desc, i) => (
-                          <button
-                            key={i}
-                            type="button"
-                            onClick={() => {
-                              setDescription(desc);
-                              setSuggestedDescriptions([]);
-                            }}
-                            className="w-full text-right p-3 bg-dark/50 hover:bg-primary/10 border border-white/5 hover:border-primary/30 rounded-xl text-xs text-gray-300 transition-all"
-                          >
-                            {desc}
-                          </button>
-                        ))}
+                </div>
+
+                      <div className="p-8 bg-white/5 rounded-[2rem] border border-white/5 space-y-6">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
+                            <Zap size={24} />
+                          </div>
+                          <div>
+                            <h3 className="text-xl font-black text-white">فيديو الواجهة الرئيسية</h3>
+                            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">ارفع الفيديو الذي تعبت في إنشائه هنا</p>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                          <div className="space-y-4">
+                            <div className="relative group">
+                              <input 
+                                type="file" 
+                                accept="video/*"
+                                onChange={(e) => setHeroVideoFile(e.target.files?.[0] || null)}
+                                className="hidden"
+                                id="hero-video-upload"
+                              />
+                              <label 
+                                htmlFor="hero-video-upload"
+                                className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-white/10 rounded-[2rem] cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all group"
+                              >
+                                {heroVideoFile ? (
+                                  <div className="flex flex-col items-center gap-2 text-primary font-bold text-xs p-4 text-center">
+                                    <CheckCircle2 size={32} />
+                                    <span className="break-all">{heroVideoFile.name}</span>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <Upload className="text-gray-500 mb-2 group-hover:text-primary transition-colors" size={32} />
+                                    <span className="text-xs text-gray-500 font-bold">اختر ملف الفيديو (MP4)</span>
+                                  </>
+                                )}
+                              </label>
+                            </div>
+                            <button 
+                              onClick={handleHeroVideoUpload}
+                              disabled={!heroVideoFile || isUploadingHeroVideo}
+                              className="w-full py-4 bg-primary text-white rounded-2xl font-black text-sm hover:bg-primary-dark transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-xl shadow-primary/20"
+                            >
+                              {isUploadingHeroVideo ? (
+                                <>
+                                  <RefreshCw size={18} className="animate-spin" />
+                                  جاري الرفع...
+                                </>
+                              ) : (
+                                <>
+                                  <Zap size={18} />
+                                  تحديث فيديو الواجهة
+                                </>
+                              )}
+                            </button>
+                          </div>
+
+                          <div className="space-y-4">
+                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-1">المعاينة الحالية</label>
+                            <div className="aspect-video rounded-[2rem] overflow-hidden border border-white/10 bg-dark flex items-center justify-center relative group">
+                              {heroVideoUrl ? (
+                                <video 
+                                  src={heroVideoUrl} 
+                                  className="w-full h-full object-cover"
+                                  autoPlay 
+                                  loop 
+                                  muted 
+                                  playsInline
+                                />
+                              ) : (
+                                <div className="text-gray-600 flex flex-col items-center gap-2">
+                                  <Zap size={48} className="opacity-20" />
+                                  <span className="text-xs font-bold">لا يوجد فيديو حالياً</span>
+                                </div>
+                              )}
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <span className="text-[10px] font-black text-white uppercase tracking-widest">فيديو الواجهة</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
+
+                      <div className="bg-gold/10 border border-gold/20 p-6 rounded-3xl flex items-start gap-4">
+                  <div className="bg-gold/20 p-2 rounded-lg text-gold">
+                    <Activity size={20} />
+                  </div>
+                  <div>
+                    <h4 className="text-gold font-black text-sm mb-1">نصيحة تقنية</h4>
+                    <p className="text-xs text-gray-400 leading-relaxed font-bold">
+                      بعد رفع الشعار، قد يستغرق الأمر بضع ثوانٍ ليظهر في جميع صفحات الموقع. إذا لم يتغير الشعار فوراً، يرجى تحديث الصفحة.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab !== 'settings' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+            {/* Add/Edit Product Form */}
+            <div className={`lg:col-span-1 space-y-8 ${activeTab === 'orders' ? 'hidden lg:block opacity-30 pointer-events-none' : ''}`}>
+          <div className="bg-dark-light/30 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-white/10 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16" />
+            
+            <div className="flex justify-between items-center mb-8 relative z-10">
+              <h2 className="text-2xl font-black flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${editingId || editingServiceId ? 'bg-gold/20 text-gold' : 'bg-primary/20 text-primary'}`}>
+                  {editingId || editingServiceId ? <CheckCircle2 size={20} /> : <Plus size={20} />}
+                </div>
+                {editingId ? 'تعديل المنتج' : editingServiceId ? 'تعديل الخدمة' : activeTab === 'services' ? 'إضافة خدمة' : 'إضافة منتج'}
+              </h2>
+              {(editingId || editingServiceId) && (
+                <button 
+                  onClick={resetForm}
+                  className="text-xs font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1"
+                >
+                  إلغاء
+                </button>
+              )}
+            </div>
+
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-black flex items-center gap-2">
+                {editingId || editingServiceId ? <CheckCircle2 className="text-gold" /> : <Plus className="text-primary" />}
+                {editingId ? 'تعديل المنتج' : editingServiceId ? 'تعديل الخدمة' : activeTab === 'services' ? 'إضافة خدمة جديدة' : 'إضافة منتج جديد'}
+              </h2>
+              {(editingId || editingServiceId) && (
+                <button 
+                  onClick={resetForm}
+                  className="text-xs font-bold text-gray-500 hover:text-white underline"
+                >
+                  إلغاء التعديل
+                </button>
+              )}
+            </div>
+
+            {/* Admin Debug Info */}
+            {currentUser && !isAdminUser && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="mb-8 p-6 bg-red-500/10 border border-red-500/20 rounded-[2rem] text-center space-y-3"
+              >
+                <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center mx-auto">
+                  <AlertCircle className="text-red-500" size={24} />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-black text-red-500">تنبيه الصلاحيات</p>
+                  <p className="text-[10px] text-gray-400">أنت مسجل دخول بـ: <span className="text-white">{currentUser.email}</span></p>
+                </div>
+                <p className="text-[11px] text-gray-500 font-medium leading-relaxed">
+                  هذا الحساب ليس مسجلاً كمسؤول. يرجى تسجيل الدخول بالحساب الصحيح للتحكم في المتجر.
+                </p>
+              </motion.div>
+            )}
+
+            {currentUser && isAdminUser && !isEmailVerified && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="mb-8 p-6 bg-gold/10 border border-gold/20 rounded-[2rem] text-center space-y-3"
+              >
+                <div className="w-12 h-12 bg-gold/20 rounded-full flex items-center justify-center mx-auto">
+                  <AlertCircle className="text-gold" size={24} />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-black text-gold">تأكيد البريد الإلكتروني</p>
+                  <p className="text-[10px] text-gray-400">بريدك <span className="text-white">{currentUser.email}</span> غير مؤكد</p>
+                </div>
+                <p className="text-[11px] text-gray-500 font-medium leading-relaxed">
+                  يرجى تأكيد بريدك في إعدادات جوجل لتتمكن من نشر المنتجات.
+                </p>
+              </motion.div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
+              {errorMessage && (
+                <motion.div 
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="space-y-2"
+                >
+                  <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-2xl text-xs font-bold flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle size={14} />
+                      <span>{errorMessage}</span>
                     </div>
-                  )}
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setStatus('idle');
+                        setErrorMessage('');
+                      }}
+                      className="text-[10px] bg-red-500/20 hover:bg-red-500/30 px-3 py-1.5 rounded-lg self-start transition-all"
+                    >
+                      إعادة المحاولة
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+              
+              {showToast && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="bg-green-500/10 border border-green-500/20 text-green-500 p-4 rounded-2xl text-xs font-bold flex items-center gap-2"
+                >
+                  <CheckCircle2 className="w-5 h-5" />
+                  تم {editingId || editingServiceId ? 'تحديث' : 'إضافة'} {activeTab === 'services' || editingServiceId ? 'الخدمة' : 'المنتج'} بنجاح!
+                </motion.div>
+              )}
+              
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-1">
+                    {activeTab === 'services' || editingServiceId ? 'اسم الخدمة' : 'اسم المنتج'}
+                  </label>
+                  <input 
+                    type="text" 
+                    value={name} 
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder={activeTab === 'services' || editingServiceId ? "مثال: تصميم هوية بصرية" : "مثال: قالب سيرة ذاتية احترافي"}
+                    className="bg-white/5 border border-white/5 focus:border-primary/50 focus:bg-white/10 outline-none transition-all w-full p-4 rounded-2xl text-sm"
+                    required
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-gray-400">السعر (USD)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={price}
-                      onChange={(e) => setPrice(e.target.value)}
-                      className="w-full bg-dark p-4 rounded-xl border border-white/5 focus:border-primary/50 outline-none transition-colors"
-                      placeholder="0.00"
-                      required
-                    />
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-1">
+                      {activeTab === 'services' || editingServiceId ? 'أيقونة' : 'الفئة'}
+                    </label>
+                    {activeTab === 'services' || editingServiceId ? (
+                      <input 
+                        type="text" 
+                        value={serviceIcon} 
+                        onChange={(e) => setServiceIcon(e.target.value)}
+                        placeholder="🎨"
+                        className="bg-white/5 border border-white/5 focus:border-primary/50 focus:bg-white/10 outline-none transition-all w-full p-4 rounded-2xl text-sm"
+                      />
+                    ) : (
+                      <div className="relative">
+                        <select 
+                          value={category} 
+                          onChange={(e) => setCategory(e.target.value)}
+                          className="bg-white/5 border border-white/5 focus:border-primary/50 focus:bg-white/10 outline-none transition-all w-full p-4 rounded-2xl text-sm appearance-none cursor-pointer"
+                        >
+                          <option value="cv">سيرة ذاتية</option>
+                          <option value="social">سوشيال ميديا</option>
+                          <option value="web">قالب ويب</option>
+                          <option value="other">أخرى</option>
+                        </select>
+                        <Settings className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={14} />
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-gray-400">الفئة</label>
-                    <select
-                      value={category}
-                      onChange={(e) => setCategory(e.target.value)}
-                      className="w-full bg-dark p-4 rounded-xl border border-white/5 focus:border-primary/50 outline-none transition-colors"
-                    >
-                      {categories.map(cat => (
-                        <option key={cat.id} value={cat.id}>{cat.name}</option>
-                      ))}
-                    </select>
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-1">السعر ($)</label>
+                    <input 
+                      type="number" 
+                      step="0.01"
+                      value={price} 
+                      onChange={(e) => setPrice(e.target.value)}
+                      placeholder="0.00"
+                      className="bg-white/5 border border-white/5 focus:border-primary/50 focus:bg-white/10 outline-none transition-all w-full p-4 rounded-2xl text-sm"
+                      required
+                    />
                   </div>
                 </div>
+              </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-gray-400">صورة المنتج</label>
-                  <label className="block">
-                    <div className="border-2 border-dashed border-white/10 rounded-xl p-6 text-center cursor-pointer hover:border-primary/50 transition-colors">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => setImageFile(e.target.files?.[0] || null)}
-                        className="hidden"
-                      />
-                      <ImageIcon className="mx-auto text-gray-500 mb-2" size={24} />
-                      <p className="text-sm text-gray-400">
-                        {imageFile ? imageFile.name : (imageUrl ? 'صورة محملة مسبقاً' : 'اختر صورة المنتج')}
-                      </p>
+              <div className="space-y-4">
+                <div className="p-1 bg-white/5 rounded-2xl border border-white/5 flex">
+                    <button 
+                      type="button"
+                      onClick={() => setUploadMethod('direct')}
+                      className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${uploadMethod === 'direct' ? 'bg-primary text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}
+                    >
+                      رفع ملفات
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => setUploadMethod('link')}
+                      className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${uploadMethod === 'link' ? 'bg-primary text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}
+                    >
+                      روابط خارجية
+                    </button>
+                  </div>
+
+                  {uploadMethod === 'direct' ? (
+                    <div className="grid grid-cols-1 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-gray-400">1. صورة الغلاف</label>
+                        <div className="relative group">
+                          <input 
+                            type="file" 
+                            accept="image/*"
+                            onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                            className="hidden"
+                            id="image-upload"
+                          />
+                          <label 
+                            htmlFor="image-upload"
+                            className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all"
+                          >
+                            {imageFile ? (
+                              <div className="flex flex-col items-center gap-2 text-primary font-bold text-xs p-4 text-center">
+                                <CheckCircle2 size={24} />
+                                <span className="break-all">{imageFile.name}</span>
+                              </div>
+                            ) : imageUrl ? (
+                              <div className="flex flex-col items-center gap-2 text-primary font-bold text-xs p-4 text-center">
+                                <ImageIcon size={24} />
+                                <span>صورة موجودة مسبقاً</span>
+                              </div>
+                            ) : (
+                              <>
+                                <Upload className="text-gray-500 mb-2" size={24} />
+                                <span className="text-xs text-gray-500">اختر صورة المعرض</span>
+                              </>
+                            )}
+                          </label>
+                        </div>
+                      </div>
+
+                      {!(activeTab === 'services' || editingServiceId) && (
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-gray-400">2. الملف الرقمي</label>
+                          <div className="relative group">
+                            <input 
+                              type="file" 
+                              accept=".zip,application/zip,application/x-zip-compressed,application/octet-stream,multipart/x-zip,*/*"
+                              onChange={(e) => setProductFile(e.target.files?.[0] || null)}
+                              className="hidden"
+                              id="file-upload"
+                            />
+                            <label 
+                              htmlFor="file-upload"
+                              className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all"
+                            >
+                              {productFile ? (
+                                <div className="flex flex-col items-center gap-2 text-primary font-bold text-xs p-4 text-center">
+                                  <CheckCircle2 size={24} />
+                                  <span className="break-all">{productFile.name}</span>
+                                </div>
+                              ) : downloadUrl ? (
+                                <div className="flex flex-col items-center gap-2 text-primary font-bold text-xs p-4 text-center">
+                                  <Package size={24} />
+                                  <span>ملف موجود مسبقاً</span>
+                                </div>
+                              ) : (
+                                <>
+                                  <Upload className="text-gray-500 mb-2" size={24} />
+                                  <span className="text-xs text-gray-500">ارفع الملف الرقمي (ZIP)</span>
+                                </>
+                              )}
+                            </label>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </label>
-                  {!imageFile && (
-                    <input
-                      type="url"
-                      value={imageUrl}
-                      onChange={(e) => setImageUrl(e.target.value)}
-                      className="w-full bg-dark p-3 rounded-xl border border-white/5 focus:border-primary/50 outline-none transition-colors text-sm"
-                      placeholder="أو أدخل رابط الصورة مباشرة"
-                    />
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <label className="text-sm font-bold text-gray-400">1. صورة الغلاف</label>
+                          <div className="flex bg-dark rounded-lg p-1 border border-white/5">
+                            <button 
+                              type="button"
+                              onClick={() => setImageUploadType('file')}
+                              className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${imageUploadType === 'file' ? 'bg-primary text-white' : 'text-gray-500'}`}
+                            >
+                              رفع ملف
+                            </button>
+                            <button 
+                              type="button"
+                              onClick={() => setImageUploadType('link')}
+                              className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${imageUploadType === 'link' ? 'bg-primary text-white' : 'text-gray-500'}`}
+                            >
+                              رابط خارجي
+                            </button>
+                          </div>
+                        </div>
+
+                        {imageUploadType === 'file' ? (
+                          <div className="relative group">
+                            <input 
+                              type="file" 
+                              accept="image/*"
+                              onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                              className="hidden"
+                              id="image-upload-link"
+                            />
+                            <label 
+                              htmlFor="image-upload-link"
+                              className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all"
+                            >
+                              {imageFile ? (
+                                <div className="flex flex-col items-center gap-2 text-primary font-bold text-xs p-4 text-center">
+                                  <CheckCircle2 size={24} />
+                                  <span className="break-all">{imageFile.name}</span>
+                                </div>
+                              ) : imageUrl ? (
+                                <div className="flex flex-col items-center gap-2 text-primary font-bold text-xs p-4 text-center">
+                                  <img 
+                                    src={convertDriveLink(imageUrl)} 
+                                    className="w-12 h-12 rounded-lg object-cover mb-1" 
+                                    referrerPolicy="no-referrer"
+                                    onError={(e) => (e.target as HTMLImageElement).src = 'https://via.placeholder.com/150?text=Error'}
+                                  />
+                                  <span>صورة موجودة مسبقاً</span>
+                                </div>
+                              ) : (
+                                <>
+                                  <Upload className="text-gray-500 mb-2" size={24} />
+                                  <span className="text-xs text-gray-500">اختر صورة المعرض</span>
+                                </>
+                              )}
+                            </label>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="flex gap-2">
+                              <input 
+                                type="url" 
+                                value={imageUrl} 
+                                onChange={(e) => setImageUrl(e.target.value)}
+                                placeholder="https:// رابط الصورة..."
+                                className="bg-dark border-white/5 focus:border-primary outline-none transition-all flex-1 p-4 rounded-2xl"
+                              />
+                              {imageUrl && (
+                                <div className="w-16 h-16 rounded-xl overflow-hidden border border-white/10 flex-shrink-0 bg-dark-light flex items-center justify-center">
+                                  <img 
+                                    src={convertDriveLink(imageUrl)} 
+                                    className="w-full h-full object-cover" 
+                                    referrerPolicy="no-referrer" 
+                                    alt="Preview"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      if (!target.src.includes('placeholder')) {
+                                        target.src = 'https://via.placeholder.com/150?text=Invalid+Link';
+                                      }
+                                    }}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                            {imageUrl.includes('drive.google.com') && (
+                              <div className="bg-primary/10 border border-primary/20 p-3 rounded-xl space-y-1">
+                                <p className="text-[10px] text-primary font-bold flex items-center gap-1">
+                                  <Sparkles size={12} />
+                                  تم اكتشاف رابط Google Drive
+                                </p>
+                                <p className="text-[9px] text-gray-400 leading-tight">
+                                  تأكد من أن الملف في Google Drive مضبوط على "أي شخص لديه الرابط يمكنه العرض" (Anyone with the link can view) وإلا فلن تظهر الصورة للعملاء.
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {!(activeTab === 'services' || editingServiceId) && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <label className="text-sm font-bold text-gray-400">2. رابط تحميل الملف</label>
+                            {downloadUrl.includes('drive.google.com') && (
+                              <span className="text-[10px] text-primary font-bold">رابط Google Drive ✅</span>
+                            )}
+                          </div>
+                          <input 
+                            type="url" 
+                            value={downloadUrl} 
+                            onChange={(e) => setDownloadUrl(e.target.value)}
+                            placeholder="https:// رابط تحميل الملف الرقمي..."
+                            className="bg-dark border-white/5 focus:border-primary outline-none transition-all w-full p-4 rounded-2xl"
+                            required={uploadMethod === 'link'}
+                          />
+                          {downloadUrl.includes('drive.google.com') && (
+                            <p className="text-[9px] text-gray-500 px-2">
+                              * تأكد من جعل الملف "عام" (Public) في Google Drive ليتمكن العميل من تحميله بعد الشراء.
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-gray-400">ملف التحميل</label>
-                  <label className="block">
-                    <div className="border-2 border-dashed border-white/10 rounded-xl p-6 text-center cursor-pointer hover:border-primary/50 transition-colors">
-                      <input
-                        type="file"
-                        onChange={(e) => setDownloadFile(e.target.files?.[0] || null)}
-                        className="hidden"
-                      />
-                      <FileText className="mx-auto text-gray-500 mb-2" size={24} />
-                      <p className="text-sm text-gray-400">
-                        {downloadFile ? downloadFile.name : (downloadUrl ? 'ملف محمل مسبقاً' : 'اختر ملف التحميل')}
-                      </p>
-                    </div>
-                  </label>
-                  {!downloadFile && (
-                    <input
-                      type="url"
-                      value={downloadUrl}
-                      onChange={(e) => setDownloadUrl(e.target.value)}
-                      className="w-full bg-dark p-3 rounded-xl border border-white/5 focus:border-primary/50 outline-none transition-colors text-sm"
-                      placeholder="أو أدخل رابط التحميل مباشرة"
-                    />
-                  )}
-                </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-1">
+                  {activeTab === 'services' || editingServiceId ? 'وصف الخدمة' : 'وصف المنتج'}
+                </label>
+                <textarea 
+                  value={description} 
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="اكتب التفاصيل هنا..."
+                  className="bg-white/5 border border-white/5 focus:border-primary/50 focus:bg-white/10 outline-none transition-all w-full p-4 rounded-2xl min-h-[120px] text-sm resize-none"
+                  required
+                />
+              </div>
 
-                <div className="flex gap-4 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowModal(false)}
-                    className="flex-1 py-4 rounded-xl font-bold border border-white/10 hover:bg-white/5 transition-colors"
+              <div className="space-y-4 pt-4">
+                {status === 'uploading' && (
+                  <div className="space-y-3 p-4 bg-primary/5 rounded-2xl border border-primary/10">
+                    <div className="flex justify-between items-center">
+                      <div className="space-y-2 flex-1">
+                        <div className="flex justify-between text-[10px] font-black text-primary uppercase tracking-widest">
+                          <span>جاري المعالجة</span>
+                          <span>{uploadProgress}%</span>
+                        </div>
+                        <div className="w-full bg-dark/50 rounded-full h-2 overflow-hidden border border-white/5">
+                          <motion.div 
+                            initial={{ width: 0 }}
+                            animate={{ width: `${Math.max(uploadProgress, 5)}%` }}
+                            className="bg-primary h-full rounded-full shadow-[0_0_10px_rgba(139,92,246,0.5)]"
+                          />
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleCancelUpload}
+                        className="ml-4 px-3 py-1 bg-red-500/10 text-red-500 rounded-lg text-[10px] font-black hover:bg-red-500/20 transition-all"
+                      >
+                        إلغاء
+                      </button>
+                    </div>
+                  </div>
+                )}
+                
+                <button 
+                  type="submit" 
+                  disabled={status === 'uploading' || status === 'success'}
+                  className={`w-full py-5 rounded-2xl font-black text-sm transition-all shadow-2xl relative overflow-hidden group ${
+                    status === 'success' ? 'bg-green-500 text-white' :
+                    status === 'error' ? 'bg-red-500 text-white hover:bg-red-600' :
+                    'bg-primary text-white hover:bg-primary-dark disabled:opacity-50'
+                  }`}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                  {status === 'uploading' ? (
+                    <div className="relative z-10 flex flex-col items-center gap-2">
+                      <div className="flex items-center justify-center gap-3">
+                        <RefreshCw size={18} className="animate-spin" />
+                        {uploadProgress > 0 
+                          ? `جاري الحفظ... ${Math.round(uploadProgress)}%` 
+                          : "جاري التحضير..."}
+                      </div>
+                      <div 
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleCancelUpload();
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleCancelUpload();
+                          }
+                        }}
+                        className="text-[10px] text-white/60 hover:text-white underline font-bold mt-1 transition-colors cursor-pointer"
+                      >
+                        إلغاء العملية
+                      </div>
+                    </div>
+                  ) : status === 'success' ? (
+                    <span className="relative z-10 flex items-center justify-center gap-2">
+                      <CheckCircle2 className="w-5 h-5" />
+                      تم الحفظ بنجاح
+                    </span>
+                  ) : (
+                    <span className="relative z-10 flex items-center justify-center gap-2">
+                      {editingId || editingServiceId ? <CheckCircle2 size={18} /> : <Plus size={18} />}
+                      {editingId || editingServiceId ? "تحديث التغييرات" : activeTab === 'services' ? "نشر الخدمة الآن" : "نشر المنتج الآن"}
+                    </span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        {/* Products List & Orders */}
+        <div className="lg:col-span-2 space-y-10">
+          {activeTab === 'analytics' && (
+            <DashboardAnalytics 
+              orders={orders} 
+              products={products} 
+              services={services} 
+              addLog={addLog} 
+              testAI={testAI}
+              testConnection={testConnection}
+              isTestingAI={isTestingAI}
+              isTestingConnection={isTestingConnection}
+              debugLogs={debugLogs}
+            />
+          )}
+
+          {activeTab === 'ai' && (
+            <SmartAIAssistant products={products} orders={orders} />
+          )}
+
+          {activeTab === 'services' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between bg-dark-light/30 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-white/10 shadow-2xl">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 bg-gold/10 rounded-2xl flex items-center justify-center text-gold border border-gold/20">
+                    <Sparkles size={28} />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-black text-white">الخدمات المتاحة</h2>
+                    <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">إدارة وتطوير خدماتك ({services.length})</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {services.map((s, index) => (
+                  <motion.div 
+                    key={s.id}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: index * 0.05 }}
+                    className={`bg-dark-light/30 backdrop-blur-xl rounded-[2rem] border ${editingServiceId === s.id ? 'border-gold shadow-[0_0_30px_rgba(234,179,8,0.15)]' : 'border-white/5 hover:border-white/20'} overflow-hidden group transition-all duration-500 flex flex-col`}
                   >
-                    إلغاء
+                    <div className="p-6 flex-grow space-y-6">
+                      <div className="flex justify-between items-start">
+                        <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-3xl shadow-inner group-hover:scale-110 transition-transform duration-500">
+                          {s.imageUrl ? (
+                            <img src={convertDriveLink(s.imageUrl)} className="w-full h-full object-cover rounded-2xl" alt={s.title} />
+                          ) : (
+                            s.icon || '🎨'
+                          )}
+                        </div>
+                        <div className="bg-gold/10 text-gold px-4 py-1.5 rounded-full text-sm font-black border border-gold/20">
+                          ${s.price}
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <h3 className="text-xl font-black text-white mb-2 group-hover:text-gold transition-colors">{s.title}</h3>
+                        <p className="text-xs text-gray-400 leading-relaxed line-clamp-3">{s.description}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="p-4 border-t border-white/5 bg-white/[0.02] flex items-center justify-between gap-2">
+                      <button 
+                        onClick={() => handleEditService(s)}
+                        className="flex-1 py-3 bg-white/5 hover:bg-primary/20 text-white hover:text-primary rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2"
+                      >
+                        <FileText size={16} />
+                        تعديل
+                      </button>
+                      
+                      {deletingId === s.id ? (
+                        <div className="flex-1 flex items-center gap-1 bg-red-500/10 p-1 rounded-xl border border-red-500/20">
+                          <button 
+                            onClick={() => handleDeleteService(s.id)} 
+                            className="flex-1 bg-red-500 text-white py-2 rounded-lg text-[10px] font-black hover:bg-red-600 transition-colors"
+                          >
+                            تأكيد
+                          </button>
+                          <button 
+                            onClick={() => setDeletingId(null)} 
+                            className="flex-1 bg-white/10 text-white py-2 rounded-lg text-[10px] font-black hover:bg-white/20 transition-colors"
+                          >
+                            إلغاء
+                          </button>
+                        </div>
+                      ) : (
+                        <button 
+                          onClick={() => setDeletingId(s.id)}
+                          className="flex-1 py-3 bg-white/5 hover:bg-red-500/20 text-white hover:text-red-500 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2"
+                        >
+                          <Trash2 size={16} />
+                          حذف
+                        </button>
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'products' && (
+            <div className="bg-dark-light/30 backdrop-blur-2xl rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl">
+              <div className="p-8 border-b border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-gold/10 rounded-2xl flex items-center justify-center text-gold">
+                    <Package size={24} />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-black text-white">المنتجات</h2>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">إدارة المخزون ({products.length})</p>
+                  </div>
+                </div>
+                
+                <div className="relative w-full md:w-80">
+                  <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+                  <input 
+                    type="text"
+                    placeholder="بحث عن منتج..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full bg-white/5 border border-white/5 focus:border-primary/50 outline-none p-4 pr-12 rounded-2xl text-sm transition-all"
+                  />
+                </div>
+              </div>
+              
+              <div className="overflow-x-auto">
+                <table className="w-full text-right border-collapse">
+                  <thead>
+                    <tr className="bg-white/5 text-gray-500 text-[10px] font-black uppercase tracking-widest">
+                      <th className="p-6">المنتج</th>
+                      <th className="p-6">الفئة</th>
+                      <th className="p-6">السعر</th>
+                      <th className="p-6 text-left">الإجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {filteredProductsList.map((p, index) => (
+                      <motion.tr 
+                        key={p.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className={`group hover:bg-white/[0.02] transition-colors ${editingId === p.id ? 'bg-primary/5' : ''}`}
+                      >
+                        <td className="p-6">
+                          <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 rounded-2xl overflow-hidden border border-white/10 group-hover:border-primary/30 transition-colors bg-dark relative">
+                              <img 
+                                src={convertDriveLink(p.imageUrl)} 
+                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                                referrerPolicy="no-referrer" 
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  if (!target.src.includes('placeholder')) {
+                                    target.src = 'https://via.placeholder.com/150?text=Error';
+                                  }
+                                }}
+                              />
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="font-black text-white group-hover:text-primary transition-colors">{p.name}</span>
+                              <span className="text-[10px] text-gray-500 line-clamp-1 max-w-[200px]">{p.description}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-6">
+                          <span className="px-3 py-1 bg-white/5 rounded-full text-[10px] font-bold text-gray-400 border border-white/5">
+                            {p.category === 'cv' ? 'سيرة ذاتية' : p.category === 'social' ? 'سوشيال ميديا' : 'قالب ويب'}
+                          </span>
+                        </td>
+                        <td className="p-6 font-black text-gold tracking-tighter text-lg">${p.price}</td>
+                        <td className="p-6">
+                          <div className="flex items-center gap-2 justify-end">
+                            <button 
+                              onClick={() => handleEdit(p)}
+                              className="w-10 h-10 flex items-center justify-center bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-xl transition-all"
+                              title="تعديل"
+                            >
+                              <FileText size={18} />
+                            </button>
+                            
+                            {deletingId === p.id ? (
+                              <motion.div 
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="flex items-center gap-2 bg-red-500/10 p-1.5 rounded-xl border border-red-500/20"
+                              >
+                                <span className="text-[9px] font-black text-red-500 px-2 uppercase">تأكيد؟</span>
+                                <button 
+                                  onClick={() => handleDelete(p.id, p.imageUrl, p.downloadUrl)} 
+                                  className="bg-red-500 text-white px-4 py-1.5 rounded-lg text-[10px] font-black hover:bg-red-600 transition-colors shadow-lg shadow-red-500/20"
+                                >
+                                  نعم
+                                </button>
+                                <button 
+                                  onClick={() => setDeletingId(null)} 
+                                  className="bg-white/10 text-white px-4 py-1.5 rounded-lg text-[10px] font-black hover:bg-white/20 transition-colors"
+                                >
+                                  لا
+                                </button>
+                              </motion.div>
+                            ) : (
+                              <button 
+                                onClick={() => setDeletingId(p.id)}
+                                className="w-10 h-10 flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition-all"
+                                title="حذف"
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+          
+          {activeTab === 'orders' && (
+            <div className="bg-dark-light/30 backdrop-blur-2xl rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl">
+              <div className="p-8 border-b border-white/5">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-green-500/10 rounded-2xl flex items-center justify-center text-green-500">
+                    <DollarSign size={24} />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-black text-white">آخر الطلبات</h2>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">سجل المبيعات ({orders.length})</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="overflow-x-auto">
+                <table className="w-full text-right border-collapse">
+                  <thead>
+                    <tr className="bg-white/5 text-gray-500 text-[10px] font-black uppercase tracking-widest">
+                      <th className="p-6">المنتج</th>
+                      <th className="p-6">العميل</th>
+                      <th className="p-6">المبلغ</th>
+                      <th className="p-6">رقم الطلب</th>
+                      <th className="p-6">التاريخ</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {orders.map((o, index) => (
+                      <motion.tr 
+                        key={o.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="group hover:bg-white/[0.02] transition-colors"
+                      >
+                        <td className="p-6 font-black text-white">{o.productName}</td>
+                        <td className="p-6 text-sm text-gray-400 font-medium">{o.customerEmail}</td>
+                        <td className="p-6 font-black text-green-400 tracking-tighter text-lg">${o.amount}</td>
+                        <td className="p-6 text-[10px] font-mono text-gray-500">{o.paypalOrderId || '---'}</td>
+                        <td className="p-6 text-[10px] text-gray-500 font-bold">
+                          {o.createdAt?.toDate().toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    )}
+
+
+    {/* Debug Logs - Collapsible at bottom */}
+      <div className="mt-20">
+      </div>
+
+      {/* Final Logout Section at the very bottom */}
+      <div className="mt-40 pt-20 border-t border-white/5 flex flex-col items-center gap-8 pb-20 relative z-10">
+        <div className="text-center space-y-3">
+          <div className="bg-red-500/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/20">
+            <LogOut className="text-red-500 w-8 h-8" />
+          </div>
+          <h3 className="text-xl font-black text-white">إنهاء جلسة الإدارة</h3>
+          <p className="text-gray-500 text-sm max-w-xs mx-auto">
+            سيتم إغلاق لوحة التحكم وتسجيل خروجك بأمان من النظام.
+          </p>
+        </div>
+        
+        <div className="flex flex-col items-center gap-6 w-full max-w-sm">
+          <AnimatePresence mode="wait">
+            {!showLogoutConfirm ? (
+              <motion.button
+                key="logout-btn"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                whileHover={{ scale: 1.05, boxShadow: "0 20px 40px -10px rgba(239, 68, 68, 0.2)" }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setShowLogoutConfirm(true)}
+                className="w-full py-6 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-[2.5rem] border border-red-500/20 transition-all font-black text-xl flex items-center justify-center gap-4 shadow-2xl"
+              >
+                <LogOut size={24} />
+                تسجيل الخروج الآمن
+              </motion.button>
+            ) : (
+              <motion.div
+                key="confirm-box"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="w-full p-6 bg-red-500 rounded-3xl shadow-2xl shadow-red-500/20 text-center space-y-4"
+              >
+                <p className="font-black text-white">هل أنت متأكد حقاً؟</p>
+                <div className="flex gap-3">
+                  <button 
+                    onClick={handleSmartLogout}
+                    className="flex-1 py-3 bg-white text-red-500 rounded-2xl font-black hover:bg-gray-100 transition-colors"
+                  >
+                    نعم، خروج
                   </button>
-                  <button
-                    type="submit"
-                    disabled={uploading}
-                    className="flex-1 bg-primary py-4 rounded-xl font-bold hover:bg-primary-dark transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  <button 
+                    onClick={() => setShowLogoutConfirm(false)}
+                    className="flex-1 py-3 bg-black/20 text-white rounded-2xl font-black hover:bg-black/30 transition-colors"
                   >
-                    {uploading ? (
-                      <>
-                        <Loader2 className="animate-spin" size={20} />
-                        {uploadProgress || 'جاري الحفظ...'}
-                      </>
-                    ) : (
-                      <>
-                        <Save size={20} />
-                        {editingProduct ? 'حفظ التعديلات' : 'إضافة المنتج'}
-                      </>
-                    )}
+                    تراجع
                   </button>
                 </div>
-              </form>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+        
+        <div className="flex items-center gap-4 opacity-30">
+          <div className="h-[1px] w-12 bg-gray-500"></div>
+          <p className="text-[8px] text-gray-500 uppercase tracking-[0.5em] font-black">🌕 Security Protocol</p>
+          <div className="h-[1px] w-12 bg-gray-500"></div>
+        </div>
+      </div>
     </motion.div>
   );
 }
