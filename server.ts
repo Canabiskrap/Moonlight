@@ -50,9 +50,9 @@ app.post('/api/upload', async (request, response) => {
 
   console.log("Upload endpoint hit.");
   
-  const token = process.env.VITE_BLOB_READ_WRITE_TOKEN;
+  const token = process.env.BLOB_READ_WRITE_TOKEN;
   if (!token) {
-    console.error("VITE_BLOB_READ_WRITE_TOKEN is missing on server!");
+    console.error("BLOB_READ_WRITE_TOKEN is missing on server!");
     return response.status(500).json({ error: 'Server configuration error: Token missing' });
   }
 
