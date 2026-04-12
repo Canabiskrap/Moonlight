@@ -6,10 +6,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Plus, Trash2, Edit2, X, Upload, Loader2, Package, DollarSign, 
   BarChart3, ImageIcon, FileText, Save, Eye, Settings, 
-  Palette, ShoppingBag, TrendingUp, ExternalLink, Users, Sparkles
+  Palette, ShoppingBag, TrendingUp
 } from 'lucide-react';
-import VisitorAnalytics from '../components/VisitorAnalytics';
-import { generateProductDescription } from '../services/geminiService';
 
 interface Product {
   id: string;
@@ -28,10 +26,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'analytics' | 'settings'>('products');
-  const [hasNewOrders, setHasNewOrders] = useState(false);
-  const [lastOrderTime, setLastOrderTime] = useState<Date | null>(null);
-  const [visitorCount, setVisitorCount] = useState(0);
+  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'settings'>('products');
 
   // Form state
   const [name, setName] = useState('');
@@ -44,10 +39,6 @@ export default function Dashboard() {
   const [downloadUrl, setDownloadUrl] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState('');
-  
-  // AI Description state
-  const [generatingDescription, setGeneratingDescription] = useState(false);
-  const [suggestedDescriptions, setSuggestedDescriptions] = useState<string[]>([]);
 
   // Settings state
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -62,37 +53,12 @@ export default function Dashboard() {
     });
 
     const ordersUnsubscribe = onSnapshot(collection(db, 'orders'), (snapshot) => {
-      const ordersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setOrders(ordersData);
-      
-      // Track new orders for pulse animation
-      if (ordersData.length > 0) {
-        const latestOrder = ordersData.reduce((latest, order) => {
-          const orderTime = order.createdAt?.toDate?.() || new Date(0);
-          const latestTime = latest?.createdAt?.toDate?.() || new Date(0);
-          return orderTime > latestTime ? order : latest;
-        }, ordersData[0]);
-        
-        const orderTime = latestOrder?.createdAt?.toDate?.();
-        if (orderTime) {
-          setLastOrderTime(orderTime);
-          // Show pulse if order is less than 30 minutes old
-          const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
-          setHasNewOrders(orderTime > thirtyMinutesAgo);
-        }
-      }
+      setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
-
-    // Simulate visitor count (in production, connect to analytics)
-    const visitorInterval = setInterval(() => {
-      setVisitorCount(Math.floor(Math.random() * 50) + 10);
-    }, 30000);
-    setVisitorCount(Math.floor(Math.random() * 50) + 10);
 
     return () => {
       unsubscribe();
       ordersUnsubscribe();
-      clearInterval(visitorInterval);
     };
   }, []);
 
@@ -119,27 +85,6 @@ export default function Dashboard() {
     setImageUrl('');
     setDownloadUrl('');
     setEditingProduct(null);
-    setSuggestedDescriptions([]);
-  };
-
-  const handleGenerateDescription = async () => {
-    if (!name.trim()) {
-      alert('يرجى إدخال اسم المنتج أولاً');
-      return;
-    }
-    
-    setGeneratingDescription(true);
-    setSuggestedDescriptions([]);
-    
-    try {
-      const descriptions = await generateProductDescription(name, category, price || '0');
-      setSuggestedDescriptions(descriptions);
-    } catch (error) {
-      console.error('Error generating descriptions:', error);
-      alert('حدث خطأ أثناء توليد الوصف. تأكد من إعداد مفتاح Gemini API.');
-    } finally {
-      setGeneratingDescription(false);
-    }
   };
 
   const openEditModal = (product: Product) => {
@@ -243,20 +188,6 @@ export default function Dashboard() {
 
   const totalRevenue = orders.reduce((acc, order) => acc + (order.amount || 0), 0);
 
-  const formatLastOrderTime = (date: Date | null): string => {
-    if (!date) return 'لا توجد طلبات';
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-    
-    if (diffMins < 1) return 'الآن';
-    if (diffMins < 60) return `منذ ${diffMins} دقيقة`;
-    if (diffHours < 24) return `منذ ${diffHours} ساعة`;
-    return `منذ ${diffDays} يوم`;
-  };
-
   const categories = [
     { id: 'cv', name: 'سيرة ذاتية' },
     { id: 'social', name: 'سوشيال ميديا' },
@@ -288,36 +219,6 @@ export default function Dashboard() {
               <div className="text-right">
                 <p className="text-xs text-gray-500">إجمالي الإيرادات</p>
                 <p className="text-xl font-black text-gold">${totalRevenue.toFixed(2)}</p>
-              </div>
-              
-              {/* Smart Store Button */}
-              <div className="relative group">
-                <a
-                  href="https://monnlight-store.vercel.app"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold transition-all border ${
-                    hasNewOrders
-                      ? 'bg-gradient-to-r from-emerald-500 to-green-600 border-green-400 animate-pulse shadow-lg shadow-green-500/30'
-                      : 'bg-dark-light/80 border-white/10 hover:border-primary/50 hover:bg-dark-light'
-                  }`}
-                >
-                  <span className="text-lg">🛍️</span>
-                  <span className="text-sm">زيارة المتجر</span>
-                  {visitorCount > 0 && (
-                    <span className="flex items-center gap-1 text-xs bg-white/10 px-2 py-0.5 rounded-full">
-                      <Users size={12} />
-                      {visitorCount}
-                    </span>
-                  )}
-                  <ExternalLink size={14} className="opacity-60" />
-                </a>
-                
-                {/* Tooltip */}
-                <div className="absolute top-full right-0 mt-2 px-3 py-2 bg-dark-light border border-white/10 rounded-lg text-xs whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 shadow-xl">
-                  <span className="text-gray-400">آخر طلب: </span>
-                  <span className="text-white font-bold">{formatLastOrderTime(lastOrderTime)}</span>
-                </div>
               </div>
             </div>
           </div>
@@ -386,17 +287,6 @@ export default function Dashboard() {
             <div className="flex items-center gap-2">
               <ShoppingBag size={18} />
               الطلبات
-            </div>
-          </button>
-          <button
-            onClick={() => setActiveTab('analytics')}
-            className={`px-6 py-3 rounded-xl font-bold transition-all ${
-              activeTab === 'analytics' ? 'bg-primary text-white' : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <Eye size={18} />
-              التحليلات
             </div>
           </button>
           <button
@@ -539,11 +429,6 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Analytics Tab */}
-        {activeTab === 'analytics' && (
-          <VisitorAnalytics />
-        )}
-
         {/* Settings Tab */}
         {activeTab === 'settings' && (
           <div className="space-y-6 max-w-2xl">
@@ -638,55 +523,13 @@ export default function Dashboard() {
                 </div>
 
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-sm font-bold text-gray-400">الوصف</label>
-                    <button
-                      type="button"
-                      onClick={handleGenerateDescription}
-                      disabled={generatingDescription || !name.trim()}
-                      className="flex items-center gap-2 text-xs font-bold text-primary hover:text-primary-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {generatingDescription ? (
-                        <>
-                          <Loader2 size={14} className="animate-spin" />
-                          جاري التوليد...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles size={14} />
-                          اقترح وصفا احترافيا
-                        </>
-                      )}
-                    </button>
-                  </div>
+                  <label className="text-sm font-bold text-gray-400">الوصف</label>
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     className="w-full bg-dark p-4 rounded-xl border border-white/5 focus:border-primary/50 outline-none transition-colors h-24 resize-none"
                     placeholder="وصف مختصر للمنتج"
                   />
-                  
-                  {/* AI Suggested Descriptions */}
-                  {suggestedDescriptions.length > 0 && (
-                    <div className="space-y-2 mt-3">
-                      <p className="text-xs text-gray-500 font-bold">اختر وصفا مقترحا:</p>
-                      <div className="space-y-2">
-                        {suggestedDescriptions.map((desc, i) => (
-                          <button
-                            key={i}
-                            type="button"
-                            onClick={() => {
-                              setDescription(desc);
-                              setSuggestedDescriptions([]);
-                            }}
-                            className="w-full text-right p-3 bg-dark/50 hover:bg-primary/10 border border-white/5 hover:border-primary/30 rounded-xl text-xs text-gray-300 transition-all"
-                          >
-                            {desc}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

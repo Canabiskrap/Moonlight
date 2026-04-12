@@ -4,12 +4,12 @@ import dotenv from 'dotenv';
 import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
-import { put } from '@vercel/blob';
+import { handleUpload } from '@vercel/blob/client';
 
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = 3000;
 
 app.use(cors());
 app.use(express.json());
@@ -45,7 +45,9 @@ function decrypt(text: string) {
 // API Routes
 
 // Vercel Blob Upload Endpoint
-app.post('/api/upload', express.raw({ type: '*/*', limit: '50mb' }), async (request, response) => {
+app.post('/api/upload', async (request, response) => {
+  const body = request.body;
+
   console.log("Upload endpoint hit.");
   
   const token = process.env.VITE_BLOB_READ_WRITE_TOKEN;
@@ -55,16 +57,20 @@ app.post('/api/upload', express.raw({ type: '*/*', limit: '50mb' }), async (requ
   }
 
   try {
-    const filename = request.headers['x-filename'] as string || 'upload';
-    const blob = await put(filename, request.body, {
-      access: 'public',
-      token,
-      addRandomSuffix: true,
+    const jsonResponse = await handleUpload({
+      body,
+      request,
+      token: token,
+      onBeforeGenerateToken: async (pathname, clientPayload) => {
+        return {
+          tokenPayload: JSON.stringify({}),
+        };
+      },
     });
 
-    response.status(200).json({ url: blob.url });
+    response.status(200).json(jsonResponse);
   } catch (error) {
-    console.error("Upload error:", error);
+    console.error("handleUpload error:", error);
     response.status(400).json({ error: (error as Error).message });
   }
 });
