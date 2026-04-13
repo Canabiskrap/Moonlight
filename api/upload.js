@@ -11,6 +11,7 @@ export async function POST(req) {
 
     const blob = await put(file.name, file, {
       access: "public",
+      allowOverwrite: true,
     });
 
     console.log("Upload successful:", blob.url);

@@ -58,29 +58,43 @@ export default function Dashboard() {
   const [customBucket, setCustomBucket] = useState('');
   const navigate = useNavigate();
 
-  const uploadFile = async (file: File) => {
-    const formData = new FormData();
-    formData.append("file", file);
+  const uploadFile = async (file: File, onProgress?: (progress: number) => void) => {
+    return new Promise<string>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      const formData = new FormData();
+      formData.append("file", file);
 
-    const res = await fetch("/api/upload", {
-      method: "POST",
-      body: formData,
+      xhr.upload.addEventListener("progress", (event) => {
+        if (event.lengthComputable && onProgress) {
+          const percentComplete = (event.loaded / event.total) * 100;
+          onProgress(percentComplete);
+        }
+      });
+
+      xhr.addEventListener("load", () => {
+        const text = xhr.responseText;
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          reject(new Error("Server returned invalid response: " + text));
+          return;
+        }
+
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(data.url);
+        } else {
+          reject(new Error(data.error || "Upload failed"));
+        }
+      });
+
+      xhr.addEventListener("error", () => {
+        reject(new Error("Network error during upload"));
+      });
+
+      xhr.open("POST", "/api/upload");
+      xhr.send(formData);
     });
-
-    const text = await res.text();
-
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch (e) {
-      throw new Error("Server returned invalid response: " + text);
-    }
-
-    if (!res.ok) {
-      throw new Error(data.error || "Upload failed");
-    }
-
-    return data.url;
   };
 
   const addLog = (msg: string) => {
@@ -342,7 +356,7 @@ export default function Dashboard() {
         let finalImageUrl = imageUrl;
         if (imageFile) {
           addLog("جاري رفع صورة الخدمة...");
-          finalImageUrl = await uploadFile(imageFile);
+          finalImageUrl = await uploadFile(imageFile, (p) => setUploadProgress(p));
           addLog("تم رفع صورة الخدمة.");
           await updateDoc(doc(db, 'services', docId!), { imageUrl: finalImageUrl });
         }
@@ -380,14 +394,14 @@ export default function Dashboard() {
 
         if (imageFile) {
           addLog("جاري رفع الصورة...");
-          finalImageUrl = await uploadFile(imageFile);
+          finalImageUrl = await uploadFile(imageFile, (p) => setUploadProgress(p));
           addLog("تم رفع الصورة.");
           await updateDoc(doc(db, 'products', docId!), { imageUrl: finalImageUrl });
         }
 
         if (productFile) {
           addLog("جاري رفع الملف الرقمي...");
-          finalDownloadUrl = await uploadFile(productFile);
+          finalDownloadUrl = await uploadFile(productFile, (p) => setUploadProgress(p));
           addLog("تم رفع الملف.");
           await updateDoc(doc(db, 'products', docId!), { downloadUrl: finalDownloadUrl });
         }
