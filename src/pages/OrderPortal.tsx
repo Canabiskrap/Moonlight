@@ -26,6 +26,8 @@ export default function OrderPortal() {
   const [error, setError] = useState<string | null>(null);
   const [logoUrl, setLogoUrl] = useState('');
 
+  const fallbackLogo = "https://i.ibb.co/6cJ5wS0h/nf9gthbcbxrmw0cxg8993rpk28-result-0.png";
+
   useEffect(() => {
     // Fetch Logo
     const fetchSettings = async () => {
@@ -119,16 +121,17 @@ export default function OrderPortal() {
         {/* Header */}
         <header className="flex items-center justify-between py-8">
           <Link to="/" className="flex items-center gap-3 group">
-            {logoUrl ? (
-              <img src={logoUrl} alt="Moonlight" className="h-10 w-auto object-contain" />
-            ) : (
-              <>
-                <div className="w-10 h-10 bg-gradient-to-br from-primary to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
-                  <span className="text-xl">🌙</span>
-                </div>
-                <span className="text-lg font-black tracking-widest uppercase">Moonlight</span>
-              </>
-            )}
+            <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center shadow-lg shadow-primary/5 overflow-hidden border border-white/5">
+              <img 
+                src={logoUrl || fallbackLogo} 
+                alt="Moonlight" 
+                className="h-full w-full object-contain" 
+                onError={(e) => {
+                  e.currentTarget.src = fallbackLogo;
+                }}
+              />
+            </div>
+            <span className="text-lg font-black tracking-widest uppercase text-white group-hover:text-primary transition-colors">Moonlight</span>
           </Link>
           <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/20 px-4 py-1.5 rounded-full text-[10px] font-black text-green-500 uppercase tracking-widest">
             <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-ping" />
@@ -138,14 +141,14 @@ export default function OrderPortal() {
 
         {/* Hero */}
         <div className="py-10 space-y-4">
-          <span className="text-primary text-xs font-black uppercase tracking-[0.3em] block">✦ بوابة العميل الخاصة</span>
+          <span className="text-gold text-xs font-black uppercase tracking-[0.3em] block">✦ بوابة العميل الخاصة</span>
           <h1 className="text-5xl md:text-6xl font-black leading-tight tracking-tighter">
             أهلاً بك<br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-green-400">
               {order.customerName || order.customerEmail?.split('@')[0] || 'يا صديقي'} 👋
             </span>
           </h1>
-          <p className="text-gray-400 text-lg font-medium max-w-lg leading-relaxed">
+          <p className="text-white/70 text-lg font-medium max-w-lg leading-relaxed">
             شكراً لثقتك بـ Moonlight Digital Studio. هذه صفحتك الخاصة — فيها كل ما تحتاجه من ملفات وتحديثات ومعلومات طلبك.
           </p>
         </div>
@@ -162,18 +165,18 @@ export default function OrderPortal() {
           
           <div className="relative z-10 space-y-8">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">✦ تفاصيل الطلب</span>
+              <span className="text-[10px] font-black text-gold uppercase tracking-[0.2em]">✦ تفاصيل الطلب</span>
               <span className="text-xs font-mono text-primary font-bold">#{order.paypalOrderId?.slice(-8) || order.id.slice(-8)}</span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-6">
                 <div className="flex justify-between items-center border-b border-white/5 pb-4">
-                  <span className="text-sm text-gray-500 font-medium">المنتج / الخدمة</span>
+                  <span className="text-sm text-white/50 font-medium">المنتج / الخدمة</span>
                   <span className="text-sm font-bold text-white">{order.productName || order.serviceTitle}</span>
                 </div>
                 <div className="flex justify-between items-center border-b border-white/5 pb-4">
-                  <span className="text-sm text-gray-500 font-medium">تاريخ الطلب</span>
+                  <span className="text-sm text-white/50 font-medium">تاريخ الطلب</span>
                   <span className="text-sm font-bold text-white">
                     {order.createdAt?.toDate().toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' })}
                   </span>
@@ -181,14 +184,14 @@ export default function OrderPortal() {
               </div>
               <div className="space-y-6">
                 <div className="flex justify-between items-center border-b border-white/5 pb-4">
-                  <span className="text-sm text-gray-500 font-medium">حالة الدفع</span>
+                  <span className="text-sm text-white/50 font-medium">حالة الدفع</span>
                   <span className="text-sm font-bold text-green-400 flex items-center gap-1">
                     <CheckCircle2 size={14} />
                     تم الدفع بنجاح
                   </span>
                 </div>
                 <div className="flex justify-between items-center border-b border-white/5 pb-4">
-                  <span className="text-sm text-gray-500 font-medium">المبلغ الإجمالي</span>
+                  <span className="text-sm text-white/50 font-medium">المبلغ الإجمالي</span>
                   <span className="text-lg font-black text-white tracking-tighter">${order.amount}</span>
                 </div>
               </div>
@@ -203,7 +206,7 @@ export default function OrderPortal() {
           transition={{ delay: 0.1 }}
           className="mt-8 bg-white/[0.03] border border-white/10 rounded-[2.5rem] p-8 md:p-10"
         >
-          <span className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] block mb-8">✦ مراحل تنفيذ طلبك</span>
+          <span className="text-[10px] font-black text-gold uppercase tracking-[0.2em] block mb-8">✦ مراحل تنفيذ طلبك</span>
           
           <div className="space-y-0 relative">
             {steps.map((step, idx) => {
@@ -217,7 +220,7 @@ export default function OrderPortal() {
                   <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 z-10 transition-all duration-500 ${
                     status === 'done' ? 'bg-primary text-white shadow-[0_0_20px_rgba(var(--primary-rgb),0.4)]' :
                     status === 'active' ? 'bg-primary/20 border-2 border-primary text-primary animate-pulse shadow-[0_0_30px_rgba(var(--primary-rgb),0.6)]' :
-                    'bg-white/5 border-2 border-white/10 text-gray-600'
+                    'bg-white/5 border-2 border-white/10 text-white/20'
                   }`}>
                     {status === 'done' ? <CheckCircle2 size={18} /> : 
                      status === 'active' ? <Clock size={18} /> : 
@@ -225,8 +228,8 @@ export default function OrderPortal() {
                   </div>
 
                   <div className="flex-1 pt-1">
-                    <h3 className={`font-black text-lg ${status === 'pending' ? 'text-gray-600' : 'text-white'}`}>{step.title}</h3>
-                    <p className="text-sm text-gray-500 font-medium mt-1">{step.sub}</p>
+                    <h3 className={`font-black text-lg ${status === 'pending' ? 'text-white/30' : 'text-white'}`}>{step.title}</h3>
+                    <p className="text-sm text-white/40 font-medium mt-1">{step.sub}</p>
                     {status === 'done' && <span className="text-[10px] text-primary font-black mt-2 block tracking-widest uppercase">✓ مكتمل — {step.date}</span>}
                     {status === 'active' && <span className="text-[10px] text-primary font-black mt-2 block tracking-widest uppercase animate-pulse">⟳ قيد التنفيذ</span>}
                   </div>
@@ -289,7 +292,7 @@ export default function OrderPortal() {
           transition={{ delay: 0.3 }}
           className="mt-8 bg-white/[0.03] border border-white/10 rounded-[2.5rem] p-8 md:p-10"
         >
-          <span className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] block mb-6">✦ تعليمات الاستخدام</span>
+          <span className="text-[10px] font-black text-gold uppercase tracking-[0.2em] block mb-6">✦ تعليمات الاستخدام</span>
           <ul className="space-y-4">
             {[
               "حمّل الملفات من قسم 'ملفاتك الجاهزة' أعلاه بمجرد اكتمال الطلب.",
@@ -297,7 +300,7 @@ export default function OrderPortal() {
               "اتبع الدليل المرفق مع الملفات للحصول على أفضل النتائج.",
               "في حال واجهت أي مشكلة، لا تتردد في التواصل معنا مباشرة."
             ].map((text, i) => (
-              <li key={i} className="flex gap-4 text-sm text-gray-400 font-medium leading-relaxed">
+              <li key={i} className="flex gap-4 text-sm text-white/60 font-medium leading-relaxed">
                 <span className="w-6 h-6 bg-primary/10 border border-primary/20 rounded-lg flex items-center justify-center text-[10px] font-black text-primary flex-shrink-0">{i + 1}</span>
                 {text}
               </li>
@@ -318,7 +321,7 @@ export default function OrderPortal() {
           </div>
           <div className="flex-1">
             <h3 className="text-xl font-black text-white">تواصل مع Moonlight</h3>
-            <p className="text-sm text-gray-500 font-medium mt-1">هل لديك سؤال أو تعديل؟ نحن هنا على مدار الساعة عبر واتساب</p>
+            <p className="text-sm text-white/50 font-medium mt-1">هل لديك سؤال أو تعديل؟ نحن هنا على مدار الساعة عبر واتساب</p>
           </div>
           <ChevronLeft className="text-primary group-hover:-translate-x-2 transition-transform" size={24} />
         </motion.button>
