@@ -141,7 +141,7 @@ export default function Home() {
                   playsInline
                   className="w-full h-full object-cover"
                 >
-                  <source src={heroVideoUrl || convertDriveVideoLink("https://drive.google.com/file/d/1itweYunbyfj5GbFFu7cgNxsA0RT-qD37/view?usp=drivesdk")} type="video/mp4" />
+                  <source src={heroVideoUrl || "https://uqemmhgfnriaeoyj.public.blob.vercel-storage.com/-8694076496645624839-uUCmBsrtnU4pJlimUGe3YXPAxVrDcA.mp4"} type="video/mp4" />
                   Your browser does not support the video tag.
                 </video>
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
