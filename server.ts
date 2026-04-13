@@ -48,10 +48,16 @@ function decrypt(text: string) {
 app.post('/api/upload', express.raw({ type: '*/*', limit: '50mb' }), async (request, response) => {
   console.log("Upload endpoint hit.");
   
+  const token = process.env.BLOB_READ_WRITE_TOKEN;
+  if (!token) {
+    console.error("BLOB_READ_WRITE_TOKEN is missing in environment variables!");
+    return response.status(500).json({ error: "Server configuration error: BLOB_READ_WRITE_TOKEN is missing." });
+  }
+
   try {
     const blob = await put(`uploads/${Date.now()}`, request.body, {
       access: 'public',
-      token: process.env.BLOB_READ_WRITE_TOKEN,
+      token: token,
     });
 
     response.status(200).json({
