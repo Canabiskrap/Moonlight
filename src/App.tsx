@@ -13,6 +13,7 @@ import Footer from './components/Footer';
 import Home from './pages/Home';
 import ProductDetails from './pages/ProductDetails';
 import ServiceDetails from './pages/ServiceDetails';
+import OrderPortal from './pages/OrderPortal';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Privacy from './pages/Privacy';
@@ -90,6 +91,7 @@ export default function App() {
                 <Route path="/" element={<Home />} />
                 <Route path="/product/:id" element={<ProductDetails />} />
                 <Route path="/service/:id" element={<ServiceDetails />} />
+                <Route path="/order-portal/:id" element={<OrderPortal />} />
                 <Route path="/login" element={<Login user={user} />} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/terms" element={<Terms />} />

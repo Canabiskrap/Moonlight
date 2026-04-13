@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { doc, getDoc, addDoc, collection, Timestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { convertDriveLink } from '../lib/utils';
@@ -9,6 +9,7 @@ import { getProductInsights, ProductInsight } from '../services/geminiService';
 
 export default function ServiceDetails() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [service, setService] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [paid, setPaid] = useState(false);
@@ -82,18 +83,25 @@ export default function ServiceDetails() {
                 const order = await actions.order.capture();
                 console.log("Payment Success:", order);
                 
-                await addDoc(collection(db, 'orders'), {
+                const orderRef = await addDoc(collection(db, 'orders'), {
                   serviceId: service.id,
                   serviceTitle: service.title,
                   amount: service.price,
                   customerEmail: order.payer.email_address,
+                  customerName: order.payer.name?.given_name || '',
                   paypalOrderId: order.id,
-                  status: 'completed',
+                  status: 'pending',
+                  downloadUrl: service.downloadUrl || '',
                   type: 'service',
                   createdAt: Timestamp.now()
                 });
 
                 setPaid(true);
+
+                // Redirect to Order Portal after a short delay
+                setTimeout(() => {
+                  navigate(`/order-portal/${orderRef.id}`);
+                }, 2000);
               } catch (err) {
                 console.error("Error processing approved order:", err);
                 alert("حدث خطأ أثناء معالجة الطلب. يرجى التواصل مع الدعم.");

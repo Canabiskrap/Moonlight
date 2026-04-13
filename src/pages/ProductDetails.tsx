@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { doc, getDoc, addDoc, collection, Timestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { convertDriveLink } from '../lib/utils';
@@ -9,6 +9,7 @@ import { getProductInsights, ProductInsight } from '../services/geminiService';
 
 export default function ProductDetails() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [paid, setPaid] = useState(false);
@@ -79,56 +80,24 @@ export default function ProductDetails() {
                 console.log("Payment Success:", order);
                 
                 // Record order in Firestore
-                await addDoc(collection(db, 'orders'), {
+                const orderRef = await addDoc(collection(db, 'orders'), {
                   productId: product.id,
                   productName: product.name,
                   amount: product.price,
                   customerEmail: order.payer.email_address,
+                  customerName: order.payer.name?.given_name || '',
                   paypalOrderId: order.id,
                   status: 'completed',
+                  downloadUrl: product.downloadUrl,
                   createdAt: Timestamp.now()
                 });
 
                 setPaid(true);
                 
-                // Verify with server and get decrypted download URL
-                if (product.downloadUrl) {
-                  const verifyRes = await fetch('/api/verify-order', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      orderId: order.id,
-                      encryptedUrl: product.downloadUrl
-                    })
-                  });
-
-                  if (verifyRes.ok) {
-                    const { downloadUrl } = await verifyRes.json();
-                    if (downloadUrl) {
-                      // Update the product state with the decrypted URL so the button works
-                      setProduct(prev => ({ ...prev, downloadUrl }));
-                      
-                      // Auto trigger download
-                      const link = document.createElement('a');
-                      link.href = downloadUrl;
-                      link.target = '_blank';
-                      link.download = product.name;
-                      document.body.appendChild(link);
-                      link.click();
-                      document.body.removeChild(link);
-                    }
-                  } else {
-                    console.error("Server verification failed, falling back to original URL");
-                    // Fallback for legacy unencrypted URLs if server fails
-                    const link = document.createElement('a');
-                    link.href = product.downloadUrl;
-                    link.target = '_blank';
-                    link.download = product.name;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                  }
-                }
+                // Redirect to Order Portal after a short delay
+                setTimeout(() => {
+                  navigate(`/order-portal/${orderRef.id}`);
+                }, 2000);
               } catch (err) {
                 console.error("Error processing approved order:", err);
                 alert("حدث خطأ أثناء معالجة الطلب. يرجى التواصل مع الدعم.");

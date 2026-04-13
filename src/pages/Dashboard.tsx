@@ -21,7 +21,7 @@ import {
 import { convertDriveLink, isValidUrl } from '../lib/utils';
 import { SmartDiagnosticService } from '../lib/smartDiagnostic';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Trash2, Package, DollarSign, Image as ImageIcon, Link as LinkIcon, FileText, Upload, CheckCircle2, Globe, Search, RefreshCw, Sparkles, ShoppingBag, AlertCircle, Settings, Activity, LogOut, Loader2, Zap, Brain, Instagram, Twitter, Facebook, Send, Video } from 'lucide-react';
+import { Plus, Trash2, Package, DollarSign, Image as ImageIcon, Link as LinkIcon, FileText, Upload, CheckCircle2, Globe, Search, RefreshCw, Sparkles, ShoppingBag, AlertCircle, Settings, Activity, LogOut, Loader2, Zap, Brain, Instagram, Twitter, Facebook, Send, Video, ExternalLink, Clock } from 'lucide-react';
 
 import { getProductInsights, chatWithBot } from '../services/geminiService';
 import DashboardAnalytics from '../components/DashboardAnalytics';
@@ -563,6 +563,19 @@ export default function Dashboard() {
     } catch (err: any) {
       console.error("Logout Error:", err);
       addLog("❌ فشل تسجيل الخروج: " + err.message);
+    }
+  };
+
+  const handleUpdateOrderStatus = async (orderId: string, newStatus: string) => {
+    try {
+      await updateDoc(doc(db, 'orders', orderId), {
+        status: newStatus,
+        updatedAt: Timestamp.now()
+      });
+      addLog(`تم تحديث حالة الطلب إلى: ${newStatus}`);
+    } catch (err) {
+      console.error("Error updating order status:", err);
+      addLog("خطأ في تحديث حالة الطلب");
     }
   };
 
@@ -1600,7 +1613,8 @@ export default function Dashboard() {
                       <th className="p-6">المنتج</th>
                       <th className="p-6">العميل</th>
                       <th className="p-6">المبلغ</th>
-                      <th className="p-6">رقم الطلب</th>
+                      <th className="p-6">الحالة</th>
+                      <th className="p-6">رابط البوابة</th>
                       <th className="p-6">التاريخ</th>
                     </tr>
                   </thead>
@@ -1613,10 +1627,33 @@ export default function Dashboard() {
                         transition={{ delay: index * 0.05 }}
                         className="group hover:bg-white/[0.02] transition-colors"
                       >
-                        <td className="p-6 font-black text-white">{o.productName}</td>
+                        <td className="p-6 font-black text-white">{o.productName || o.serviceTitle}</td>
                         <td className="p-6 text-sm text-gray-400 font-medium">{o.customerEmail}</td>
                         <td className="p-6 font-black text-green-400 tracking-tighter text-lg">${o.amount}</td>
-                        <td className="p-6 text-[10px] font-mono text-gray-500">{o.paypalOrderId || '---'}</td>
+                        <td className="p-6">
+                          <select 
+                            value={o.status || 'pending'} 
+                            onChange={(e) => handleUpdateOrderStatus(o.id, e.target.value)}
+                            className={`text-[10px] font-black px-3 py-1.5 rounded-lg outline-none border transition-all ${
+                              o.status === 'completed' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
+                              o.status === 'processing' ? 'bg-primary/10 text-primary border-primary/20' :
+                              'bg-gray-500/10 text-gray-500 border-white/10'
+                            }`}
+                          >
+                            <option value="pending">📦 تم استلام الطلب</option>
+                            <option value="processing">⚙️ جاري التجهيز</option>
+                            <option value="completed">✅ جاهز للتحميل</option>
+                          </select>
+                        </td>
+                        <td className="p-6">
+                          <button 
+                            onClick={() => window.open(`/order-portal/${o.id}`, '_blank')}
+                            className="text-primary hover:text-white transition-colors flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
+                          >
+                            <ExternalLink size={14} />
+                            فتح البوابة
+                          </button>
+                        </td>
                         <td className="p-6 text-[10px] text-gray-500 font-bold">
                           {o.createdAt?.toDate().toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' })}
                         </td>
