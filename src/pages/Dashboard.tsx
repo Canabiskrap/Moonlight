@@ -21,7 +21,7 @@ import {
 import { convertDriveLink, isValidUrl } from '../lib/utils';
 import { SmartDiagnosticService } from '../lib/smartDiagnostic';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Trash2, Package, DollarSign, Image as ImageIcon, Link as LinkIcon, FileText, Upload, CheckCircle2, Globe, Search, RefreshCw, Sparkles, ShoppingBag, AlertCircle, Settings, Activity, LogOut, Loader2, Zap, Brain } from 'lucide-react';
+import { Plus, Trash2, Package, DollarSign, Image as ImageIcon, Link as LinkIcon, FileText, Upload, CheckCircle2, Globe, Search, RefreshCw, Sparkles, ShoppingBag, AlertCircle, Settings, Activity, LogOut, Loader2, Zap, Brain, Instagram } from 'lucide-react';
 
 import { getProductInsights, chatWithBot } from '../services/geminiService';
 import DashboardAnalytics from '../components/DashboardAnalytics';
@@ -218,15 +218,36 @@ export default function Dashboard() {
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingHeroVideo, setIsUploadingHeroVideo] = useState(false);
   const [heroVideoUrl, setHeroVideoUrl] = useState<string | null>(null);
+  const [instagramUrl, setInstagramUrl] = useState('');
+  const [twitterUrl, setTwitterUrl] = useState('');
 
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'settings', 'appearance'), (doc) => {
       if (doc.exists()) {
-        setHeroVideoUrl(doc.data().heroVideoUrl || null);
+        const data = doc.data();
+        setHeroVideoUrl(data.heroVideoUrl || null);
+        setInstagramUrl(data.instagramUrl || '');
+        setTwitterUrl(data.twitterUrl || '');
       }
     });
     return () => unsub();
   }, []);
+
+  const handleSaveSocialLinks = async () => {
+    try {
+      addLog("جاري حفظ روابط التواصل الاجتماعي...");
+      await setDoc(doc(db, 'settings', 'appearance'), {
+        instagramUrl,
+        twitterUrl,
+        updatedAt: Timestamp.now()
+      }, { merge: true });
+      addLog("✅ تم حفظ الروابط بنجاح");
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    } catch (err: any) {
+      addLog(`❌ فشل الحفظ: ${err.message}`);
+    }
+  };
 
   const handleLogoUpload = async () => {
     if (!logoFile) return;
@@ -622,6 +643,56 @@ export default function Dashboard() {
                           حفظ الشعار الجديد
                         </>
                       )}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-8 bg-white/5 rounded-[2rem] border border-white/5 space-y-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-pink-500/10 rounded-2xl flex items-center justify-center text-pink-500">
+                      <Instagram size={24} />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-black text-white">روابط التواصل الاجتماعي</h3>
+                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">اربط متجرك بمنصات التواصل</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-gray-500 uppercase tracking-widest mr-2">رابط إنستغرام</label>
+                      <div className="relative">
+                        <Instagram className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+                        <input 
+                          type="text"
+                          value={instagramUrl}
+                          onChange={(e) => setInstagramUrl(e.target.value)}
+                          placeholder="https://instagram.com/your-store"
+                          className="w-full bg-white/5 border border-white/5 focus:border-primary/50 outline-none p-4 pr-12 rounded-2xl text-sm transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-gray-500 uppercase tracking-widest mr-2">رابط تويتر (X)</label>
+                      <div className="relative">
+                        <Globe className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+                        <input 
+                          type="text"
+                          value={twitterUrl}
+                          onChange={(e) => setTwitterUrl(e.target.value)}
+                          placeholder="https://twitter.com/your-store"
+                          className="w-full bg-white/5 border border-white/5 focus:border-primary/50 outline-none p-4 pr-12 rounded-2xl text-sm transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    <button 
+                      onClick={handleSaveSocialLinks}
+                      className="w-full py-4 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-3 border border-white/5"
+                    >
+                      <CheckCircle2 size={18} className="text-primary" />
+                      حفظ الروابط
                     </button>
                   </div>
                 </div>

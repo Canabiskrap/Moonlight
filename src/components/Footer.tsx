@@ -6,11 +6,16 @@ import { db } from '../lib/firebase';
 
 export default function Footer() {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [instagramUrl, setInstagramUrl] = useState<string | null>(null);
+  const [twitterUrl, setTwitterUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'settings', 'appearance'), (doc) => {
       if (doc.exists()) {
-        setLogoUrl(doc.data().logoUrl);
+        const data = doc.data();
+        setLogoUrl(data.logoUrl);
+        setInstagramUrl(data.instagramUrl);
+        setTwitterUrl(data.twitterUrl);
       }
     });
     return () => unsub();
@@ -48,12 +53,26 @@ export default function Footer() {
               نحن نؤمن بأن كل فكرة تستحق أن تظهر بأفضل صورة ممكنة. Moonlight هو شريكك في رحلة النجاح الرقمي.
             </p>
             <div className="flex items-center gap-4">
-              <a href="#" className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:bg-primary hover:text-white transition-all">
-                <Instagram size={20} />
-              </a>
-              <a href="#" className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:bg-primary hover:text-white transition-all">
-                <Twitter size={20} />
-              </a>
+              {instagramUrl && (
+                <a 
+                  href={instagramUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:bg-primary hover:text-white transition-all"
+                >
+                  <Instagram size={20} />
+                </a>
+              )}
+              {twitterUrl && (
+                <a 
+                  href={twitterUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:bg-primary hover:text-white transition-all"
+                >
+                  <Twitter size={20} />
+                </a>
+              )}
             </div>
           </div>
 
