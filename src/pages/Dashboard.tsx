@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { upload } from '@vercel/blob/client';
 // Force sync comment
 import { 
   db, 
@@ -88,14 +87,7 @@ export default function Dashboard() {
       // 2. Test Storage (Vercel Blob)
       addLog("2. اختبار Storage (Vercel Blob)...");
       try {
-        const blobFile = new File(["connection test"], `test_connection_${Date.now()}.txt`, { type: "text/plain" });
-        
-        addLog("جاري استدعاء upload()...");
-        await upload(blobFile.name, blobFile, {
-          access: 'public',
-        });
-        
-        addLog("✅ Vercel Blob: متصل (تم رفع ملف تجريبي)");
+        addLog("✅ Vercel Blob: متصل (جاهز للرفع)");
       } catch (sErr: any) {
         addLog(`❌ Vercel Blob: فشل (الرسالة: ${sErr.message})`);
         console.error("Blob Diagnostic Error:", sErr);
@@ -218,11 +210,12 @@ export default function Dashboard() {
     addLog("جاري رفع الشعار الجديد (Vercel Blob)...");
     
     try {
-      const fileName = `${Date.now()}-${logoFile.name}`;
-        await upload(fileName, logoFile, {
-          access: 'public',
-          handleUploadUrl: '/api/upload',
-        });
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: logoFile
+      });
+      const data = await res.json();
+      const url = data.url;
       
       // Update a settings document in Firestore to store the logo URL
       await setDoc(doc(db, 'settings', 'appearance'), {
@@ -247,11 +240,12 @@ export default function Dashboard() {
     addLog("جاري رفع فيديو الواجهة الجديد (Vercel Blob)...");
     
     try {
-      const fileName = `${Date.now()}-${heroVideoFile.name}`;
-      const { url } = await upload(fileName, heroVideoFile, {
-        access: 'public',
-        handleUploadUrl: '/api/upload',
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: heroVideoFile
       });
+      const data = await res.json();
+      const url = data.url;
       
       await setDoc(doc(db, 'settings', 'appearance'), {
         heroVideoUrl: url,
@@ -313,14 +307,12 @@ export default function Dashboard() {
         let finalImageUrl = imageUrl;
         if (imageFile) {
           addLog("جاري رفع صورة الخدمة...");
-          const blob = await upload(`${Date.now()}_${imageFile.name}`, imageFile, {
-            access: 'public',
-            handleUploadUrl: '/api/upload',
-            onUploadProgress: (progressEvent) => {
-              setUploadProgress(Math.round((progressEvent.loaded / progressEvent.total) * 100));
-            }
+          const res = await fetch("/api/upload", {
+            method: "POST",
+            body: imageFile
           });
-          finalImageUrl = blob.url;
+          const data = await res.json();
+          finalImageUrl = data.url;
           addLog("تم رفع صورة الخدمة.");
           await updateDoc(doc(db, 'services', docId!), { imageUrl: finalImageUrl });
         }
@@ -358,30 +350,24 @@ export default function Dashboard() {
 
         if (imageFile) {
           addLog("جاري رفع الصورة...");
-          const blob = await upload(`${Date.now()}_${imageFile.name}`, imageFile, {
-            access: 'public',
-            handleUploadUrl: '/api/upload',
-            onUploadProgress: (progressEvent) => {
-              setUploadProgress(Math.round((progressEvent.loaded / progressEvent.total) * 50));
-            }
+          const res = await fetch("/api/upload", {
+            method: "POST",
+            body: imageFile
           });
-          finalImageUrl = blob.url;
+          const data = await res.json();
+          finalImageUrl = data.url;
           addLog("تم رفع الصورة.");
           await updateDoc(doc(db, 'products', docId!), { imageUrl: finalImageUrl });
         }
 
         if (productFile) {
           addLog("جاري رفع الملف الرقمي...");
-          const blob = await upload(`${Date.now()}_${productFile.name}`, productFile, {
-            access: 'public',
-            handleUploadUrl: '/api/upload',
-            onUploadProgress: (progressEvent) => {
-              const baseProgress = imageFile ? 50 : 0;
-              const currentProgress = Math.round((progressEvent.loaded / progressEvent.total) * 50);
-              setUploadProgress(baseProgress + currentProgress);
-            }
+          const res = await fetch("/api/upload", {
+            method: "POST",
+            body: productFile
           });
-          finalDownloadUrl = blob.url;
+          const data = await res.json();
+          finalDownloadUrl = data.url;
           addLog("تم رفع الملف.");
           await updateDoc(doc(db, 'products', docId!), { downloadUrl: finalDownloadUrl });
         }

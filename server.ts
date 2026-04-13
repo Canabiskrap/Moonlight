@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
-import { handleUpload } from '@vercel/blob/client';
+import { put } from '@vercel/blob';
 
 dotenv.config();
 
@@ -46,32 +46,23 @@ function decrypt(text: string) {
 
 // Vercel Blob Upload Endpoint
 app.post('/api/upload', async (request, response) => {
-  const body = request.body;
-
   console.log("Upload endpoint hit.");
   
-  const token = process.env.BLOB_READ_WRITE_TOKEN;
-  if (!token) {
-    console.error("BLOB_READ_WRITE_TOKEN is missing on server!");
-    return response.status(500).json({ error: 'Server configuration error: Token missing' });
-  }
-
   try {
-    const jsonResponse = await handleUpload({
-      body,
-      request,
-      token: token,
-      onBeforeGenerateToken: async (pathname, clientPayload) => {
-        return {
-          tokenPayload: JSON.stringify({}),
-        };
-      },
+    // The user requested a simple put implementation
+    // We need to handle the request body as a stream or buffer
+    const blob = await put(`uploads/${Date.now()}`, request, {
+      access: 'public',
     });
 
-    response.status(200).json(jsonResponse);
+    response.status(200).json({
+      url: blob.url
+    });
   } catch (error) {
-    console.error("handleUpload error:", error);
-    response.status(400).json({ error: (error as Error).message });
+    console.error("Upload error:", error);
+    response.status(500).json({
+      error: (error as Error).message
+    });
   }
 });
 
