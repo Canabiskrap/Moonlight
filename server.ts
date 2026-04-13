@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { put } from '@vercel/blob';
+import { handleUpload } from '@vercel/blob/client';
 
 dotenv.config();
 
@@ -43,40 +44,36 @@ function decrypt(text: string) {
 
 // API Routes
 
-// Vercel Blob Upload Endpoint
-// We use express.raw BEFORE express.json to avoid conflicts
-app.post('/api/upload', express.raw({ type: '*/*', limit: '100mb' }), async (request, response) => {
-  console.log("Upload endpoint hit. Body size:", request.body?.length);
+app.use(express.json());
+
+// Vercel Blob Upload Endpoint (Client-side upload handler)
+app.post('/api/upload', async (request, response) => {
+  const body = request.body;
   
-  const token = process.env.BLOB_READ_WRITE_TOKEN;
-  if (!token) {
-    console.error("BLOB_READ_WRITE_TOKEN is missing!");
-    return response.status(500).json({ error: "Server configuration error: Token missing." });
-  }
-
   try {
-    if (!request.body || request.body.length === 0) {
-      throw new Error("Empty request body");
-    }
-
-    const blob = await put(`uploads/${Date.now()}`, request.body, {
-      access: 'public',
-      token: token,
+    const jsonResponse = await handleUpload({
+      body,
+      request,
+      onBeforeGenerateToken: async (pathname) => {
+        // In a real app, you'd check auth here
+        return {
+          allowedContentTypes: ['image/jpeg', 'image/png', 'image/gif', 'video/mp4', 'application/pdf'],
+          tokenPayload: JSON.stringify({
+            // optional payload
+          }),
+        };
+      },
+      onUploadCompleted: async ({ blob, tokenPayload }) => {
+        console.log('Blob upload completed', blob, tokenPayload);
+      },
     });
 
-    console.log("Upload successful:", blob.url);
-    response.status(200).json({
-      url: blob.url
-    });
+    return response.status(200).json(jsonResponse);
   } catch (error) {
-    console.error("Upload error details:", error);
-    response.status(500).json({
-      error: (error as Error).message || "Internal Server Error during upload"
-    });
+    console.error("Upload handler error:", error);
+    return response.status(400).json({ error: (error as Error).message });
   }
 });
-
-app.use(express.json());
 
 // 1. Encrypt URL (Used by Dashboard when adding a product)
 app.post('/api/encrypt', (req, res) => {
