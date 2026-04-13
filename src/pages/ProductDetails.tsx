@@ -54,6 +54,9 @@ export default function ProductDetails() {
 
   useEffect(() => {
     if (product && !paid && !loading) {
+      const container = document.getElementById('paypal-button-container');
+      if (container && container.innerHTML !== '') return; // Prevent double rendering
+
       const clientId = (import.meta as any).env.VITE_PAYPAL_CLIENT_ID || 'AcbwuN16XVq7P_HKhjbHRTegmSRXI0DoFOoLw2pn-LilZUuf1FRl0v888wjPvs428lM5sdf97LUNcvT5';
       const script = document.createElement('script');
       script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD`;
@@ -62,10 +65,11 @@ export default function ProductDetails() {
         if ((window as any).paypal) {
           (window as any).paypal.Buttons({
             createOrder: (data: any, actions: any) => {
+              const priceValue = parseFloat(product.price).toFixed(2);
               return actions.order.create({
                 purchase_units: [{
                   amount: {
-                    value: product.price.toString(),
+                    value: priceValue,
                     currency_code: 'USD'
                   },
                   description: product.name
@@ -104,8 +108,10 @@ export default function ProductDetails() {
               }
             },
             onError: (err: any) => {
-              console.error("PayPal Error:", err);
-              alert("حدث خطأ أثناء عملية الدفع. يرجى المحاولة مرة أخرى.");
+              console.error("PayPal Error Details:", err);
+              // Show a more helpful message if possible
+              const errorMsg = err?.message || "حدث خطأ أثناء عملية الدفع. يرجى التأكد من اتصالك بالإنترنت أو المحاولة مرة أخرى.";
+              alert(errorMsg);
             }
           }).render('#paypal-button-container');
         }
