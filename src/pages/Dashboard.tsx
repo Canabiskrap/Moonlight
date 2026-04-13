@@ -21,7 +21,38 @@ import {
 import { convertDriveLink, isValidUrl } from '../lib/utils';
 import { SmartDiagnosticService } from '../lib/smartDiagnostic';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Trash2, Package, DollarSign, Image as ImageIcon, Link as LinkIcon, FileText, Upload, CheckCircle2, Globe, Search, RefreshCw, Sparkles, ShoppingBag, AlertCircle, Settings, Activity, LogOut, Loader2, Zap, Brain, Instagram, Twitter, Facebook, Send, Video, ExternalLink, Clock } from 'lucide-react';
+import { 
+  Plus, 
+  Trash2, 
+  Package, 
+  DollarSign, 
+  Image as ImageIcon, 
+  Link as LinkIcon, 
+  FileText, 
+  Upload, 
+  CheckCircle2, 
+  Globe, 
+  Search, 
+  RefreshCw, 
+  Sparkles, 
+  ShoppingBag, 
+  AlertCircle, 
+  Settings, 
+  Activity, 
+  LogOut, 
+  Loader2, 
+  Zap, 
+  Brain, 
+  Instagram, 
+  Twitter, 
+  Facebook, 
+  Send, 
+  Video, 
+  ExternalLink, 
+  Clock,
+  PlayCircle,
+  UserCheck
+} from 'lucide-react';
 
 import { getProductInsights, chatWithBot } from '../services/geminiService';
 import DashboardAnalytics from '../components/DashboardAnalytics';
@@ -576,6 +607,37 @@ export default function Dashboard() {
     } catch (err) {
       console.error("Error updating order status:", err);
       addLog("خطأ في تحديث حالة الطلب");
+    }
+  };
+
+  const handleTestPurchase = async (item: any, type: 'product' | 'service') => {
+    try {
+      addLog(`جاري إنشاء طلب تجريبي لـ ${type === 'product' ? 'منتج' : 'خدمة'}...`);
+      
+      const orderData = {
+        productId: type === 'product' ? item.id : null,
+        serviceId: type === 'service' ? item.id : null,
+        productName: type === 'product' ? item.name : null,
+        serviceTitle: type === 'service' ? item.title : null,
+        amount: item.price,
+        customerEmail: auth.currentUser?.email || 'admin@test.com',
+        customerName: 'المدير (تجربة)',
+        paypalOrderId: `TEST-${Math.random().toString(36).toUpperCase().slice(2, 10)}`,
+        status: type === 'product' ? 'completed' : 'pending',
+        downloadUrl: item.downloadUrl || '',
+        type: type,
+        isTest: true,
+        createdAt: Timestamp.now()
+      };
+
+      const docRef = await addDoc(collection(db, 'orders'), orderData);
+      addLog("✅ تم إنشاء الطلب التجريبي بنجاح!");
+      
+      // Open Order Portal in a new tab
+      window.open(`/order-portal/${docRef.id}`, '_blank');
+    } catch (err) {
+      console.error("Test purchase failed:", err);
+      addLog("❌ فشل إنشاء الطلب التجريبي");
     }
   };
 
@@ -1434,6 +1496,14 @@ export default function Dashboard() {
                     
                     <div className="p-4 border-t border-white/5 bg-white/[0.02] flex items-center justify-between gap-2">
                       <button 
+                        onClick={() => handleTestPurchase(s, 'service')}
+                        className="w-12 h-12 bg-green-500/10 hover:bg-green-500 text-green-500 hover:text-white rounded-xl transition-all flex items-center justify-center"
+                        title="تجربة شراء (بوابة العميل)"
+                      >
+                        <PlayCircle size={20} />
+                      </button>
+
+                      <button 
                         onClick={() => handleEditService(s)}
                         className="flex-1 py-3 bg-white/5 hover:bg-primary/20 text-white hover:text-primary rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2"
                       >
@@ -1545,6 +1615,13 @@ export default function Dashboard() {
                         <td className="p-6 font-black text-gold tracking-tighter text-lg">${p.price}</td>
                         <td className="p-6">
                           <div className="flex items-center gap-2 justify-end">
+                            <button 
+                              onClick={() => handleTestPurchase(p, 'product')}
+                              className="w-10 h-10 flex items-center justify-center bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white rounded-xl transition-all"
+                              title="تجربة شراء (بوابة العميل)"
+                            >
+                              <PlayCircle size={18} />
+                            </button>
                             <button 
                               onClick={() => handleEdit(p)}
                               className="w-10 h-10 flex items-center justify-center bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-xl transition-all"
