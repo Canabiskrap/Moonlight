@@ -166,17 +166,19 @@ export default function OrderPortal() {
           <div className="relative z-10 space-y-8">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-black text-gold uppercase tracking-[0.2em]">✦ تفاصيل الطلب</span>
-              <span className="text-xs font-mono text-primary font-bold">#{order.paypalOrderId?.slice(-8) || order.id.slice(-8)}</span>
+              <span className="text-sm font-mono text-gold font-black bg-gold/10 px-3 py-1 rounded-lg border border-gold/20 shadow-[0_0_15px_rgba(212,175,55,0.1)]">
+                #{order.paypalOrderId?.slice(-8) || order.id.slice(-8)}
+              </span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-6">
                 <div className="flex justify-between items-center border-b border-white/5 pb-4">
-                  <span className="text-sm text-white/50 font-medium">المنتج / الخدمة</span>
+                  <span className="text-sm text-white/80 font-medium">المنتج / الخدمة</span>
                   <span className="text-sm font-bold text-white">{order.productName || order.serviceTitle}</span>
                 </div>
                 <div className="flex justify-between items-center border-b border-white/5 pb-4">
-                  <span className="text-sm text-white/50 font-medium">تاريخ الطلب</span>
+                  <span className="text-sm text-white/80 font-medium">تاريخ الطلب</span>
                   <span className="text-sm font-bold text-white">
                     {order.createdAt?.toDate().toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' })}
                   </span>
@@ -184,14 +186,14 @@ export default function OrderPortal() {
               </div>
               <div className="space-y-6">
                 <div className="flex justify-between items-center border-b border-white/5 pb-4">
-                  <span className="text-sm text-white/50 font-medium">حالة الدفع</span>
+                  <span className="text-sm text-white/80 font-medium">حالة الدفع</span>
                   <span className="text-sm font-bold text-green-400 flex items-center gap-1">
                     <CheckCircle2 size={14} />
                     تم الدفع بنجاح
                   </span>
                 </div>
                 <div className="flex justify-between items-center border-b border-white/5 pb-4">
-                  <span className="text-sm text-white/50 font-medium">المبلغ الإجمالي</span>
+                  <span className="text-sm text-white/80 font-medium">المبلغ الإجمالي</span>
                   <span className="text-lg font-black text-white tracking-tighter">${order.amount}</span>
                 </div>
               </div>
@@ -228,8 +230,8 @@ export default function OrderPortal() {
                   </div>
 
                   <div className="flex-1 pt-1">
-                    <h3 className={`font-black text-lg ${status === 'pending' ? 'text-white/30' : 'text-white'}`}>{step.title}</h3>
-                    <p className="text-sm text-white/40 font-medium mt-1">{step.sub}</p>
+                    <h3 className={`font-black text-lg ${status === 'pending' ? 'text-white/20' : 'text-white'}`}>{step.title}</h3>
+                    <p className="text-sm text-white/60 font-medium mt-1">{step.sub}</p>
                     {status === 'done' && <span className="text-[10px] text-primary font-black mt-2 block tracking-widest uppercase">✓ مكتمل — {step.date}</span>}
                     {status === 'active' && <span className="text-[10px] text-primary font-black mt-2 block tracking-widest uppercase animate-pulse">⟳ قيد التنفيذ</span>}
                   </div>
@@ -314,14 +316,14 @@ export default function OrderPortal() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
           onClick={() => window.open('https://wa.me/96569929627', '_blank')}
-          className="mt-8 w-full bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30 rounded-[2.5rem] p-8 flex items-center gap-6 hover:border-primary/60 transition-all group text-right"
+          className="mt-8 w-full bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30 rounded-[2.5rem] p-8 flex items-center gap-6 hover:border-primary/60 transition-all group text-right shadow-[0_20px_40px_rgba(var(--primary-rgb),0.1)]"
         >
-          <div className="w-16 h-16 bg-primary/20 rounded-2xl flex items-center justify-center text-primary group-hover:scale-110 transition-transform border border-primary/20">
+          <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center text-white group-hover:scale-110 transition-transform border border-white/10 shadow-lg shadow-primary/20">
             <MessageSquare size={32} />
           </div>
           <div className="flex-1">
             <h3 className="text-xl font-black text-white">تواصل مع Moonlight</h3>
-            <p className="text-sm text-white/50 font-medium mt-1">هل لديك سؤال أو تعديل؟ نحن هنا على مدار الساعة عبر واتساب</p>
+            <p className="text-sm text-white/80 font-medium mt-1">هل لديك سؤال أو تعديل؟ نحن هنا على مدار الساعة عبر واتساب</p>
           </div>
           <ChevronLeft className="text-primary group-hover:-translate-x-2 transition-transform" size={24} />
         </motion.button>
