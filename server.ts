@@ -12,7 +12,6 @@ export const app = express();
 const PORT = 3000;
 
 app.use(cors());
-app.use(express.json());
 
 // Encryption Setup
 const ENCRYPTION_KEY = process.env.ENCRYPTION_SECRET || 'default_secret_key_32_chars_long!';
@@ -45,31 +44,39 @@ function decrypt(text: string) {
 // API Routes
 
 // Vercel Blob Upload Endpoint
-app.post('/api/upload', express.raw({ type: '*/*', limit: '50mb' }), async (request, response) => {
-  console.log("Upload endpoint hit.");
+// We use express.raw BEFORE express.json to avoid conflicts
+app.post('/api/upload', express.raw({ type: '*/*', limit: '100mb' }), async (request, response) => {
+  console.log("Upload endpoint hit. Body size:", request.body?.length);
   
   const token = process.env.BLOB_READ_WRITE_TOKEN;
   if (!token) {
-    console.error("BLOB_READ_WRITE_TOKEN is missing in environment variables!");
-    return response.status(500).json({ error: "Server configuration error: BLOB_READ_WRITE_TOKEN is missing." });
+    console.error("BLOB_READ_WRITE_TOKEN is missing!");
+    return response.status(500).json({ error: "Server configuration error: Token missing." });
   }
 
   try {
+    if (!request.body || request.body.length === 0) {
+      throw new Error("Empty request body");
+    }
+
     const blob = await put(`uploads/${Date.now()}`, request.body, {
       access: 'public',
       token: token,
     });
 
+    console.log("Upload successful:", blob.url);
     response.status(200).json({
       url: blob.url
     });
   } catch (error) {
-    console.error("Upload error:", error);
+    console.error("Upload error details:", error);
     response.status(500).json({
-      error: (error as Error).message
+      error: (error as Error).message || "Internal Server Error during upload"
     });
   }
 });
+
+app.use(express.json());
 
 // 1. Encrypt URL (Used by Dashboard when adding a product)
 app.post('/api/encrypt', (req, res) => {

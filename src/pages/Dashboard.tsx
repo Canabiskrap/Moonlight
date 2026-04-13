@@ -243,7 +243,16 @@ export default function Dashboard() {
         method: "POST",
         body: heroVideoFile
       });
-      const data = await res.json();
+      
+      let data;
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        throw new Error(`Server returned non-JSON response: ${text.slice(0, 100)}`);
+      }
+
       if (!res.ok) throw new Error(data.error || "Upload failed");
       const url = data.url;
       
@@ -311,7 +320,16 @@ export default function Dashboard() {
             method: "POST",
             body: imageFile
           });
-          const data = await res.json();
+          
+          let data;
+          const contentType = res.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            data = await res.json();
+          } else {
+            const text = await res.text();
+            throw new Error(`Server error: ${text.slice(0, 100)}`);
+          }
+
           if (!res.ok) throw new Error(data.error || "Upload failed");
           finalImageUrl = data.url;
           addLog("تم رفع صورة الخدمة.");
@@ -355,7 +373,16 @@ export default function Dashboard() {
             method: "POST",
             body: imageFile
           });
-          const data = await res.json();
+          
+          let data;
+          const contentType = res.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            data = await res.json();
+          } else {
+            const text = await res.text();
+            throw new Error(`Server error: ${text.slice(0, 100)}`);
+          }
+
           if (!res.ok) throw new Error(data.error || "Upload failed");
           finalImageUrl = data.url;
           addLog("تم رفع الصورة.");
@@ -368,7 +395,16 @@ export default function Dashboard() {
             method: "POST",
             body: productFile
           });
-          const data = await res.json();
+          
+          let data;
+          const contentType = res.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            data = await res.json();
+          } else {
+            const text = await res.text();
+            throw new Error(`Server error: ${text.slice(0, 100)}`);
+          }
+
           if (!res.ok) throw new Error(data.error || "Upload failed");
           finalDownloadUrl = data.url;
           addLog("تم رفع الملف.");
