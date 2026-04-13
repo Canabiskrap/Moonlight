@@ -32,9 +32,10 @@ interface AnalyticsProps {
 }
 
 export default function DashboardAnalytics({ orders, products, services, addLog, testAI, testConnection, isTestingAI, isTestingConnection, debugLogs }: AnalyticsProps) {
-  // Process data for charts
-  const totalRevenue = orders.reduce((sum, order) => sum + (order.amount || 0), 0);
-  const totalSales = orders.length;
+  // Process data for charts - Filter out test orders
+  const realOrders = orders.filter(order => !order.isTest);
+  const totalRevenue = realOrders.reduce((sum, order) => sum + (order.amount || 0), 0);
+  const totalSales = realOrders.length;
   
   // Sales by category
   const categoryData = products.reduce((acc: any, p) => {
@@ -62,7 +63,7 @@ export default function DashboardAnalytics({ orders, products, services, addLog,
     };
   });
 
-  orders.forEach(order => {
+  realOrders.forEach(order => {
     if (!order.createdAt) return;
     // Handle both Firestore Timestamp and standard Date/string
     const orderDate = order.createdAt.toDate ? order.createdAt.toDate() : new Date(order.createdAt);

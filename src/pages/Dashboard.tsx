@@ -1704,7 +1704,12 @@ export default function Dashboard() {
                         transition={{ delay: index * 0.05 }}
                         className="group hover:bg-white/[0.02] transition-colors"
                       >
-                        <td className="p-6 font-black text-white">{o.productName || o.serviceTitle}</td>
+                        <td className="p-6 font-black text-white">
+                          {o.productName || o.serviceTitle}
+                          {o.isTest && (
+                            <span className="mr-2 px-2 py-0.5 bg-gold/20 text-gold text-[8px] rounded-md border border-gold/30">تجريبي</span>
+                          )}
+                        </td>
                         <td className="p-6 text-sm text-gray-400 font-medium">{o.customerEmail}</td>
                         <td className="p-6 font-black text-green-400 tracking-tighter text-lg">${o.amount}</td>
                         <td className="p-6">

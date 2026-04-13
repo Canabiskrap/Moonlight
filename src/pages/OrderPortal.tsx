@@ -131,7 +131,7 @@ export default function OrderPortal() {
                 }}
               />
             </div>
-            <span className="text-lg font-black tracking-widest uppercase text-white group-hover:text-primary transition-colors">Moonlight</span>
+            <span className="text-lg font-black tracking-widest uppercase text-white group-hover:text-primary transition-colors">Moonlight 🌕</span>
           </Link>
           <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/20 px-4 py-1.5 rounded-full text-[10px] font-black text-green-500 uppercase tracking-widest">
             <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-ping" />
@@ -149,7 +149,7 @@ export default function OrderPortal() {
             </span>
           </h1>
           <p className="text-white/70 text-lg font-medium max-w-lg leading-relaxed">
-            شكراً لثقتك بـ Moonlight Digital Studio. هذه صفحتك الخاصة — فيها كل ما تحتاجه من ملفات وتحديثات ومعلومات طلبك.
+            شكراً لثقتك بـ <span className="text-primary font-black">Moonlight 🌕</span>. هذه صفحتك الخاصة — فيها كل ما تحتاجه من ملفات وتحديثات ومعلومات طلبك.
           </p>
         </div>
 
@@ -330,7 +330,7 @@ export default function OrderPortal() {
 
         {/* Footer */}
         <footer className="mt-20 text-center space-y-4 opacity-50">
-          <p className="text-xs font-medium text-gray-500">صُنع بـ ✦ بواسطة <span className="text-primary font-black">Moonlight Digital Studio</span></p>
+          <p className="text-xs font-medium text-gray-500">صُنع بـ ✦ بواسطة <span className="text-primary font-black">Moonlight 🌕</span></p>
           <p className="text-[10px] text-gray-600 uppercase tracking-widest font-black">هوية رقمية باحترافية · جميع الحقوق محفوظة ٢٠٢٤</p>
         </footer>
       </div>
