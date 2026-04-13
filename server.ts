@@ -5,14 +5,23 @@ import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { put } from '@vercel/blob';
-import { handleUpload } from '@vercel/blob/client';
+import multer from 'multer';
 
 dotenv.config();
 
 export const app = express();
 const PORT = 3000;
 
+// Multer setup for memory storage
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 100 * 1024 * 1024 // 100MB limit
+  }
+});
+
 app.use(cors());
+app.use(express.json());
 
 // Encryption Setup
 const ENCRYPTION_KEY = process.env.ENCRYPTION_SECRET || 'default_secret_key_32_chars_long!';
@@ -42,36 +51,31 @@ function decrypt(text: string) {
   }
 }
 
-// API Routes
-
-app.use(express.json());
-
-// Vercel Blob Upload Endpoint (Client-side upload handler)
-app.post('/api/upload', async (request, response) => {
-  const body = request.body;
-  
+// Vercel Blob Upload Endpoint (Server-side upload)
+app.post('/api/upload', upload.single('file'), async (request, response) => {
   try {
-    const jsonResponse = await handleUpload({
-      body,
-      request,
-      onBeforeGenerateToken: async (pathname) => {
-        // In a real app, you'd check auth here
-        return {
-          allowedContentTypes: ['image/jpeg', 'image/png', 'image/gif', 'video/mp4', 'application/pdf'],
-          tokenPayload: JSON.stringify({
-            // optional payload
-          }),
-        };
-      },
-      onUploadCompleted: async ({ blob, tokenPayload }) => {
-        console.log('Blob upload completed', blob, tokenPayload);
-      },
+    const file = request.file;
+    if (!file) {
+      return response.status(400).json({ error: "No file provided" });
+    }
+
+    const token = process.env.BLOB_READ_WRITE_TOKEN;
+    if (!token) {
+      console.error("BLOB_READ_WRITE_TOKEN is missing!");
+      return response.status(500).json({ error: "Server configuration error: Token missing." });
+    }
+
+    const blob = await put(`uploads/${Date.now()}-${file.originalname}`, file.buffer, {
+      access: 'public',
+      token: token,
+      contentType: file.mimetype,
     });
 
-    return response.status(200).json(jsonResponse);
+    console.log("Upload successful:", blob.url);
+    return response.status(200).json({ url: blob.url });
   } catch (error) {
-    console.error("Upload handler error:", error);
-    return response.status(400).json({ error: (error as Error).message });
+    console.error("Upload error:", error);
+    return response.status(500).json({ error: (error as Error).message });
   }
 });
 

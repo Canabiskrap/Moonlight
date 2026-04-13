@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { upload } from '@vercel/blob/client';
 import { 
   db, 
   auth, 
@@ -210,11 +209,21 @@ export default function Dashboard() {
     addLog("جاري رفع الشعار الجديد (Vercel Blob)...");
     
     try {
-      const newBlob = await upload(logoFile.name, logoFile, {
-        access: 'public',
-        handleUploadUrl: '/api/upload',
+      const formData = new FormData();
+      formData.append('file', logoFile);
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData
       });
-      const url = newBlob.url;
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Upload failed");
+      }
+
+      const data = await res.json();
+      const url = data.url;
       
       // Update a settings document in Firestore to store the logo URL
       await setDoc(doc(db, 'settings', 'appearance'), {
@@ -239,11 +248,21 @@ export default function Dashboard() {
     addLog("جاري رفع فيديو الواجهة الجديد (Vercel Blob)...");
     
     try {
-      const newBlob = await upload(heroVideoFile.name, heroVideoFile, {
-        access: 'public',
-        handleUploadUrl: '/api/upload',
+      const formData = new FormData();
+      formData.append('file', heroVideoFile);
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData
       });
-      const url = newBlob.url;
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Upload failed");
+      }
+
+      const data = await res.json();
+      const url = data.url;
       
       await setDoc(doc(db, 'settings', 'appearance'), {
         heroVideoUrl: url,
@@ -305,11 +324,21 @@ export default function Dashboard() {
         let finalImageUrl = imageUrl;
         if (imageFile) {
           addLog("جاري رفع صورة الخدمة...");
-          const newBlob = await upload(imageFile.name, imageFile, {
-            access: 'public',
-            handleUploadUrl: '/api/upload',
+          const formData = new FormData();
+          formData.append('file', imageFile);
+
+          const res = await fetch("/api/upload", {
+            method: "POST",
+            body: formData
           });
-          finalImageUrl = newBlob.url;
+
+          if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.error || "Upload failed");
+          }
+
+          const data = await res.json();
+          finalImageUrl = data.url;
           addLog("تم رفع صورة الخدمة.");
           await updateDoc(doc(db, 'services', docId!), { imageUrl: finalImageUrl });
         }
@@ -347,24 +376,42 @@ export default function Dashboard() {
 
         if (imageFile) {
           addLog("جاري رفع الصورة...");
-          const newBlob = await upload(imageFile.name, imageFile, {
-            access: 'public',
-            handleUploadUrl: '/api/upload',
-            onUploadProgress: (p) => setUploadProgress(p.percentage),
+          const formData = new FormData();
+          formData.append('file', imageFile);
+
+          const res = await fetch("/api/upload", {
+            method: "POST",
+            body: formData
           });
-          finalImageUrl = newBlob.url;
+
+          if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.error || "Upload failed");
+          }
+
+          const data = await res.json();
+          finalImageUrl = data.url;
           addLog("تم رفع الصورة.");
           await updateDoc(doc(db, 'products', docId!), { imageUrl: finalImageUrl });
         }
 
         if (productFile) {
           addLog("جاري رفع الملف الرقمي...");
-          const newBlob = await upload(productFile.name, productFile, {
-            access: 'public',
-            handleUploadUrl: '/api/upload',
-            onUploadProgress: (p) => setUploadProgress(p.percentage),
+          const formData = new FormData();
+          formData.append('file', productFile);
+
+          const res = await fetch("/api/upload", {
+            method: "POST",
+            body: formData
           });
-          finalDownloadUrl = newBlob.url;
+
+          if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.error || "Upload failed");
+          }
+
+          const data = await res.json();
+          finalDownloadUrl = data.url;
           addLog("تم رفع الملف.");
           await updateDoc(doc(db, 'products', docId!), { downloadUrl: finalDownloadUrl });
         }
