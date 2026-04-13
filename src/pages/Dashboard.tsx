@@ -484,6 +484,7 @@ export default function Dashboard() {
   };
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredProductsList = products.filter(p => 
@@ -607,6 +608,18 @@ export default function Dashboard() {
     } catch (err) {
       console.error("Error updating order status:", err);
       addLog("خطأ في تحديث حالة الطلب");
+    }
+  };
+
+  const handleDeleteOrder = async (orderId: string) => {
+    try {
+      addLog("جاري حذف الطلب...");
+      await deleteDoc(doc(db, 'orders', orderId));
+      addLog("✅ تم حذف الطلب بنجاح");
+      setDeletingOrderId(null);
+    } catch (err: any) {
+      console.error("Delete Order Error:", err);
+      addLog(`❌ فشل حذف الطلب: ${err.message}`);
     }
   };
 
@@ -1728,13 +1741,44 @@ export default function Dashboard() {
                           </select>
                         </td>
                         <td className="p-6">
-                          <button 
-                            onClick={() => window.open(`/order-portal/${o.id}`, '_blank')}
-                            className="text-primary hover:text-white transition-colors flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
-                          >
-                            <ExternalLink size={14} />
-                            فتح البوابة
-                          </button>
+                          <div className="flex items-center gap-4">
+                            <button 
+                              onClick={() => window.open(`/order-portal/${o.id}`, '_blank')}
+                              className="text-primary hover:text-white transition-colors flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
+                            >
+                              <ExternalLink size={14} />
+                              فتح البوابة
+                            </button>
+
+                            {deletingOrderId === o.id ? (
+                              <motion.div 
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="flex items-center gap-2 bg-red-500/10 p-1.5 rounded-xl border border-red-500/20"
+                              >
+                                <button 
+                                  onClick={() => handleDeleteOrder(o.id)} 
+                                  className="bg-red-500 text-white px-3 py-1 rounded-lg text-[9px] font-black hover:bg-red-600 transition-colors"
+                                >
+                                  حذف
+                                </button>
+                                <button 
+                                  onClick={() => setDeletingOrderId(null)} 
+                                  className="bg-white/10 text-white px-3 py-1 rounded-lg text-[9px] font-black hover:bg-white/20 transition-colors"
+                                >
+                                  إلغاء
+                                </button>
+                              </motion.div>
+                            ) : (
+                              <button 
+                                onClick={() => setDeletingOrderId(o.id)}
+                                className="text-red-500/50 hover:text-red-500 transition-colors p-1"
+                                title="حذف الطلب"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            )}
+                          </div>
                         </td>
                         <td className="p-6 text-[10px] text-gray-500 font-bold">
                           {o.createdAt?.toDate().toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' })}
