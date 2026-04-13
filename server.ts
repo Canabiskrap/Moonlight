@@ -4,21 +4,11 @@ import dotenv from 'dotenv';
 import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
-import { put } from '@vercel/blob';
-import multer from 'multer';
 
 dotenv.config();
 
 export const app = express();
 const PORT = 3000;
-
-// Multer setup for memory storage
-const upload = multer({ 
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 100 * 1024 * 1024 // 100MB limit
-  }
-});
 
 app.use(cors());
 app.use(express.json());
@@ -50,34 +40,6 @@ function decrypt(text: string) {
     return text; // Fallback
   }
 }
-
-// Vercel Blob Upload Endpoint (Server-side upload)
-app.post('/api/upload', upload.single('file'), async (request, response) => {
-  try {
-    const file = request.file;
-    if (!file) {
-      return response.status(400).json({ error: "No file provided" });
-    }
-
-    const token = process.env.BLOB_READ_WRITE_TOKEN;
-    if (!token) {
-      console.error("BLOB_READ_WRITE_TOKEN is missing!");
-      return response.status(500).json({ error: "Server configuration error: Token missing." });
-    }
-
-    const blob = await put(`uploads/${Date.now()}-${file.originalname}`, file.buffer, {
-      access: 'public',
-      token: token,
-      contentType: file.mimetype,
-    });
-
-    console.log("Upload successful:", blob.url);
-    return response.status(200).json({ url: blob.url });
-  } catch (error) {
-    console.error("Upload error:", error);
-    return response.status(500).json({ error: (error as Error).message });
-  }
-});
 
 // 1. Encrypt URL (Used by Dashboard when adding a product)
 app.post('/api/encrypt', (req, res) => {

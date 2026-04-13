@@ -58,6 +58,31 @@ export default function Dashboard() {
   const [customBucket, setCustomBucket] = useState('');
   const navigate = useNavigate();
 
+  const uploadFile = async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    const text = await res.text();
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      throw new Error("Server returned invalid response: " + text);
+    }
+
+    if (!res.ok) {
+      throw new Error(data.error || "Upload failed");
+    }
+
+    return data.url;
+  };
+
   const addLog = (msg: string) => {
     console.log(`[Dashboard] ${msg}`);
     const time = new Date().toLocaleTimeString();
@@ -206,26 +231,12 @@ export default function Dashboard() {
   const handleLogoUpload = async () => {
     if (!logoFile) return;
     setIsUploadingLogo(true);
-    addLog("جاري رفع الشعار الجديد (Vercel Blob)...");
-    
-    try {
-      const formData = new FormData();
-      formData.append('file', logoFile);
-
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData
-      });
+      addLog("جاري رفع الشعار الجديد (Vercel Blob)...");
       
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "Upload failed");
-      }
-
-      const data = await res.json();
-      const url = data.url;
-      
-      // Update a settings document in Firestore to store the logo URL
+      try {
+        const url = await uploadFile(logoFile);
+        
+        // Update a settings document in Firestore to store the logo URL
       await setDoc(doc(db, 'settings', 'appearance'), {
         logoUrl: url,
         updatedAt: Timestamp.now()
@@ -248,21 +259,7 @@ export default function Dashboard() {
     addLog("جاري رفع فيديو الواجهة الجديد (Vercel Blob)...");
     
     try {
-      const formData = new FormData();
-      formData.append('file', heroVideoFile);
-
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData
-      });
-      
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "Upload failed");
-      }
-
-      const data = await res.json();
-      const url = data.url;
+      const url = await uploadFile(heroVideoFile);
       
       await setDoc(doc(db, 'settings', 'appearance'), {
         heroVideoUrl: url,
@@ -324,21 +321,7 @@ export default function Dashboard() {
         let finalImageUrl = imageUrl;
         if (imageFile) {
           addLog("جاري رفع صورة الخدمة...");
-          const formData = new FormData();
-          formData.append('file', imageFile);
-
-          const res = await fetch("/api/upload", {
-            method: "POST",
-            body: formData
-          });
-
-          if (!res.ok) {
-            const errorData = await res.json();
-            throw new Error(errorData.error || "Upload failed");
-          }
-
-          const data = await res.json();
-          finalImageUrl = data.url;
+          finalImageUrl = await uploadFile(imageFile);
           addLog("تم رفع صورة الخدمة.");
           await updateDoc(doc(db, 'services', docId!), { imageUrl: finalImageUrl });
         }
@@ -376,42 +359,14 @@ export default function Dashboard() {
 
         if (imageFile) {
           addLog("جاري رفع الصورة...");
-          const formData = new FormData();
-          formData.append('file', imageFile);
-
-          const res = await fetch("/api/upload", {
-            method: "POST",
-            body: formData
-          });
-
-          if (!res.ok) {
-            const errorData = await res.json();
-            throw new Error(errorData.error || "Upload failed");
-          }
-
-          const data = await res.json();
-          finalImageUrl = data.url;
+          finalImageUrl = await uploadFile(imageFile);
           addLog("تم رفع الصورة.");
           await updateDoc(doc(db, 'products', docId!), { imageUrl: finalImageUrl });
         }
 
         if (productFile) {
           addLog("جاري رفع الملف الرقمي...");
-          const formData = new FormData();
-          formData.append('file', productFile);
-
-          const res = await fetch("/api/upload", {
-            method: "POST",
-            body: formData
-          });
-
-          if (!res.ok) {
-            const errorData = await res.json();
-            throw new Error(errorData.error || "Upload failed");
-          }
-
-          const data = await res.json();
-          finalDownloadUrl = data.url;
+          finalDownloadUrl = await uploadFile(productFile);
           addLog("تم رفع الملف.");
           await updateDoc(doc(db, 'products', docId!), { downloadUrl: finalDownloadUrl });
         }
