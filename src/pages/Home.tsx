@@ -165,10 +165,14 @@ export default function Home() {
                 <div className="w-full h-48 rounded-3xl overflow-hidden bg-dark/50 border border-white/5 relative group-hover:border-primary/20 transition-colors">
                   {service.imageUrl ? (
                     <img 
-                      src={service.imageUrl} 
+                      src={convertDriveLink(service.imageUrl)} 
                       alt={service.title} 
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                       referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop';
+                      }}
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-5xl bg-gradient-to-br from-primary/10 to-transparent">
@@ -183,7 +187,7 @@ export default function Home() {
                 </div>
                 <div className="flex justify-between items-center pt-4 border-t border-white/5">
                   <div className="gold-capsule">ابدأ من ${service.price}</div>
-                  <button className="btn-gradient px-6 py-2 rounded-full text-xs">اطلب الآن</button>
+                  <Link to={`/service/${service.id}`} className="btn-gradient px-6 py-2 rounded-full text-xs">اطلب الآن</Link>
                 </div>
               </div>
             ))

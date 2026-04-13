@@ -21,7 +21,7 @@ import {
 import { convertDriveLink, isValidUrl } from '../lib/utils';
 import { SmartDiagnosticService } from '../lib/smartDiagnostic';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Trash2, Package, DollarSign, Image as ImageIcon, Link as LinkIcon, FileText, Upload, CheckCircle2, Globe, Search, RefreshCw, Sparkles, ShoppingBag, AlertCircle, Settings, Activity, LogOut, Loader2, Zap, Brain, Instagram } from 'lucide-react';
+import { Plus, Trash2, Package, DollarSign, Image as ImageIcon, Link as LinkIcon, FileText, Upload, CheckCircle2, Globe, Search, RefreshCw, Sparkles, ShoppingBag, AlertCircle, Settings, Activity, LogOut, Loader2, Zap, Brain, Instagram, Twitter, Facebook, Send, Video } from 'lucide-react';
 
 import { getProductInsights, chatWithBot } from '../services/geminiService';
 import DashboardAnalytics from '../components/DashboardAnalytics';
@@ -208,6 +208,8 @@ export default function Dashboard() {
     setDescription(service.description);
     setPrice(service.price.toString());
     setServiceIcon(service.icon || '🎨');
+    setImageUrl(service.imageUrl || '');
+    setDownloadUrl(service.downloadUrl || '');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -234,6 +236,9 @@ export default function Dashboard() {
   const [heroVideoUrl, setHeroVideoUrl] = useState<string | null>(null);
   const [instagramUrl, setInstagramUrl] = useState('');
   const [twitterUrl, setTwitterUrl] = useState('');
+  const [facebookUrl, setFacebookUrl] = useState('');
+  const [tiktokUrl, setTiktokUrl] = useState('');
+  const [telegramUrl, setTelegramUrl] = useState('');
 
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'settings', 'appearance'), (doc) => {
@@ -242,6 +247,9 @@ export default function Dashboard() {
         setHeroVideoUrl(data.heroVideoUrl || null);
         setInstagramUrl(data.instagramUrl || '');
         setTwitterUrl(data.twitterUrl || '');
+        setFacebookUrl(data.facebookUrl || '');
+        setTiktokUrl(data.tiktokUrl || '');
+        setTelegramUrl(data.telegramUrl || '');
       }
     });
     return () => unsub();
@@ -253,6 +261,9 @@ export default function Dashboard() {
       await setDoc(doc(db, 'settings', 'appearance'), {
         instagramUrl,
         twitterUrl,
+        facebookUrl,
+        tiktokUrl,
+        telegramUrl,
         updatedAt: Timestamp.now()
       }, { merge: true });
       addLog("✅ تم حفظ الروابط بنجاح");
@@ -338,6 +349,8 @@ export default function Dashboard() {
           description,
           price: numericPrice,
           icon: serviceIcon,
+          imageUrl: imageUploadType === 'link' ? imageUrl : (editingServiceId ? imageUrl : ''),
+          downloadUrl: uploadMethod === 'link' ? downloadUrl : (editingServiceId ? downloadUrl : ''),
           updatedAt: Timestamp.now()
         };
 
@@ -346,8 +359,7 @@ export default function Dashboard() {
         } else {
           const docRef = await addDoc(collection(db, 'services'), {
             ...serviceData,
-            createdAt: Timestamp.now(),
-            imageUrl: ''
+            createdAt: Timestamp.now()
           });
           docId = docRef.id;
         }
@@ -361,6 +373,13 @@ export default function Dashboard() {
           await updateDoc(doc(db, 'services', docId!), { imageUrl: finalImageUrl });
         }
 
+        if (productFile) {
+          addLog("جاري رفع ملف الخدمة...");
+          const finalDownloadUrl = await uploadFile(productFile, (p) => setUploadProgress(p));
+          addLog("تم رفع الملف.");
+          await updateDoc(doc(db, 'services', docId!), { downloadUrl: finalDownloadUrl });
+        }
+
         addLog("تم حفظ الخدمة بنجاح!");
       } else {
         // 1. Save to Firestore FIRST (with initial data)
@@ -371,6 +390,8 @@ export default function Dashboard() {
           description,
           price: numericPrice,
           category,
+          imageUrl: imageUploadType === 'link' ? imageUrl : (editingId ? imageUrl : ''),
+          downloadUrl: uploadMethod === 'link' ? downloadUrl : (editingId ? downloadUrl : ''),
           updatedAt: Timestamp.now()
         };
 
@@ -380,8 +401,6 @@ export default function Dashboard() {
           const docRef = await addDoc(collection(db, 'products'), { 
             ...productData, 
             createdAt: Timestamp.now(),
-            imageUrl: '',
-            downloadUrl: '',
             status: 'uploading'
           });
           docId = docRef.id;
@@ -690,12 +709,54 @@ export default function Dashboard() {
                     <div className="space-y-2">
                       <label className="text-xs font-black text-gray-500 uppercase tracking-widest mr-2">رابط تويتر (X)</label>
                       <div className="relative">
-                        <Globe className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+                        <Twitter className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
                         <input 
                           type="text"
                           value={twitterUrl}
                           onChange={(e) => setTwitterUrl(e.target.value)}
                           placeholder="https://twitter.com/your-store"
+                          className="w-full bg-white/5 border border-white/5 focus:border-primary/50 outline-none p-4 pr-12 rounded-2xl text-sm transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-gray-500 uppercase tracking-widest mr-2">رابط فيسبوك</label>
+                      <div className="relative">
+                        <Facebook className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+                        <input 
+                          type="text"
+                          value={facebookUrl}
+                          onChange={(e) => setFacebookUrl(e.target.value)}
+                          placeholder="https://facebook.com/your-store"
+                          className="w-full bg-white/5 border border-white/5 focus:border-primary/50 outline-none p-4 pr-12 rounded-2xl text-sm transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-gray-500 uppercase tracking-widest mr-2">رابط تيك توك</label>
+                      <div className="relative">
+                        <Video className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+                        <input 
+                          type="text"
+                          value={tiktokUrl}
+                          onChange={(e) => setTiktokUrl(e.target.value)}
+                          placeholder="https://tiktok.com/@your-store"
+                          className="w-full bg-white/5 border border-white/5 focus:border-primary/50 outline-none p-4 pr-12 rounded-2xl text-sm transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-gray-500 uppercase tracking-widest mr-2">رابط تلغرام</label>
+                      <div className="relative">
+                        <Send className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+                        <input 
+                          type="text"
+                          value={telegramUrl}
+                          onChange={(e) => setTelegramUrl(e.target.value)}
+                          placeholder="https://t.me/your-store"
                           className="w-full bg-white/5 border border-white/5 focus:border-primary/50 outline-none p-4 pr-12 rounded-2xl text-sm transition-all"
                         />
                       </div>
@@ -1039,10 +1100,9 @@ export default function Dashboard() {
                         </div>
                       </div>
 
-                      {!(activeTab === 'services' || editingServiceId) && (
-                        <div className="space-y-2">
-                          <label className="text-sm font-bold text-gray-400">2. الملف الرقمي</label>
-                          <div className="relative group">
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-gray-400">2. {activeTab === 'services' || editingServiceId ? 'ملف الخدمة (اختياري)' : 'الملف الرقمي'}</label>
+                        <div className="relative group">
                             <input 
                               type="file" 
                               accept=".zip,application/zip,application/x-zip-compressed,application/octet-stream,multipart/x-zip,*/*"
@@ -1073,7 +1133,6 @@ export default function Dashboard() {
                             </label>
                           </div>
                         </div>
-                      )}
                     </div>
                   ) : (
                     <div className="space-y-4">
@@ -1176,10 +1235,9 @@ export default function Dashboard() {
                         )}
                       </div>
 
-                      {!(activeTab === 'services' || editingServiceId) && (
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <label className="text-sm font-bold text-gray-400">2. رابط تحميل الملف</label>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-sm font-bold text-gray-400">2. {activeTab === 'services' || editingServiceId ? 'رابط ملف الخدمة (اختياري)' : 'رابط تحميل الملف'}</label>
                             {downloadUrl.includes('drive.google.com') && (
                               <span className="text-[10px] text-primary font-bold">رابط Google Drive ✅</span>
                             )}
@@ -1198,10 +1256,9 @@ export default function Dashboard() {
                             </p>
                           )}
                         </div>
-                      )}
-                    </div>
-                  )}
-                </div>
+                      </div>
+                    )}
+                  </div>
 
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-1">

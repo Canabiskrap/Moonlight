@@ -1,0 +1,321 @@
+import { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { doc, getDoc, addDoc, collection, Timestamp } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { convertDriveLink } from '../lib/utils';
+import { motion } from 'motion/react';
+import { ArrowRight, ShieldCheck, Sparkles, CheckCircle2, Loader2, Zap, MessageSquare, CreditCard, Download, Brain, Target } from 'lucide-react';
+import { getProductInsights, ProductInsight } from '../services/geminiService';
+
+export default function ServiceDetails() {
+  const { id } = useParams();
+  const [service, setService] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [paid, setPaid] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [aiInsights, setAiInsights] = useState<ProductInsight | null>(null);
+  const [loadingAi, setLoadingAi] = useState(false);
+
+  const handleGetAiInsights = async () => {
+    if (!service || loadingAi) return;
+    setLoadingAi(true);
+    try {
+      // We can use the same insight service for services too
+      const insights = await getProductInsights({
+        name: service.title,
+        description: service.description,
+        category: 'Service',
+        price: service.price
+      });
+      setAiInsights(insights);
+    } catch (err) {
+      console.error("Failed to get AI insights", err);
+    } finally {
+      setLoadingAi(false);
+    }
+  };
+
+  useEffect(() => {
+    const fetchService = async () => {
+      if (!id) return;
+      try {
+        const docRef = doc(db, 'services', id);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setService({ id: docSnap.id, ...docSnap.data() });
+        } else {
+          setError("الخدمة غير موجودة");
+        }
+      } catch (err) {
+        console.error(err);
+        setError("خطأ في تحميل الخدمة");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchService();
+  }, [id]);
+
+  useEffect(() => {
+    if (service && !paid && !loading) {
+      const clientId = (import.meta as any).env.VITE_PAYPAL_CLIENT_ID || 'AcbwuN16XVq7P_HKhjbHRTegmSRXI0DoFOoLw2pn-LilZUuf1FRl0v888wjPvs428lM5sdf97LUNcvT5';
+      const script = document.createElement('script');
+      script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD`;
+      script.async = true;
+      script.onload = () => {
+        if ((window as any).paypal) {
+          (window as any).paypal.Buttons({
+            createOrder: (data: any, actions: any) => {
+              return actions.order.create({
+                purchase_units: [{
+                  amount: {
+                    value: service.price.toString(),
+                    currency_code: 'USD'
+                  },
+                  description: `Service: ${service.title}`
+                }]
+              });
+            },
+            onApprove: async (data: any, actions: any) => {
+              try {
+                const order = await actions.order.capture();
+                console.log("Payment Success:", order);
+                
+                await addDoc(collection(db, 'orders'), {
+                  serviceId: service.id,
+                  serviceTitle: service.title,
+                  amount: service.price,
+                  customerEmail: order.payer.email_address,
+                  paypalOrderId: order.id,
+                  status: 'completed',
+                  type: 'service',
+                  createdAt: Timestamp.now()
+                });
+
+                setPaid(true);
+              } catch (err) {
+                console.error("Error processing approved order:", err);
+                alert("حدث خطأ أثناء معالجة الطلب. يرجى التواصل مع الدعم.");
+              }
+            },
+            onError: (err: any) => {
+              console.error("PayPal Error:", err);
+              alert("حدث خطأ أثناء عملية الدفع. يرجى المحاولة مرة أخرى.");
+            }
+          }).render('#paypal-button-container');
+        }
+      };
+      document.body.appendChild(script);
+      return () => {
+        const existingScript = document.querySelector(`script[src*="paypal.com/sdk/js"]`);
+        if (existingScript) document.body.removeChild(existingScript);
+      };
+    }
+  }, [service, paid, loading]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-40">
+        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (error || !service) {
+    return (
+      <div className="text-center py-40 space-y-6">
+        <h2 className="text-3xl font-bold text-gray-400">{error || "عذراً، لم نتمكن من العثور على الخدمة"}</h2>
+        <Link to="/" className="inline-flex items-center gap-2 text-primary hover:underline">
+          <ArrowRight size={20} />
+          العودة للمتجر
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      <div className="cosmic-bg" />
+      
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="grid grid-cols-1 lg:grid-cols-2 gap-12 py-12 relative z-10"
+      >
+        {/* Image Side */}
+        <div className="space-y-8">
+          <Link to="/" className="inline-flex items-center gap-2 text-gray-500 hover:text-white transition-all mb-4 group">
+            <ArrowRight size={18} className="group-hover:-translate-x-1 transition-transform" />
+            <span className="font-bold">العودة للمتجر</span>
+          </Link>
+          
+          <div className="glass-card rounded-[3rem] overflow-hidden group relative aspect-[4/5] bg-dark-surface flex items-center justify-center">
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60 z-10" />
+            {service.imageUrl ? (
+              <img 
+                src={convertDriveLink(service.imageUrl)} 
+                alt={service.title} 
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop';
+                }}
+              />
+            ) : (
+              <div className="text-9xl">{service.icon || '🎨'}</div>
+            )}
+            
+            <div className="absolute top-8 right-8 z-20">
+              <div className="gold-capsule text-sm px-6 py-2">${service.price}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Details Side */}
+        <div className="space-y-10">
+          <div className="space-y-6">
+            <div className="inline-flex items-center gap-2 bg-gold/10 border border-gold/20 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest text-gold">
+              <Sparkles size={12} />
+              خدمة احترافية
+            </div>
+            <h1 className="text-5xl md:text-6xl font-black leading-tight tracking-tighter text-glow">{service.title}</h1>
+            <p className="text-gray-400 text-xl leading-relaxed font-medium text-right">{service.description}</p>
+          </div>
+
+          <div className="glass-card p-10 rounded-[2.5rem] space-y-8 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl rounded-full -mr-16 -mt-16" />
+            
+            <div className="flex items-center gap-4 text-green-400 bg-green-400/5 p-6 rounded-2xl border border-green-400/10">
+              <ShieldCheck size={28} />
+              <p className="font-bold text-sm leading-relaxed">دفع آمن ومحمي. بعد إتمام الدفع، سنقوم بالتواصل معك للبدء في تنفيذ الخدمة.</p>
+            </div>
+
+            {!paid ? (
+              <div className="space-y-6">
+                <div id="paypal-button-container" className="min-h-[150px] relative z-10" />
+                <p className="text-center text-[10px] text-gray-600 font-bold uppercase tracking-widest">
+                  Secure Payment via PayPal Global
+                </p>
+              </div>
+            ) : (
+              <motion.div 
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="bg-primary/5 border border-primary/20 p-10 rounded-[2rem] text-center space-y-6"
+              >
+                <div className="bg-green-500 w-20 h-20 rounded-full flex items-center justify-center mx-auto shadow-2xl shadow-green-500/40 animate-bounce">
+                  <CheckCircle2 className="text-white" size={36} />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-3xl font-black text-white">تم استلام طلبك!</h3>
+                  <p className="text-gray-400 font-medium">شكراً لثقتك. سنقوم بالتواصل معك عبر بريدك الإلكتروني قريباً جداً.</p>
+                </div>
+                <div className="flex flex-col gap-3">
+                  {service.downloadUrl && (
+                    <a 
+                      href={service.downloadUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="btn-premium flex items-center justify-center gap-3 bg-white text-black py-5 rounded-2xl font-black text-lg shadow-2xl shadow-white/10"
+                    >
+                      <Download size={20} />
+                      تحميل الملفات المرفقة
+                    </a>
+                  )}
+                  <button 
+                    onClick={() => window.open('https://wa.me/96569929627', '_blank')}
+                    className="btn-premium flex items-center justify-center gap-3 bg-green-500 text-white py-5 rounded-2xl font-black text-lg shadow-2xl shadow-green-500/10"
+                  >
+                    <MessageSquare size={20} />
+                    تواصل معنا عبر واتساب
+                  </button>
+                  <Link 
+                    to="/"
+                    className="text-gray-500 hover:text-white font-bold text-sm transition-colors"
+                  >
+                    العودة للرئيسية
+                  </Link>
+                </div>
+              </motion.div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-6">
+            <div className="glass-card p-6 rounded-2xl text-center space-y-1">
+              <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest">نوع الخدمة</p>
+              <p className="font-black text-primary text-lg">احترافية</p>
+            </div>
+            <div className="glass-card p-6 rounded-2xl text-center space-y-1">
+              <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest">طريقة الدفع</p>
+              <p className="font-black text-green-400 text-lg">آمنة</p>
+            </div>
+          </div>
+
+          {/* AI Insights */}
+          <div className="pt-4">
+            {!aiInsights ? (
+              <button
+                onClick={handleGetAiInsights}
+                disabled={loadingAi}
+                className="w-full flex items-center justify-center gap-4 bg-white/5 hover:bg-white/10 p-8 rounded-[2.5rem] border border-white/10 transition-all group disabled:opacity-50"
+              >
+                {loadingAi ? (
+                  <Loader2 className="animate-spin text-primary" size={28} />
+                ) : (
+                  <>
+                    <Brain className="text-primary group-hover:scale-110 transition-transform" size={28} />
+                    <div className="text-right">
+                      <p className="text-lg font-black text-white">تحليل Moonlight الذكي</p>
+                      <p className="text-xs text-gray-500 font-medium">اكتشف كيف ستفيدك هذه الخدمة في مشروعك</p>
+                    </div>
+                  </>
+                )}
+              </button>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="glass-card p-10 rounded-[3rem] border-primary/20 space-y-8 relative overflow-hidden"
+              >
+                <div className="flex items-center gap-4 border-b border-white/5 pb-6">
+                  <div className="bg-primary/20 p-3 rounded-2xl">
+                    <Sparkles className="text-primary" size={24} />
+                  </div>
+                  <h3 className="text-2xl font-black">رؤية الذكاء الاصطناعي</h3>
+                </div>
+
+                <div className="space-y-8">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-gold">
+                      <Brain size={18} />
+                      <span className="text-xs font-black uppercase tracking-widest">الخلاصة الإبداعية</span>
+                    </div>
+                    <p className="text-gray-300 leading-relaxed font-medium text-right">{aiInsights.creativeSummary}</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-primary">
+                        <Zap size={18} />
+                        <span className="text-xs font-black uppercase tracking-widest">القيمة المضافة</span>
+                      </div>
+                      <p className="text-gray-400 text-sm leading-relaxed font-medium text-right">{aiInsights.targetAudience}</p>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-green-400">
+                        <CheckCircle2 size={18} />
+                        <span className="text-xs font-black uppercase tracking-widest">نصيحة Moonlight</span>
+                      </div>
+                      <p className="text-gray-400 text-sm leading-relaxed font-medium text-right">{aiInsights.proTip}</p>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}

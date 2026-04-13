@@ -1,4 +1,4 @@
-import { ShoppingBag, Instagram, Twitter, Mail, Phone } from 'lucide-react';
+import { ShoppingBag, Instagram, Twitter, Mail, Phone, Facebook, Send, Video } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -8,6 +8,9 @@ export default function Footer() {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [instagramUrl, setInstagramUrl] = useState<string | null>(null);
   const [twitterUrl, setTwitterUrl] = useState<string | null>(null);
+  const [facebookUrl, setFacebookUrl] = useState<string | null>(null);
+  const [tiktokUrl, setTiktokUrl] = useState<string | null>(null);
+  const [telegramUrl, setTelegramUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'settings', 'appearance'), (doc) => {
@@ -16,6 +19,9 @@ export default function Footer() {
         setLogoUrl(data.logoUrl);
         setInstagramUrl(data.instagramUrl);
         setTwitterUrl(data.twitterUrl);
+        setFacebookUrl(data.facebookUrl);
+        setTiktokUrl(data.tiktokUrl);
+        setTelegramUrl(data.telegramUrl);
       }
     });
     return () => unsub();
@@ -71,6 +77,36 @@ export default function Footer() {
                   className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:bg-primary hover:text-white transition-all"
                 >
                   <Twitter size={20} />
+                </a>
+              )}
+              {facebookUrl && (
+                <a 
+                  href={facebookUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:bg-primary hover:text-white transition-all"
+                >
+                  <Facebook size={20} />
+                </a>
+              )}
+              {tiktokUrl && (
+                <a 
+                  href={tiktokUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:bg-primary hover:text-white transition-all"
+                >
+                  <Video size={20} />
+                </a>
+              )}
+              {telegramUrl && (
+                <a 
+                  href={telegramUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:bg-primary hover:text-white transition-all"
+                >
+                  <Send size={20} />
                 </a>
               )}
             </div>
