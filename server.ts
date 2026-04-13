@@ -45,14 +45,13 @@ function decrypt(text: string) {
 // API Routes
 
 // Vercel Blob Upload Endpoint
-app.post('/api/upload', async (request, response) => {
+app.post('/api/upload', express.raw({ type: '*/*', limit: '50mb' }), async (request, response) => {
   console.log("Upload endpoint hit.");
   
   try {
-    // The user requested a simple put implementation
-    // We need to handle the request body as a stream or buffer
-    const blob = await put(`uploads/${Date.now()}`, request, {
+    const blob = await put(`uploads/${Date.now()}`, request.body, {
       access: 'public',
+      token: process.env.BLOB_READ_WRITE_TOKEN,
     });
 
     response.status(200).json({

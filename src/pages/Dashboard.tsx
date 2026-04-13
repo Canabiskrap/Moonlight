@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-// Force sync comment
 import { 
   db, 
   auth, 
@@ -245,6 +244,7 @@ export default function Dashboard() {
         body: heroVideoFile
       });
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload failed");
       const url = data.url;
       
       await setDoc(doc(db, 'settings', 'appearance'), {
@@ -312,6 +312,7 @@ export default function Dashboard() {
             body: imageFile
           });
           const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "Upload failed");
           finalImageUrl = data.url;
           addLog("تم رفع صورة الخدمة.");
           await updateDoc(doc(db, 'services', docId!), { imageUrl: finalImageUrl });
@@ -355,6 +356,7 @@ export default function Dashboard() {
             body: imageFile
           });
           const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "Upload failed");
           finalImageUrl = data.url;
           addLog("تم رفع الصورة.");
           await updateDoc(doc(db, 'products', docId!), { imageUrl: finalImageUrl });
@@ -367,6 +369,7 @@ export default function Dashboard() {
             body: productFile
           });
           const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "Upload failed");
           finalDownloadUrl = data.url;
           addLog("تم رفع الملف.");
           await updateDoc(doc(db, 'products', docId!), { downloadUrl: finalDownloadUrl });
