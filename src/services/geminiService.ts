@@ -14,7 +14,7 @@ export async function getProductInsights(product: any): Promise<ProductInsight> 
   if (!ai) throw new Error("AI service not initialized. Missing API Key.");
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-1.5-flash",
       contents: `Analyze this product and provide creative insights in Arabic.
       Product Name: ${product.name}
       Description: ${product.description}
@@ -53,7 +53,7 @@ export async function getSmartRecommendations(query: string, products: any[]): P
     const productList = products.map(p => ({ id: p.id, name: p.name, description: p.description, category: p.category }));
     
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-1.5-flash",
       contents: `User Query: "${query}"
       Available Products: ${JSON.stringify(productList)}`,
       config: {
@@ -114,7 +114,7 @@ export async function chatWithBot(userMessage: string, history: {role: 'user' | 
           5. الحلول العملية: أعطِ خطوات قابلة للتنفيذ (Actionable Steps) بدلاً من التنظير.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-1.5-flash",
       contents: [
         ...history.map(h => ({ role: h.role, parts: h.parts })),
         { role: 'user', parts: [{ text: userMessage }] }
@@ -137,7 +137,7 @@ export async function generateFixSuggestion(prompt: string): Promise<string> {
   if (!ai) throw new Error("AI service not initialized. Missing API Key.");
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-1.5-flash",
       contents: prompt,
       config: {
         systemInstruction: "You are an expert developer. Provide concise, production-ready code fixes.",
@@ -195,6 +195,24 @@ export async function runFactoryMachine(machineId: string, input: string): Promi
       },
       required: ["title", "description", "marketingPlan", "priceSuggestion"]
     };
+  } else if (machineId === 'contentMaker') {
+    systemInstruction = "You are an expert digital product creator and author for 'Moonlight 🌕'. The user wants to create a complete digital product (like an e-book, guide, article, or code snippet) based on their idea. Write the FULL content for this product in Arabic. Format the output ENTIRELY in clean HTML (using <h1>, <h2>, <p>, <ul>, <li>, <strong>, etc.). Do not use markdown, only HTML. Make it comprehensive, engaging, and ready to be sold or published.";
+    responseSchema = {
+      type: Type.OBJECT,
+      properties: {
+        htmlContent: { type: Type.STRING, description: "The full generated content formatted in HTML" }
+      },
+      required: ["htmlContent"]
+    };
+  } else if (machineId === 'brandGuidelines') {
+    systemInstruction = "You are an expert Brand Identity Designer and Strategist for 'Moonlight 🌕'. The user will provide a brand name, industry, and personality. Generate a comprehensive 'Brand Guidelines' (دليل الهوية البصرية) document in Arabic. Include: Brand Story & Vision, Logo Usage rules, Color Palette (with HEX/RGB codes), Typography recommendations, and Tone of Voice. Format the output ENTIRELY in clean HTML (using <h1>, <h2>, <p>, <ul>, <li>, <strong>, and inline styles for color swatches if possible). Do not use markdown, only HTML.";
+    responseSchema = {
+      type: Type.OBJECT,
+      properties: {
+        htmlContent: { type: Type.STRING, description: "The full generated brand guidelines formatted in HTML" }
+      },
+      required: ["htmlContent"]
+    };
   } else {
     systemInstruction = "You are a creative content director for 'Moonlight 🌕'. Provide 3-4 creative content ideas (video scripts, social media posts) based on the user's input in Arabic.";
     responseSchema = {
@@ -218,7 +236,7 @@ export async function runFactoryMachine(machineId: string, input: string): Promi
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-1.5-flash",
       contents: input,
       config: {
         systemInstruction,

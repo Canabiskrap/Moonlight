@@ -48,6 +48,26 @@
   .markdown-body strong {
     @apply font-black text-white;
   }
+  
+  /* Advanced Word-like Editor Styles (Jodit) */
+  .jodit-wrapper .jodit-container {
+    @apply border-0 rounded-b-xl;
+  }
+  .jodit-wrapper .jodit-toolbar__box {
+    @apply bg-gray-50 border-b border-gray-200;
+  }
+  .jodit-wrapper .jodit-workplace {
+    @apply bg-gray-200 py-8 overflow-y-auto;
+  }
+  .jodit-wrapper .jodit-wysiwyg {
+    @apply bg-white shadow-lg mx-auto;
+    min-height: 297mm !important; /* A4 height */
+    max-width: 210mm !important; /* A4 width */
+    padding: 20mm !important; /* Standard Word margins */
+    direction: rtl;
+    text-align: right;
+  }
+  
   .markdown-body ul {
     @apply list-disc list-inside mb-3 space-y-1;
   }

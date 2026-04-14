@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTranslation } from 'react-i18next';
+import JoditEditor from 'jodit-react';
+import html2pdf from 'html2pdf.js';
 import { 
   Zap, 
   Brain, 
@@ -14,7 +16,9 @@ import {
   RefreshCw,
   Rocket,
   Lightbulb,
-  BarChart3
+  BarChart3,
+  Download,
+  Palette
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { runFactoryMachine } from '../services/geminiService';
@@ -33,6 +37,40 @@ export default function AIFactory() {
   const [input, setInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const [editorContent, setEditorContent] = useState('');
+  const contentRef = useRef<HTMLDivElement>(null);
+  const editor = useRef(null);
+
+  const joditConfig = useMemo(() => ({
+    readonly: false,
+    direction: 'rtl',
+    language: 'ar',
+    theme: 'default',
+    height: 'auto',
+    minHeight: 600,
+    style: {
+      background: '#ffffff',
+      fontFamily: 'Cairo, sans-serif',
+    },
+    uploader: {
+      insertImageAsBase64URI: true,
+    },
+    image: {
+      editSrc: false,
+      useImageEditor: true,
+    },
+    buttons: [
+      'undo', 'redo', '|',
+      'bold', 'strikethrough', 'underline', 'italic', '|',
+      'superscript', 'subscript', '|',
+      'align', '|',
+      'ul', 'ol', 'outdent', 'indent', '|',
+      'font', 'fontsize', 'brush', 'paragraph', '|',
+      'image', 'video', 'table', 'link', '|',
+      'hr', 'eraser', 'copyformat', '|',
+      'fullsize', 'print', 'source'
+    ],
+  }), []);
 
   const machines: MachineProps[] = [
     {
@@ -50,6 +88,20 @@ export default function AIFactory() {
       color: 'text-purple-400'
     },
     {
+      id: 'contentMaker',
+      title: t('dashboard.factory.machines.contentMaker.title'),
+      description: t('dashboard.factory.machines.contentMaker.description'),
+      icon: FileText,
+      color: 'text-green-400'
+    },
+    {
+      id: 'brandGuidelines',
+      title: t('dashboard.factory.machines.brandGuidelines.title'),
+      description: t('dashboard.factory.machines.brandGuidelines.description'),
+      icon: Palette,
+      color: 'text-pink-400'
+    },
+    {
       id: 'visual',
       title: t('dashboard.factory.machines.visual.title'),
       description: t('dashboard.factory.machines.visual.description'),
@@ -62,17 +114,41 @@ export default function AIFactory() {
     if (!input.trim()) return;
     setIsProcessing(true);
     setResult(null);
+    setEditorContent('');
 
     try {
       if (activeMachine) {
         const data = await runFactoryMachine(activeMachine, input);
         setResult(data);
+        if ((activeMachine === 'contentMaker' || activeMachine === 'brandGuidelines') && data.htmlContent) {
+          setEditorContent(data.htmlContent);
+        }
       }
     } catch (error) {
       console.error("Factory Error:", error);
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handleExportPDF = () => {
+    if (!editorContent) return;
+    
+    const element = document.createElement('div');
+    element.innerHTML = editorContent;
+    element.style.padding = '20px';
+    element.style.fontFamily = 'Inter, sans-serif';
+    element.style.direction = 'rtl'; // Assuming Arabic content mostly
+    
+    const opt = {
+      margin:       10,
+      filename:     'moonlight-product.pdf',
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2 },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    html2pdf().set(opt).from(element).save();
   };
 
   return (
@@ -293,6 +369,34 @@ export default function AIFactory() {
                           </Card>
                         ))}
                       </div>
+                    )}
+
+                    {(activeMachine === 'contentMaker' || activeMachine === 'brandGuidelines') && (
+                      <Card className="bg-dark-light/30 border-white/10 backdrop-blur-xl rounded-[2.5rem] overflow-hidden">
+                        <CardHeader className="border-b border-white/5 flex flex-row items-center justify-between">
+                          <CardTitle className="text-lg font-black text-white flex items-center gap-2">
+                            {activeMachine === 'brandGuidelines' ? <Palette size={20} className="text-pink-400" /> : <FileText size={20} className="text-green-400" />}
+                            {activeMachine === 'brandGuidelines' ? t('dashboard.factory.machines.brandGuidelines.title') : t('dashboard.factory.machines.contentMaker.editorTitle')}
+                          </CardTitle>
+                          <button 
+                            onClick={handleExportPDF}
+                            className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-colors"
+                          >
+                            <Download size={14} />
+                            {t('dashboard.factory.machines.contentMaker.exportPdf')}
+                          </button>
+                        </CardHeader>
+                        <CardContent className="p-0 bg-gray-100 rounded-b-[2.5rem]">
+                          <div className="text-black overflow-hidden jodit-wrapper">
+                            <JoditEditor
+                              ref={editor}
+                              value={editorContent}
+                              config={joditConfig}
+                              onBlur={newContent => setEditorContent(newContent)}
+                            />
+                          </div>
+                        </CardContent>
+                      </Card>
                     )}
                   </motion.div>
                 ) : (

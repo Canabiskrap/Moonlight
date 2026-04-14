@@ -134,6 +134,16 @@ const resources = {
               marketingPlan: 'خطة التسويق',
               priceSuggestion: 'السعر المقترح'
             },
+            contentMaker: {
+              title: 'صانع المنتجات الرقمية',
+              description: 'توليد محتوى كامل لمنتج رقمي (كتاب، دليل، مقال) مع إمكانية التعديل والتنسيق وتصديره كـ PDF.',
+              editorTitle: 'محرر المنتج الذكي',
+              exportPdf: 'تصدير كملف PDF'
+            },
+            brandGuidelines: {
+              title: 'دليل الهوية البصرية',
+              description: 'توليد ملف شامل لقواعد الهوية البصرية (Brand Book) يشمل الألوان، الخطوط، ونبرة الصوت.'
+            },
             visual: {
               title: 'ماكينة المحتوى المرئي',
               description: 'توليد أفكار للتصاميم، الفيديوهات، والسيناريوهات الإبداعية.'
@@ -598,6 +608,16 @@ const resources = {
               productDesc: 'Sales Description',
               marketingPlan: 'Marketing Plan',
               priceSuggestion: 'Suggested Price'
+            },
+            contentMaker: {
+              title: 'Digital Product Maker',
+              description: 'Generate full content for a digital product (e-book, guide, article) with the ability to edit, format, and export as PDF.',
+              editorTitle: 'Smart Product Editor',
+              exportPdf: 'Export as PDF'
+            },
+            brandGuidelines: {
+              title: 'Brand Guidelines',
+              description: 'Generate a comprehensive Brand Book including colors, typography, and tone of voice.'
             },
             visual: {
               title: 'Visual Content Machine',
