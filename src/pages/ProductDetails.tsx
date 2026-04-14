@@ -106,7 +106,7 @@ export default function ProductDetails() {
                 }, 2000);
               } catch (err) {
                 console.error("Error processing approved order:", err);
-                alert("حدث خطأ أثناء معالجة الطلب. يرجى التواصل مع الدعم.");
+                alert(t('common.processingError'));
               }
             },
             onError: (err: any) => {
@@ -130,7 +130,7 @@ export default function ProductDetails() {
     return (
       <div className="flex items-center justify-center py-40">
         <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-        <p className="text-gray-500 font-bold mr-4">{t('common.loading')}</p>
+        <p className="text-gray-500 font-bold mr-4">جاري التحميل...</p>
       </div>
     );
   }
@@ -138,10 +138,10 @@ export default function ProductDetails() {
   if (error || !product) {
     return (
       <div className="text-center py-40 space-y-6">
-        <h2 className="text-3xl font-bold text-gray-400">{error || t('products.notFound')}</h2>
+        <h2 className="text-3xl font-bold text-gray-400">{error || 'المنتج غير موجود'}</h2>
         <Link to="/" className="inline-flex items-center gap-2 text-primary hover:underline">
           <ArrowRight size={20} className={i18n.language === 'ar' ? 'rotate-180' : ''} />
-          {t('products.backToStore')}
+          العودة للمتجر
         </Link>
       </div>
     );
@@ -160,7 +160,7 @@ export default function ProductDetails() {
         <div className="space-y-8">
           <Link to="/" className="inline-flex items-center gap-2 text-gray-500 hover:text-white transition-all mb-4 group">
             <ArrowRight size={18} className={`${i18n.language === 'ar' ? 'rotate-180 group-hover:translate-x-1' : 'group-hover:-translate-x-1'} transition-transform`} />
-            <span className="font-bold">{t('products.backToStore')}</span>
+            <span className="font-bold">العودة للمتجر</span>
           </Link>
           
           <div className="glass-card rounded-[3rem] overflow-hidden group relative aspect-[4/5] bg-dark-surface flex items-center justify-center">
@@ -186,7 +186,7 @@ export default function ProductDetails() {
           <div className="space-y-6">
             <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest text-primary">
               <Zap size={12} />
-              {t('products.premiumDigital')}
+              منتج رقمي مميز
             </div>
             <h1 className="text-5xl md:text-6xl font-black leading-tight tracking-tighter text-glow">{product.name}</h1>
             <p className="text-gray-400 text-xl leading-relaxed font-medium text-right">{product.description}</p>
@@ -197,7 +197,7 @@ export default function ProductDetails() {
             
             <div className="flex items-center gap-4 text-green-400 bg-green-400/5 p-6 rounded-2xl border border-green-400/10">
               <ShieldCheck size={28} />
-              <p className="font-bold text-sm leading-relaxed">{t('products.securePayment')}</p>
+              <p className="font-bold text-sm leading-relaxed">دفع آمن ومحمي. ستحصل على رابط التحميل فوراً وتلقائياً بعد إتمام العملية.</p>
             </div>
 
             {!paid ? (
@@ -217,8 +217,8 @@ export default function ProductDetails() {
                   <Download className="text-white" size={36} />
                 </div>
                 <div className="space-y-2">
-                  <h3 className="text-3xl font-black text-white">{t('products.thanks')}</h3>
-                  <p className="text-gray-400 font-medium">{t('products.paymentConfirmed')}</p>
+                  <h3 className="text-3xl font-black text-white">شكراً لثقتك!</h3>
+                  <p className="text-gray-400 font-medium">تم تأكيد الدفع، يمكنك التحميل الآن</p>
                 </div>
                 <a 
                   href={product.downloadUrl} 
@@ -226,7 +226,7 @@ export default function ProductDetails() {
                   rel="noopener noreferrer"
                   className="btn-premium flex items-center justify-center gap-3 bg-white text-black py-5 rounded-2xl font-black text-lg shadow-2xl shadow-white/10"
                 >
-                  {t('products.downloadFiles')}
+                  تحميل الملفات
                   <ExternalLink size={20} />
                 </a>
               </motion.div>
@@ -235,12 +235,12 @@ export default function ProductDetails() {
 
           <div className="grid grid-cols-2 gap-6">
             <div className="glass-card p-6 rounded-2xl text-center space-y-1">
-              <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest">{t('products.category')}</p>
+              <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest">الفئة</p>
               <p className="font-black text-gold text-lg">{product.category}</p>
             </div>
             <div className="glass-card p-6 rounded-2xl text-center space-y-1">
-              <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest">{t('products.delivery')}</p>
-              <p className="font-black text-green-400 text-lg">{t('products.instant')}</p>
+              <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest">التسليم</p>
+              <p className="font-black text-green-400 text-lg">فوري</p>
             </div>
           </div>
 
@@ -258,8 +258,8 @@ export default function ProductDetails() {
                   <>
                     <Brain className="text-primary group-hover:scale-110 transition-transform" size={28} />
                     <div className="text-right">
-                      <p className="text-lg font-black text-white">{t('products.aiInsights')}</p>
-                      <p className="text-xs text-gray-500 font-medium">{t('products.aiInsightsDesc')}</p>
+                      <p className="text-lg font-black text-white">تحليل Moonlight الذكي</p>
+                      <p className="text-xs text-gray-500 font-medium">اكتشف كيف سيساعدك هذا المنتج في مشروعك</p>
                     </div>
                   </>
                 )}
@@ -274,14 +274,14 @@ export default function ProductDetails() {
                   <div className="bg-primary/20 p-3 rounded-2xl">
                     <Sparkles className="text-primary" size={24} />
                   </div>
-                  <h3 className="text-2xl font-black">{t('products.aiVision')}</h3>
+                  <h3 className="text-2xl font-black">رؤية الذكاء الاصطناعي</h3>
                 </div>
 
                 <div className="space-y-8">
                   <div className="space-y-3">
                     <div className="flex items-center gap-2 text-gold">
                       <Brain size={18} />
-                      <span className="text-xs font-black uppercase tracking-widest">{t('products.creativeSummary')}</span>
+                      <span className="text-xs font-black uppercase tracking-widest">ملخص إبداعي</span>
                     </div>
                     <p className="text-gray-300 leading-relaxed font-medium text-right">{aiInsights.creativeSummary}</p>
                   </div>
@@ -290,21 +290,21 @@ export default function ProductDetails() {
                     <div className="space-y-3">
                       <div className="flex items-center gap-2 text-primary">
                         <Target size={18} />
-                        <span className="text-xs font-black uppercase tracking-widest">{t('products.targetAudience')}</span>
+                        <span className="text-xs font-black uppercase tracking-widest">الجمهور المستهدف</span>
                       </div>
                       <p className="text-gray-400 text-sm leading-relaxed font-medium text-right">{aiInsights.targetAudience}</p>
                     </div>
                     <div className="space-y-3">
                       <div className="flex items-center gap-2 text-green-400">
                         <Lightbulb size={18} />
-                        <span className="text-xs font-black uppercase tracking-widest">{t('products.proTip')}</span>
+                        <span className="text-xs font-black uppercase tracking-widest">نصيحة Moonlight</span>
                       </div>
                       <p className="text-gray-400 text-sm leading-relaxed font-medium text-right">{aiInsights.proTip}</p>
                     </div>
                   </div>
 
                   <div className="space-y-4">
-                    <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest block text-right">{t('products.bestUseCases')}</span>
+                    <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest block text-right">أفضل حالات الاستخدام</span>
                     <div className="flex flex-wrap gap-3 justify-end">
                       {aiInsights.suggestedUseCases.map((useCase, i) => (
                         <div key={i} className="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-xl border border-white/10 text-xs text-gray-300 font-bold">

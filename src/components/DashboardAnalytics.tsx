@@ -39,7 +39,7 @@ export default function DashboardAnalytics({ orders, products, services, addLog,
   
   // Sales by category
   const categoryData = products.reduce((acc: any, p) => {
-    const cat = p.category === 'cv' ? 'سيرة ذاتية' : p.category === 'social' ? 'سوشيال ميديا' : 'قوالب ويب';
+    const cat = p.category === 'cv' ? 'تصميم CV' : p.category === 'social' ? 'إدارة تواصل' : 'تطوير ويب';
     acc[cat] = (acc[cat] || 0) + 1;
     return acc;
   }, {});
@@ -53,6 +53,7 @@ export default function DashboardAnalytics({ orders, products, services, addLog,
 
   // Real data for sales trend
   const daysOfWeek = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+  
   const last7Days = Array.from({ length: 7 }).map((_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (6 - i));
@@ -86,7 +87,7 @@ export default function DashboardAnalytics({ orders, products, services, addLog,
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
           { title: 'إجمالي المبيعات', value: `$${totalRevenue.toFixed(2)}`, icon: DollarSign, color: 'text-green-400', bg: 'bg-green-500/10' },
-          { title: 'عدد الطلبات', value: totalSales, icon: ShoppingBag, color: 'text-primary', bg: 'bg-primary/10' },
+          { title: 'إجمالي الطلبات', value: totalSales, icon: ShoppingBag, color: 'text-primary', bg: 'bg-primary/10' },
           { title: 'المنتجات النشطة', value: products.length, icon: TrendingUp, color: 'text-gold', bg: 'bg-gold/10' },
           { title: 'الخدمات المتاحة', value: services.length, icon: Sparkles, color: 'text-purple-400', bg: 'bg-purple-500/10' },
         ].map((stat, i) => (
@@ -117,8 +118,8 @@ export default function DashboardAnalytics({ orders, products, services, addLog,
         {/* Smart Tools Section */}
         <Card className="bg-dark-light/30 border-white/10 backdrop-blur-xl rounded-[2.5rem] overflow-hidden shadow-2xl">
           <CardHeader>
-            <CardTitle className="text-xl font-black text-white">أدوات النظام الذكية</CardTitle>
-            <CardDescription className="text-gray-500 font-bold">فحص وإصلاح تلقائي للمتجر</CardDescription>
+            <CardTitle className="text-xl font-black text-white">الأدوات الذكية</CardTitle>
+            <CardDescription className="text-gray-500 font-bold">إدارة تقنية متقدمة للنظام</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
@@ -126,7 +127,7 @@ export default function DashboardAnalytics({ orders, products, services, addLog,
                 <p className="text-[10px] text-gray-500 mb-1 font-bold uppercase">قاعدة البيانات</p>
                 <div className="flex items-center justify-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                  <p className="text-xs font-black text-green-400">متصلة</p>
+                  <p className="text-xs font-black text-green-400">متصل</p>
                 </div>
               </div>
               <div className="bg-dark/40 p-4 rounded-2xl border border-white/5 text-center group hover:border-primary/30 transition-colors">
@@ -145,7 +146,7 @@ export default function DashboardAnalytics({ orders, products, services, addLog,
                 className="w-full py-4 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-3 disabled:opacity-50"
               >
                 {isTestingConnection ? <RefreshCw size={18} className="animate-spin" /> : <RefreshCw size={18} />}
-                فحص صحة النظام
+                فحص حالة النظام
               </button>
 
               <button 
@@ -178,7 +179,7 @@ export default function DashboardAnalytics({ orders, products, services, addLog,
         <Card className="lg:col-span-2 bg-dark-light/30 border-white/10 backdrop-blur-xl rounded-[2.5rem] overflow-hidden shadow-2xl">
           <CardHeader>
             <CardTitle className="text-xl font-black text-white">تحليل المبيعات الأسبوعي</CardTitle>
-            <CardDescription className="text-gray-500 font-bold">معدل النمو والنشاط خلال الأيام السبعة الماضية</CardDescription>
+            <CardDescription className="text-gray-500 font-bold">أداء المتجر خلال آخر 7 أيام</CardDescription>
           </CardHeader>
           <CardContent className="h-[300px] w-full pt-4">
             <ResponsiveContainer width="100%" height="100%">

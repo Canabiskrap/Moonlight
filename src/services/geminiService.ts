@@ -149,3 +149,87 @@ export async function generateFixSuggestion(prompt: string): Promise<string> {
     throw error;
   }
 }
+
+export async function runFactoryMachine(machineId: string, input: string): Promise<any> {
+  if (!ai) throw new Error("AI service not initialized. Missing API Key.");
+  
+  let systemInstruction = "";
+  let responseSchema: any = {};
+
+  if (machineId === 'strategy') {
+    systemInstruction = "You are a world-class marketing strategist for 'Moonlight 🌕'. Analyze the user's business idea and provide a SWOT analysis and a Buyer Persona in Arabic.";
+    responseSchema = {
+      type: Type.OBJECT,
+      properties: {
+        swot: {
+          type: Type.OBJECT,
+          properties: {
+            strengths: { type: Type.ARRAY, items: { type: Type.STRING } },
+            weaknesses: { type: Type.ARRAY, items: { type: Type.STRING } },
+            opportunities: { type: Type.ARRAY, items: { type: Type.STRING } },
+            threats: { type: Type.ARRAY, items: { type: Type.STRING } }
+          },
+          required: ["strengths", "weaknesses", "opportunities", "threats"]
+        },
+        persona: {
+          type: Type.OBJECT,
+          properties: {
+            name: { type: Type.STRING },
+            needs: { type: Type.STRING },
+            painPoints: { type: Type.STRING }
+          },
+          required: ["name", "needs", "painPoints"]
+        }
+      },
+      required: ["swot", "persona"]
+    };
+  } else if (machineId === 'product') {
+    systemInstruction = "You are a digital product creator for 'Moonlight 🌕'. Convert a simple idea into a full product proposal in Arabic, including a catchy title, persuasive description, marketing plan, and price suggestion.";
+    responseSchema = {
+      type: Type.OBJECT,
+      properties: {
+        title: { type: Type.STRING },
+        description: { type: Type.STRING },
+        marketingPlan: { type: Type.STRING },
+        priceSuggestion: { type: Type.STRING }
+      },
+      required: ["title", "description", "marketingPlan", "priceSuggestion"]
+    };
+  } else {
+    systemInstruction = "You are a creative content director for 'Moonlight 🌕'. Provide 3-4 creative content ideas (video scripts, social media posts) based on the user's input in Arabic.";
+    responseSchema = {
+      type: Type.OBJECT,
+      properties: {
+        ideas: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              type: { type: Type.STRING, description: "e.g., Video Script, Instagram Post" },
+              content: { type: Type.STRING }
+            },
+            required: ["type", "content"]
+          }
+        }
+      },
+      required: ["ideas"]
+    };
+  }
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: input,
+      config: {
+        systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema
+      }
+    });
+
+    return JSON.parse(response.text);
+  } catch (error) {
+    console.error("Factory Machine Error:", error);
+    throw error;
+  }
+}

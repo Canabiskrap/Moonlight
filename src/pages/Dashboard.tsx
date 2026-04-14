@@ -21,6 +21,8 @@ import {
 import { convertDriveLink, isValidUrl } from '../lib/utils';
 import { SmartDiagnosticService } from '../lib/smartDiagnostic';
 import { motion, AnimatePresence } from 'motion/react';
+import { useTranslation } from 'react-i18next';
+import i18n from '../i18n';
 import { 
   Plus, 
   Trash2, 
@@ -56,10 +58,12 @@ import {
 
 import { getProductInsights, chatWithBot } from '../services/geminiService';
 import DashboardAnalytics from '../components/DashboardAnalytics';
+import AIFactory from '../components/AIFactory';
 import SmartAIAssistant from '../components/SmartAIAssistant';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 
 export default function Dashboard() {
+  const { t } = useTranslation();
   const [products, setProducts] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
@@ -259,7 +263,7 @@ export default function Dashboard() {
     setUploadProgress(0);
   };
 
-  const [activeTab, setActiveTab] = useState<'products' | 'services' | 'orders' | 'settings' | 'analytics' | 'ai'>('analytics');
+  const [activeTab, setActiveTab] = useState<'products' | 'services' | 'orders' | 'settings' | 'analytics' | 'ai' | 'factory'>('analytics');
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [heroVideoFile, setHeroVideoFile] = useState<File | null>(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
@@ -663,22 +667,23 @@ export default function Dashboard() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
         <div className="flex flex-col">
           <div className="flex items-center gap-4">
-            <h1 className="text-4xl font-black text-white tracking-tight">لوحة التحكم</h1>
+            <h1 className="text-4xl font-black text-white tracking-tight">{t('dashboard.title')}</h1>
           </div>
           <div className="flex items-center gap-2 mt-2">
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-            <span className="text-[10px] text-gray-500 uppercase tracking-[0.2em] font-bold">🌕 Management System</span>
+            <span className="text-[10px] text-gray-500 uppercase tracking-[0.2em] font-bold">🌕 {t('dashboard.managementSystem')}</span>
           </div>
         </div>
         
         <div className="flex flex-wrap gap-3 bg-dark-light/30 p-2 rounded-[2.5rem] border border-white/5">
           {[
-            { id: 'analytics', label: 'التحليلات', icon: Activity, color: 'primary' },
-            { id: 'ai', label: 'الذكاء الاصطناعي', icon: Brain, color: 'gold' },
-            { id: 'products', label: 'المنتجات', icon: Package, color: 'primary' },
-            { id: 'services', label: 'الخدمات', icon: Sparkles, color: 'primary' },
-            { id: 'orders', label: 'الطلبات', icon: ShoppingBag, color: 'primary' },
-            { id: 'settings', label: 'الإعدادات', icon: Settings, color: 'primary' },
+            { id: 'analytics', label: t('dashboard.tabs.analytics'), icon: Activity, color: 'primary' },
+            { id: 'ai', label: t('dashboard.tabs.ai'), icon: Brain, color: 'gold' },
+            { id: 'factory', label: t('dashboard.tabs.factory'), icon: Zap, color: 'primary' },
+            { id: 'products', label: t('dashboard.tabs.products'), icon: Package, color: 'primary' },
+            { id: 'services', label: t('dashboard.tabs.services'), icon: Sparkles, color: 'primary' },
+            { id: 'orders', label: t('dashboard.tabs.orders'), icon: ShoppingBag, color: 'primary' },
+            { id: 'settings', label: t('dashboard.tabs.settings'), icon: Settings, color: 'primary' },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -709,8 +714,8 @@ export default function Dashboard() {
                     <Settings size={28} />
                   </div>
                   <div>
-                    <h2 className="text-3xl font-black text-white">إعدادات المظهر</h2>
-                    <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">تخصيص هوية Moonlight 🌕</p>
+                    <h2 className="text-3xl font-black text-white">مظهر المتجر</h2>
+                    <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">تخصيص الهوية البصرية والروابط</p>
                   </div>
                 </div>
 
@@ -718,7 +723,7 @@ export default function Dashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-lg font-black text-white mb-1">شعار المتجر (Logo)</h3>
-                      <p className="text-xs text-gray-500 font-bold">سيظهر الشعار في أعلى وأسفل الموقع</p>
+                      <p className="text-xs text-gray-500 font-bold">يفضل أن يكون بخلفية شفافة PNG</p>
                     </div>
                     <div className="w-20 h-20 bg-dark rounded-2xl border border-white/10 flex items-center justify-center overflow-hidden">
                       {logoFile ? (
@@ -743,9 +748,9 @@ export default function Dashboard() {
                     >
                       <Upload className="text-gray-500 mb-3 group-hover:text-primary transition-colors" size={32} />
                       <span className="text-sm font-black text-gray-400 group-hover:text-white transition-colors">
-                        {logoFile ? logoFile.name : 'اختر صورة الشعار الجديد'}
+                        {logoFile ? logoFile.name : 'اختر ملف الشعار'}
                       </span>
-                      <span className="text-[10px] text-gray-600 mt-2">يفضل أن تكون الخلفية شفافة (PNG)</span>
+                      <span className="text-[10px] text-gray-600 mt-2">اسحب الملف هنا أو اضغط للاختيار</span>
                     </label>
 
                     <button 
@@ -775,13 +780,13 @@ export default function Dashboard() {
                     </div>
                     <div>
                       <h3 className="text-xl font-black text-white">روابط التواصل الاجتماعي</h3>
-                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">اربط متجرك بمنصات التواصل</p>
+                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">اربط حساباتك لتظهر في أسفل الموقع</p>
                     </div>
                   </div>
 
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <label className="text-xs font-black text-gray-500 uppercase tracking-widest mr-2">رابط إنستغرام</label>
+                      <label className="text-xs font-black text-gray-500 uppercase tracking-widest mr-2">إنستغرام</label>
                       <div className="relative">
                         <Instagram className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
                         <input 
@@ -795,7 +800,7 @@ export default function Dashboard() {
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-xs font-black text-gray-500 uppercase tracking-widest mr-2">رابط تويتر (X)</label>
+                      <label className="text-xs font-black text-gray-500 uppercase tracking-widest mr-2">تويتر (X)</label>
                       <div className="relative">
                         <Twitter className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
                         <input 
@@ -809,7 +814,7 @@ export default function Dashboard() {
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-xs font-black text-gray-500 uppercase tracking-widest mr-2">رابط فيسبوك</label>
+                      <label className="text-xs font-black text-gray-500 uppercase tracking-widest mr-2">فيسبوك</label>
                       <div className="relative">
                         <Facebook className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
                         <input 
@@ -823,7 +828,7 @@ export default function Dashboard() {
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-xs font-black text-gray-500 uppercase tracking-widest mr-2">رابط تيك توك</label>
+                      <label className="text-xs font-black text-gray-500 uppercase tracking-widest mr-2">تيك توك</label>
                       <div className="relative">
                         <Video className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
                         <input 
@@ -837,7 +842,7 @@ export default function Dashboard() {
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-xs font-black text-gray-500 uppercase tracking-widest mr-2">رابط تلغرام</label>
+                      <label className="text-xs font-black text-gray-500 uppercase tracking-widest mr-2">تيليجرام</label>
                       <div className="relative">
                         <Send className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
                         <input 
@@ -855,7 +860,7 @@ export default function Dashboard() {
                       className="w-full py-4 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-3 border border-white/5"
                     >
                       <CheckCircle2 size={18} className="text-primary" />
-                      حفظ الروابط
+                      حفظ جميع الروابط
                     </button>
                   </div>
                 </div>
@@ -866,8 +871,8 @@ export default function Dashboard() {
                             <Zap size={24} />
                           </div>
                           <div>
-                            <h3 className="text-xl font-black text-white">فيديو الواجهة الرئيسية</h3>
-                            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">ارفع الفيديو الذي تعبت في إنشائه هنا</p>
+                            <h3 className="text-xl font-black text-white">فيديو الواجهة (Hero)</h3>
+                            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">تغيير الفيديو المتحرك في الصفحة الرئيسية</p>
                           </div>
                         </div>
 
@@ -893,7 +898,7 @@ export default function Dashboard() {
                                 ) : (
                                   <>
                                     <Upload className="text-gray-500 mb-2 group-hover:text-primary transition-colors" size={32} />
-                                    <span className="text-xs text-gray-500 font-bold">اختر ملف الفيديو (MP4)</span>
+                                    <span className="text-xs text-gray-500 font-bold">اختر فيديو جديد</span>
                                   </>
                                 )}
                               </label>
@@ -950,7 +955,7 @@ export default function Dashboard() {
                   <div>
                     <h4 className="text-gold font-black text-sm mb-1">نصيحة تقنية</h4>
                     <p className="text-xs text-gray-400 leading-relaxed font-bold">
-                      بعد رفع الشعار، قد يستغرق الأمر بضع ثوانٍ ليظهر في جميع صفحات الموقع. إذا لم يتغير الشعار فوراً، يرجى تحديث الصفحة.
+                      استخدم فيديوهات قصيرة (أقل من 10 ثوانٍ) وبحجم صغير لضمان سرعة تحميل الموقع للزوار.
                     </p>
                   </div>
                 </div>
@@ -978,7 +983,7 @@ export default function Dashboard() {
                   onClick={resetForm}
                   className="text-xs font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1"
                 >
-                  إلغاء
+                  إلغاء التعديل
                 </button>
               )}
             </div>
@@ -986,7 +991,7 @@ export default function Dashboard() {
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-black flex items-center gap-2">
                 {editingId || editingServiceId ? <CheckCircle2 className="text-gold" /> : <Plus className="text-primary" />}
-                {editingId ? 'تعديل المنتج' : editingServiceId ? 'تعديل الخدمة' : activeTab === 'services' ? 'إضافة خدمة جديدة' : 'إضافة منتج جديد'}
+                {editingId ? 'تعديل المنتج الحالي' : editingServiceId ? 'تعديل الخدمة الحالية' : activeTab === 'services' ? 'إضافة خدمة جديدة' : 'إضافة منتج جديد'}
               </h2>
               {(editingId || editingServiceId) && (
                 <button 
@@ -1010,10 +1015,10 @@ export default function Dashboard() {
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm font-black text-red-500">تنبيه الصلاحيات</p>
-                  <p className="text-[10px] text-gray-400">أنت مسجل دخول بـ: <span className="text-white">{currentUser.email}</span></p>
+                  <p className="text-[10px] text-gray-400">أنت مسجل دخول بـ <span className="text-white">{currentUser.email}</span></p>
                 </div>
                 <p className="text-[11px] text-gray-500 font-medium leading-relaxed">
-                  هذا الحساب ليس مسجلاً كمسؤول. يرجى تسجيل الدخول بالحساب الصحيح للتحكم في المتجر.
+                  هذا الحساب ليس لديه صلاحيات المسؤول. لن تتمكن من حفظ التغييرات أو حذف البيانات.
                 </p>
               </motion.div>
             )}
@@ -1028,11 +1033,11 @@ export default function Dashboard() {
                   <AlertCircle className="text-gold" size={24} />
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm font-black text-gold">تأكيد البريد الإلكتروني</p>
-                  <p className="text-[10px] text-gray-400">بريدك <span className="text-white">{currentUser.email}</span> غير مؤكد</p>
+                  <p className="text-sm font-black text-gold">تأكيد البريد الإلكتروني مطلوب</p>
+                  <p className="text-[10px] text-gray-400">أنت مسجل دخول بـ <span className="text-white">{currentUser.email}</span> ولكن البريد غير مؤكد.</p>
                 </div>
                 <p className="text-[11px] text-gray-500 font-medium leading-relaxed">
-                  يرجى تأكيد بريدك في إعدادات جوجل لتتمكن من نشر المنتجات.
+                  يرجى مراجعة بريدك الإلكتروني والضغط على رابط التأكيد لتتمكن من إدارة المتجر.
                 </p>
               </motion.div>
             )}
@@ -1057,7 +1062,7 @@ export default function Dashboard() {
                       }}
                       className="text-[10px] bg-red-500/20 hover:bg-red-500/30 px-3 py-1.5 rounded-lg self-start transition-all"
                     >
-                      إعادة المحاولة
+                      {t('dashboard.form.preparing')}
                     </button>
                   </div>
                 </motion.div>
@@ -1070,20 +1075,20 @@ export default function Dashboard() {
                   className="bg-green-500/10 border border-green-500/20 text-green-500 p-4 rounded-2xl text-xs font-bold flex items-center gap-2"
                 >
                   <CheckCircle2 className="w-5 h-5" />
-                  تم {editingId || editingServiceId ? 'تحديث' : 'إضافة'} {activeTab === 'services' || editingServiceId ? 'الخدمة' : 'المنتج'} بنجاح!
+                  تم {editingId || editingServiceId ? t('common.edit') : t('common.save')} {activeTab === 'services' || editingServiceId ? t('dashboard.form.serviceName') : t('dashboard.form.productName')} بنجاح!
                 </motion.div>
               )}
               
               <div className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-1">
-                    {activeTab === 'services' || editingServiceId ? 'اسم الخدمة' : 'اسم المنتج'}
+                    {activeTab === 'services' || editingServiceId ? t('dashboard.form.serviceName') : t('dashboard.form.productName')}
                   </label>
                   <input 
                     type="text" 
                     value={name} 
                     onChange={(e) => setName(e.target.value)}
-                    placeholder={activeTab === 'services' || editingServiceId ? "مثال: تصميم هوية بصرية" : "مثال: قالب سيرة ذاتية احترافي"}
+                    placeholder={activeTab === 'services' || editingServiceId ? t('dashboard.form.namePlaceholderService') : t('dashboard.form.namePlaceholderProduct')}
                     className="bg-white/5 border border-white/5 focus:border-primary/50 focus:bg-white/10 outline-none transition-all w-full p-4 rounded-2xl text-sm"
                     required
                   />
@@ -1092,7 +1097,7 @@ export default function Dashboard() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-1">
-                      {activeTab === 'services' || editingServiceId ? 'أيقونة' : 'الفئة'}
+                      {activeTab === 'services' || editingServiceId ? t('dashboard.form.iconLabel') : t('dashboard.form.categoryLabel')}
                     </label>
                     {activeTab === 'services' || editingServiceId ? (
                       <input 
@@ -1104,23 +1109,23 @@ export default function Dashboard() {
                       />
                     ) : (
                       <div className="relative">
-                        <select 
-                          value={category} 
-                          onChange={(e) => setCategory(e.target.value)}
-                          className="bg-white/5 border border-white/5 focus:border-primary/50 focus:bg-white/10 outline-none transition-all w-full p-4 rounded-2xl text-sm appearance-none cursor-pointer"
-                        >
-                          <option value="cv">سيرة ذاتية</option>
-                          <option value="social">سوشيال ميديا</option>
-                          <option value="web">قالب ويب</option>
-                          <option value="other">أخرى</option>
-                        </select>
+                          <select 
+                            value={category} 
+                            onChange={(e) => setCategory(e.target.value)}
+                            className="bg-white/5 border border-white/5 focus:border-primary/50 focus:bg-white/10 outline-none transition-all w-full p-4 rounded-2xl text-sm appearance-none cursor-pointer"
+                          >
+                            <option value="cv">{t('hero.categories.cv')}</option>
+                            <option value="social">{t('hero.categories.social')}</option>
+                            <option value="web">{t('hero.categories.web')}</option>
+                            <option value="other">{t('hero.categories.other')}</option>
+                          </select>
                         <Settings className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={14} />
                       </div>
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-1">السعر ($)</label>
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-1">{t('dashboard.form.priceLabel')}</label>
                     <input 
                       type="number" 
                       step="0.01"
@@ -1136,26 +1141,26 @@ export default function Dashboard() {
 
               <div className="space-y-4">
                 <div className="p-1 bg-white/5 rounded-2xl border border-white/5 flex">
-                    <button 
-                      type="button"
-                      onClick={() => setUploadMethod('direct')}
-                      className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${uploadMethod === 'direct' ? 'bg-primary text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}
-                    >
-                      رفع ملفات
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => setUploadMethod('link')}
-                      className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${uploadMethod === 'link' ? 'bg-primary text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}
-                    >
-                      روابط خارجية
-                    </button>
+                      <button 
+                        type="button"
+                        onClick={() => setUploadMethod('direct')}
+                        className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${uploadMethod === 'direct' ? 'bg-primary text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}
+                      >
+                        {t('dashboard.form.uploadMethodFiles')}
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={() => setUploadMethod('link')}
+                        className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${uploadMethod === 'link' ? 'bg-primary text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}
+                      >
+                        {t('dashboard.form.uploadMethodLinks')}
+                      </button>
                   </div>
 
                   {uploadMethod === 'direct' ? (
                     <div className="grid grid-cols-1 gap-4">
                       <div className="space-y-2">
-                        <label className="text-sm font-bold text-gray-400">1. صورة الغلاف</label>
+                        <label className="text-sm font-bold text-gray-400">1. {t('dashboard.form.coverImage')}</label>
                         <div className="relative group">
                           <input 
                             type="file" 
@@ -1176,12 +1181,12 @@ export default function Dashboard() {
                             ) : imageUrl ? (
                               <div className="flex flex-col items-center gap-2 text-primary font-bold text-xs p-4 text-center">
                                 <ImageIcon size={24} />
-                                <span>صورة موجودة مسبقاً</span>
+                                <span>{t('dashboard.form.existingImage')}</span>
                               </div>
                             ) : (
                               <>
                                 <Upload className="text-gray-500 mb-2" size={24} />
-                                <span className="text-xs text-gray-500">اختر صورة المعرض</span>
+                                <span className="text-xs text-gray-500">{t('dashboard.form.chooseImage')}</span>
                               </>
                             )}
                           </label>
@@ -1189,7 +1194,7 @@ export default function Dashboard() {
                       </div>
 
                       <div className="space-y-2">
-                        <label className="text-sm font-bold text-gray-400">2. {activeTab === 'services' || editingServiceId ? 'ملف الخدمة (اختياري)' : 'الملف الرقمي'}</label>
+                        <label className="text-sm font-bold text-gray-400">2. {activeTab === 'services' || editingServiceId ? t('dashboard.form.serviceFileOptional') : t('dashboard.form.digitalFile')}</label>
                         <div className="relative group">
                             <input 
                               type="file" 
@@ -1210,12 +1215,12 @@ export default function Dashboard() {
                               ) : downloadUrl ? (
                                 <div className="flex flex-col items-center gap-2 text-primary font-bold text-xs p-4 text-center">
                                   <Package size={24} />
-                                  <span>ملف موجود مسبقاً</span>
+                                  <span>{t('dashboard.form.existingFile')}</span>
                                 </div>
                               ) : (
                                 <>
                                   <Upload className="text-gray-500 mb-2" size={24} />
-                                  <span className="text-xs text-gray-500">ارفع الملف الرقمي (ZIP)</span>
+                                  <span className="text-xs text-gray-500">{t('dashboard.form.chooseFile')}</span>
                                 </>
                               )}
                             </label>
@@ -1226,22 +1231,22 @@ export default function Dashboard() {
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <div className="flex justify-between items-center">
-                          <label className="text-sm font-bold text-gray-400">1. صورة الغلاف</label>
+                          <label className="text-sm font-bold text-gray-400">1. {t('dashboard.form.coverImage')}</label>
                           <div className="flex bg-dark rounded-lg p-1 border border-white/5">
-                            <button 
-                              type="button"
-                              onClick={() => setImageUploadType('file')}
-                              className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${imageUploadType === 'file' ? 'bg-primary text-white' : 'text-gray-500'}`}
-                            >
-                              رفع ملف
-                            </button>
-                            <button 
-                              type="button"
-                              onClick={() => setImageUploadType('link')}
-                              className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${imageUploadType === 'link' ? 'bg-primary text-white' : 'text-gray-500'}`}
-                            >
-                              رابط خارجي
-                            </button>
+                              <button 
+                                type="button"
+                                onClick={() => setImageUploadType('file')}
+                                className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${imageUploadType === 'file' ? 'bg-primary text-white' : 'text-gray-500'}`}
+                              >
+                                {t('dashboard.form.uploadFile')}
+                              </button>
+                              <button 
+                                type="button"
+                                onClick={() => setImageUploadType('link')}
+                                className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${imageUploadType === 'link' ? 'bg-primary text-white' : 'text-gray-500'}`}
+                              >
+                                {t('dashboard.form.externalLink')}
+                              </button>
                           </div>
                         </div>
 
@@ -1271,12 +1276,12 @@ export default function Dashboard() {
                                     referrerPolicy="no-referrer"
                                     onError={(e) => (e.target as HTMLImageElement).src = 'https://via.placeholder.com/150?text=Error'}
                                   />
-                                  <span>صورة موجودة مسبقاً</span>
+                                  <span>{t('dashboard.form.existingImage')}</span>
                                 </div>
                               ) : (
                                 <>
                                   <Upload className="text-gray-500 mb-2" size={24} />
-                                  <span className="text-xs text-gray-500">اختر صورة المعرض</span>
+                                  <span className="text-xs text-gray-500">{t('dashboard.form.chooseImage')}</span>
                                 </>
                               )}
                             </label>
@@ -1288,7 +1293,7 @@ export default function Dashboard() {
                                 type="url" 
                                 value={imageUrl} 
                                 onChange={(e) => setImageUrl(e.target.value)}
-                                placeholder="https:// رابط الصورة..."
+                                placeholder={t('dashboard.form.imageLinkPlaceholder')}
                                 className="bg-dark border-white/5 focus:border-primary outline-none transition-all flex-1 p-4 rounded-2xl"
                               />
                               {imageUrl && (
@@ -1312,10 +1317,10 @@ export default function Dashboard() {
                               <div className="bg-primary/10 border border-primary/20 p-3 rounded-xl space-y-1">
                                 <p className="text-[10px] text-gold font-bold flex items-center gap-1">
                                   <Sparkles size={12} />
-                                  تم اكتشاف رابط Google Drive
+                                  {t('dashboard.form.driveDetected')}
                                 </p>
                                 <p className="text-[9px] text-gray-400 leading-tight">
-                                  تأكد من أن الملف في Google Drive مضبوط على "أي شخص لديه الرابط يمكنه العرض" (Anyone with the link can view) وإلا فلن تظهر الصورة للعملاء.
+                                  {t('dashboard.form.driveHint')}
                                 </p>
                               </div>
                             )}
@@ -1325,7 +1330,7 @@ export default function Dashboard() {
 
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <label className="text-sm font-bold text-gray-400">2. {activeTab === 'services' || editingServiceId ? 'رابط ملف الخدمة (اختياري)' : 'رابط تحميل الملف'}</label>
+                          <label className="text-sm font-bold text-gray-400">2. {activeTab === 'services' || editingServiceId ? t('dashboard.form.serviceFileOptional') : t('dashboard.form.downloadLink')}</label>
                             {downloadUrl.includes('drive.google.com') && (
                               <span className="text-[10px] text-gold font-bold">رابط Google Drive ✅</span>
                             )}
@@ -1334,13 +1339,13 @@ export default function Dashboard() {
                             type="url" 
                             value={downloadUrl} 
                             onChange={(e) => setDownloadUrl(e.target.value)}
-                            placeholder="https:// رابط تحميل الملف الرقمي..."
+                            placeholder={t('dashboard.form.downloadLinkPlaceholder')}
                             className="bg-dark border-white/5 focus:border-primary outline-none transition-all w-full p-4 rounded-2xl"
                             required={uploadMethod === 'link'}
                           />
                           {downloadUrl.includes('drive.google.com') && (
                             <p className="text-[9px] text-gray-500 px-2">
-                              * تأكد من جعل الملف "عام" (Public) في Google Drive ليتمكن العميل من تحميله بعد الشراء.
+                              {t('dashboard.form.drivePublicHint')}
                             </p>
                           )}
                         </div>
@@ -1350,12 +1355,12 @@ export default function Dashboard() {
 
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-1">
-                  {activeTab === 'services' || editingServiceId ? 'وصف الخدمة' : 'وصف المنتج'}
+                  {activeTab === 'services' || editingServiceId ? t('dashboard.form.serviceName') : t('dashboard.form.productName')}
                 </label>
                 <textarea 
                   value={description} 
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="اكتب التفاصيل هنا..."
+                  placeholder={t('dashboard.form.descriptionPlaceholder')}
                   className="bg-white/5 border border-white/5 focus:border-primary/50 focus:bg-white/10 outline-none transition-all w-full p-4 rounded-2xl min-h-[120px] text-sm resize-none"
                   required
                 />
@@ -1367,7 +1372,7 @@ export default function Dashboard() {
                     <div className="flex justify-between items-center">
                       <div className="space-y-2 flex-1">
                         <div className="flex justify-between text-[10px] font-black text-gold uppercase tracking-widest">
-                          <span>جاري المعالجة</span>
+                          <span>{t('dashboard.form.processing')}</span>
                           <span>{uploadProgress}%</span>
                         </div>
                         <div className="w-full bg-dark/50 rounded-full h-2 overflow-hidden border border-white/5">
@@ -1383,7 +1388,7 @@ export default function Dashboard() {
                         onClick={handleCancelUpload}
                         className="ml-4 px-3 py-1 bg-red-500/10 text-red-500 rounded-lg text-[10px] font-black hover:bg-red-500/20 transition-all"
                       >
-                        إلغاء
+                        {t('common.cancel')}
                       </button>
                     </div>
                   </div>
@@ -1404,8 +1409,8 @@ export default function Dashboard() {
                       <div className="flex items-center justify-center gap-3">
                         <RefreshCw size={18} className="animate-spin" />
                         {uploadProgress > 0 
-                          ? `جاري الحفظ... ${Math.round(uploadProgress)}%` 
-                          : "جاري التحضير..."}
+                          ? `${t('dashboard.form.saving')} ${Math.round(uploadProgress)}%` 
+                          : t('dashboard.form.preparing')}
                       </div>
                       <div 
                         role="button"
@@ -1424,18 +1429,18 @@ export default function Dashboard() {
                         }}
                         className="text-[10px] text-white/60 hover:text-white underline font-bold mt-1 transition-colors cursor-pointer"
                       >
-                        إلغاء العملية
+                        {t('dashboard.form.cancelEdit')}
                       </div>
                     </div>
                   ) : status === 'success' ? (
                     <span className="relative z-10 flex items-center justify-center gap-2">
                       <CheckCircle2 className="w-5 h-5" />
-                      تم الحفظ بنجاح
+                      {t('dashboard.form.saveSuccess')}
                     </span>
                   ) : (
                     <span className="relative z-10 flex items-center justify-center gap-2">
                       {editingId || editingServiceId ? <CheckCircle2 size={18} /> : <Plus size={18} />}
-                      {editingId || editingServiceId ? "تحديث التغييرات" : activeTab === 'services' ? "نشر الخدمة الآن" : "نشر المنتج الآن"}
+                      {editingId || editingServiceId ? t('dashboard.form.updateChanges') : activeTab === 'services' ? t('dashboard.form.publishService') : t('dashboard.form.publishProduct')}
                     </span>
                   )}
                 </button>
@@ -1460,6 +1465,10 @@ export default function Dashboard() {
             />
           )}
 
+          {activeTab === 'factory' && (
+            <AIFactory />
+          )}
+
           {activeTab === 'ai' && (
             <SmartAIAssistant products={products} orders={orders} />
           )}
@@ -1472,8 +1481,8 @@ export default function Dashboard() {
                     <Sparkles size={28} />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-black text-white">الخدمات المتاحة</h2>
-                    <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">إدارة وتطوير خدماتك ({services.length})</p>
+                    <h2 className="text-2xl font-black text-white">{t('dashboard.list.availableServices')}</h2>
+                    <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">{t('dashboard.list.manageServices')} ({services.length})</p>
                   </div>
                 </div>
               </div>
@@ -1521,7 +1530,7 @@ export default function Dashboard() {
                         className="flex-1 py-3 bg-white/5 hover:bg-primary/20 text-white hover:text-primary rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2"
                       >
                         <FileText size={16} />
-                        تعديل
+                        {t('common.edit')}
                       </button>
                       
                       {deletingId === s.id ? (
@@ -1530,13 +1539,13 @@ export default function Dashboard() {
                             onClick={() => handleDeleteService(s.id)} 
                             className="flex-1 bg-red-500 text-white py-2 rounded-lg text-[10px] font-black hover:bg-red-600 transition-colors"
                           >
-                            تأكيد
+                            {t('dashboard.list.yes')}
                           </button>
                           <button 
                             onClick={() => setDeletingId(null)} 
                             className="flex-1 bg-white/10 text-white py-2 rounded-lg text-[10px] font-black hover:bg-white/20 transition-colors"
                           >
-                            إلغاء
+                            {t('dashboard.list.no')}
                           </button>
                         </div>
                       ) : (
@@ -1545,7 +1554,7 @@ export default function Dashboard() {
                           className="flex-1 py-3 bg-white/5 hover:bg-red-500/20 text-white hover:text-red-500 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2"
                         >
                           <Trash2 size={16} />
-                          حذف
+                          {t('common.delete')}
                         </button>
                       )}
                     </div>
@@ -1563,8 +1572,8 @@ export default function Dashboard() {
                     <Package size={24} />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-black text-white">المنتجات</h2>
-                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">إدارة المخزون ({products.length})</p>
+                    <h2 className="text-2xl font-black text-white">{t('dashboard.list.products')}</h2>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">{t('dashboard.list.manageInventory')} ({products.length})</p>
                   </div>
                 </div>
                 
@@ -1572,7 +1581,7 @@ export default function Dashboard() {
                   <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
                   <input 
                     type="text"
-                    placeholder="بحث عن منتج..."
+                    placeholder={t('dashboard.list.searchPlaceholder')}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full bg-white/5 border border-white/5 focus:border-primary/50 outline-none p-4 pr-12 rounded-2xl text-sm transition-all"
@@ -1584,10 +1593,10 @@ export default function Dashboard() {
                 <table className="w-full text-right border-collapse">
                   <thead>
                     <tr className="bg-white/5 text-gray-500 text-[10px] font-black uppercase tracking-widest">
-                      <th className="p-6">المنتج</th>
-                      <th className="p-6">الفئة</th>
-                      <th className="p-6">السعر</th>
-                      <th className="p-6 text-left">الإجراءات</th>
+                      <th className="p-6">{t('dashboard.list.tableProduct')}</th>
+                      <th className="p-6">{t('dashboard.list.tableCategory')}</th>
+                      <th className="p-6">{t('dashboard.list.tablePrice')}</th>
+                      <th className="p-6 text-left">{t('dashboard.list.tableActions')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
@@ -1622,7 +1631,7 @@ export default function Dashboard() {
                         </td>
                         <td className="p-6">
                           <span className="px-3 py-1 bg-white/5 rounded-full text-[10px] font-bold text-gray-400 border border-white/5">
-                            {p.category === 'cv' ? 'سيرة ذاتية' : p.category === 'social' ? 'سوشيال ميديا' : 'قالب ويب'}
+                            {p.category === 'cv' ? t('hero.categories.cv') : p.category === 'social' ? t('hero.categories.social') : t('hero.categories.web')}
                           </span>
                         </td>
                         <td className="p-6 font-black text-gold tracking-tighter text-lg">${p.price}</td>
@@ -1631,7 +1640,7 @@ export default function Dashboard() {
                             <button 
                               onClick={() => handleTestPurchase(p, 'product')}
                               className="w-10 h-10 flex items-center justify-center bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white rounded-xl transition-all"
-                              title="تجربة شراء (بوابة العميل)"
+                              title={t('dashboard.list.testPurchase')}
                             >
                               <PlayCircle size={18} />
                             </button>
@@ -1649,18 +1658,18 @@ export default function Dashboard() {
                                 animate={{ opacity: 1, scale: 1 }}
                                 className="flex items-center gap-2 bg-red-500/10 p-1.5 rounded-xl border border-red-500/20"
                               >
-                                <span className="text-[9px] font-black text-red-500 px-2 uppercase">تأكيد؟</span>
+                                <span className="text-[9px] font-black text-red-500 px-2 uppercase">{t('dashboard.list.confirmDelete')}</span>
                                 <button 
                                   onClick={() => handleDelete(p.id, p.imageUrl, p.downloadUrl)} 
                                   className="bg-red-500 text-white px-4 py-1.5 rounded-lg text-[10px] font-black hover:bg-red-600 transition-colors shadow-lg shadow-red-500/20"
                                 >
-                                  نعم
+                                  {t('dashboard.list.yes')}
                                 </button>
                                 <button 
                                   onClick={() => setDeletingId(null)} 
                                   className="bg-white/10 text-white px-4 py-1.5 rounded-lg text-[10px] font-black hover:bg-white/20 transition-colors"
                                 >
-                                  لا
+                                  {t('dashboard.list.no')}
                                 </button>
                               </motion.div>
                             ) : (
@@ -1690,8 +1699,8 @@ export default function Dashboard() {
                     <DollarSign size={24} />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-black text-white">آخر الطلبات</h2>
-                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">سجل المبيعات ({orders.length})</p>
+                    <h2 className="text-2xl font-black text-white">{t('dashboard.orders.title')}</h2>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">{t('dashboard.orders.salesLog')} ({orders.length})</p>
                   </div>
                 </div>
               </div>
@@ -1700,12 +1709,12 @@ export default function Dashboard() {
                 <table className="w-full text-right border-collapse">
                   <thead>
                     <tr className="bg-white/5 text-gray-500 text-[10px] font-black uppercase tracking-widest">
-                      <th className="p-6">المنتج</th>
-                      <th className="p-6">العميل</th>
-                      <th className="p-6">المبلغ</th>
-                      <th className="p-6">الحالة</th>
-                      <th className="p-6">رابط البوابة</th>
-                      <th className="p-6">التاريخ</th>
+                      <th className="p-6">{t('dashboard.list.tableProduct')}</th>
+                      <th className="p-6">{t('dashboard.orders.tableCustomer')}</th>
+                      <th className="p-6">{t('dashboard.list.tablePrice')}</th>
+                      <th className="p-6">{t('dashboard.orders.tableStatus')}</th>
+                      <th className="p-6">{t('dashboard.orders.tablePortal')}</th>
+                      <th className="p-6">{t('dashboard.orders.tableDate')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
@@ -1720,7 +1729,7 @@ export default function Dashboard() {
                         <td className="p-6 font-black text-white">
                           {o.productName || o.serviceTitle}
                           {o.isTest && (
-                            <span className="mr-2 px-2 py-0.5 bg-gold/20 text-gold text-[8px] rounded-md border border-gold/30">تجريبي</span>
+                            <span className="mr-2 px-2 py-0.5 bg-gold/20 text-gold text-[8px] rounded-md border border-gold/30">{t('dashboard.orders.testOrder')}</span>
                           )}
                         </td>
                         <td className="p-6 text-sm text-gray-400 font-medium">{o.customerEmail}</td>
@@ -1735,9 +1744,9 @@ export default function Dashboard() {
                               'bg-gray-500/10 text-gray-500 border-white/10'
                             }`}
                           >
-                            <option value="pending">📦 تم استلام الطلب</option>
-                            <option value="processing">⚙️ جاري التجهيز</option>
-                            <option value="completed">✅ جاهز للتحميل</option>
+                            <option value="pending">{t('dashboard.orders.statusPending')}</option>
+                            <option value="processing">{t('dashboard.orders.statusProcessing')}</option>
+                            <option value="completed">{t('dashboard.orders.statusCompleted')}</option>
                           </select>
                         </td>
                         <td className="p-6">
@@ -1747,7 +1756,7 @@ export default function Dashboard() {
                               className="text-gold hover:text-white transition-colors flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
                             >
                               <ExternalLink size={14} />
-                              فتح البوابة
+                              {t('dashboard.orders.openPortal')}
                             </button>
 
                             {deletingOrderId === o.id ? (
@@ -1760,13 +1769,13 @@ export default function Dashboard() {
                                   onClick={() => handleDeleteOrder(o.id)} 
                                   className="bg-red-500 text-white px-3 py-1 rounded-lg text-[9px] font-black hover:bg-red-600 transition-colors"
                                 >
-                                  حذف
+                                  {t('common.delete')}
                                 </button>
                                 <button 
                                   onClick={() => setDeletingOrderId(null)} 
                                   className="bg-white/10 text-white px-3 py-1 rounded-lg text-[9px] font-black hover:bg-white/20 transition-colors"
                                 >
-                                  إلغاء
+                                  {t('common.cancel')}
                                 </button>
                               </motion.div>
                             ) : (
@@ -1781,7 +1790,7 @@ export default function Dashboard() {
                           </div>
                         </td>
                         <td className="p-6 text-[10px] text-gray-500 font-bold">
-                          {o.createdAt?.toDate().toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' })}
+                          {o.createdAt?.toDate().toLocaleDateString(i18n.language === 'ar' ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
                         </td>
                       </motion.tr>
                     ))}

@@ -110,7 +110,7 @@ export default function ServiceDetails() {
                 }, 2000);
               } catch (err) {
                 console.error("Error processing approved order:", err);
-                alert("حدث خطأ أثناء معالجة الطلب. يرجى التواصل مع الدعم.");
+                alert(t('common.processingError'));
               }
             },
             onError: (err: any) => {
@@ -133,7 +133,7 @@ export default function ServiceDetails() {
     return (
       <div className="flex items-center justify-center py-40">
         <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-        <p className="text-gray-500 font-bold mr-4">{t('common.loading')}</p>
+        <p className="text-gray-500 font-bold mr-4">جاري التحميل...</p>
       </div>
     );
   }
@@ -141,10 +141,10 @@ export default function ServiceDetails() {
   if (error || !service) {
     return (
       <div className="text-center py-40 space-y-6">
-        <h2 className="text-3xl font-bold text-gray-400">{error || t('services.notFound')}</h2>
+        <h2 className="text-3xl font-bold text-gray-400">{error || 'الخدمة غير موجودة'}</h2>
         <Link to="/" className="inline-flex items-center gap-2 text-primary hover:underline">
           <ArrowRight size={20} className={i18n.language === 'ar' ? 'rotate-180' : ''} />
-          {t('products.backToStore')}
+          العودة للمتجر
         </Link>
       </div>
     );
@@ -163,7 +163,7 @@ export default function ServiceDetails() {
         <div className="space-y-8">
           <Link to="/" className="inline-flex items-center gap-2 text-gray-500 hover:text-white transition-all mb-4 group">
             <ArrowRight size={18} className={`${i18n.language === 'ar' ? 'rotate-180 group-hover:translate-x-1' : 'group-hover:-translate-x-1'} transition-transform`} />
-            <span className="font-bold">{t('products.backToStore')}</span>
+            <span className="font-bold">العودة للمتجر</span>
           </Link>
           
           <div className="glass-card rounded-[3rem] overflow-hidden group relative aspect-[4/5] bg-dark-surface flex items-center justify-center">
@@ -193,7 +193,7 @@ export default function ServiceDetails() {
           <div className="space-y-6">
             <div className="inline-flex items-center gap-2 bg-gold/10 border border-gold/20 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest text-gold">
               <Sparkles size={12} />
-              {t('services.professionalService')}
+              خدمة احترافية
             </div>
             <h1 className="text-5xl md:text-6xl font-black leading-tight tracking-tighter text-glow">{service.title}</h1>
             <p className="text-gray-400 text-xl leading-relaxed font-medium text-right">{service.description}</p>
@@ -204,7 +204,7 @@ export default function ServiceDetails() {
             
             <div className="flex items-center gap-4 text-green-400 bg-green-400/5 p-6 rounded-2xl border border-green-400/10">
               <ShieldCheck size={28} />
-              <p className="font-bold text-sm leading-relaxed">{t('services.securePayment')}</p>
+              <p className="font-bold text-sm leading-relaxed">دفع آمن ومحمي. بعد إتمام الدفع، سنتواصل معك للبدء في تنفيذ الخدمة.</p>
             </div>
 
             {!paid ? (
@@ -224,8 +224,8 @@ export default function ServiceDetails() {
                   <CheckCircle2 className="text-white" size={36} />
                 </div>
                 <div className="space-y-2">
-                  <h3 className="text-3xl font-black text-white">{t('services.orderReceived')}</h3>
-                  <p className="text-gray-400 font-medium">{t('services.thanks')}</p>
+                  <h3 className="text-3xl font-black text-white">تم استلام الطلب!</h3>
+                  <p className="text-gray-400 font-medium">شكراً لثقتك. سنتواصل معك عبر بريدك الإلكتروني قريباً جداً.</p>
                 </div>
                 <div className="flex flex-col gap-3">
                   {service.downloadUrl && (
@@ -236,7 +236,7 @@ export default function ServiceDetails() {
                       className="btn-premium flex items-center justify-center gap-3 bg-white text-black py-5 rounded-2xl font-black text-lg shadow-2xl shadow-white/10"
                     >
                       <Download size={20} />
-                      {t('services.downloadAttached')}
+                      تحميل الملفات المرفقة
                     </a>
                   )}
                   <button 
@@ -244,13 +244,13 @@ export default function ServiceDetails() {
                     className="btn-premium flex items-center justify-center gap-3 bg-green-500 text-white py-5 rounded-2xl font-black text-lg shadow-2xl shadow-green-500/10"
                   >
                     <MessageSquare size={20} />
-                    {t('services.contactWhatsapp')}
+                    تواصل معنا عبر واتساب
                   </button>
                   <Link 
                     to="/"
                     className="text-gray-500 hover:text-white font-bold text-sm transition-colors"
                   >
-                    {t('services.backToHome')}
+                    العودة للرئيسية
                   </Link>
                 </div>
               </motion.div>
@@ -259,12 +259,12 @@ export default function ServiceDetails() {
 
           <div className="grid grid-cols-2 gap-6">
             <div className="glass-card p-6 rounded-2xl text-center space-y-1">
-              <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest">{t('services.serviceType')}</p>
-              <p className="font-black text-gold text-lg">{t('services.professional')}</p>
+              <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest">نوع الخدمة</p>
+              <p className="font-black text-gold text-lg">احترافية</p>
             </div>
             <div className="glass-card p-6 rounded-2xl text-center space-y-1">
-              <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest">{t('services.paymentMethod')}</p>
-              <p className="font-black text-green-400 text-lg">{t('services.secure')}</p>
+              <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest">طريقة الدفع</p>
+              <p className="font-black text-green-400 text-lg">آمنة</p>
             </div>
           </div>
 
@@ -282,8 +282,8 @@ export default function ServiceDetails() {
                   <>
                     <Brain className="text-primary group-hover:scale-110 transition-transform" size={28} />
                     <div className="text-right">
-                      <p className="text-lg font-black text-white">{t('products.aiInsights')}</p>
-                      <p className="text-xs text-gray-500 font-medium">{t('services.aiInsightsDesc')}</p>
+                      <p className="text-lg font-black text-white">تحليل Moonlight الذكي</p>
+                      <p className="text-xs text-gray-500 font-medium">اكتشف كيف ستفيدك هذه الخدمة في مشروعك</p>
                     </div>
                   </>
                 )}
@@ -298,14 +298,14 @@ export default function ServiceDetails() {
                   <div className="bg-primary/20 p-3 rounded-2xl">
                     <Sparkles className="text-primary" size={24} />
                   </div>
-                  <h3 className="text-2xl font-black">{t('products.aiVision')}</h3>
+                  <h3 className="text-2xl font-black">رؤية الذكاء الاصطناعي</h3>
                 </div>
 
                 <div className="space-y-8">
                   <div className="space-y-3">
                     <div className="flex items-center gap-2 text-gold">
                       <Brain size={18} />
-                      <span className="text-xs font-black uppercase tracking-widest">{t('products.creativeSummary')}</span>
+                      <span className="text-xs font-black uppercase tracking-widest">ملخص إبداعي</span>
                     </div>
                     <p className="text-gray-300 leading-relaxed font-medium text-right">{aiInsights.creativeSummary}</p>
                   </div>
@@ -314,14 +314,14 @@ export default function ServiceDetails() {
                     <div className="space-y-3">
                       <div className="flex items-center gap-2 text-primary">
                         <Zap size={18} />
-                        <span className="text-xs font-black uppercase tracking-widest">{t('services.addedValue')}</span>
+                        <span className="text-xs font-black uppercase tracking-widest">القيمة المضافة</span>
                       </div>
                       <p className="text-gray-400 text-sm leading-relaxed font-medium text-right">{aiInsights.targetAudience}</p>
                     </div>
                     <div className="space-y-3">
                       <div className="flex items-center gap-2 text-green-400">
                         <CheckCircle2 size={18} />
-                        <span className="text-xs font-black uppercase tracking-widest">{t('products.proTip')}</span>
+                        <span className="text-xs font-black uppercase tracking-widest">نصيحة Moonlight</span>
                       </div>
                       <p className="text-gray-400 text-sm leading-relaxed font-medium text-right">{aiInsights.proTip}</p>
                     </div>
