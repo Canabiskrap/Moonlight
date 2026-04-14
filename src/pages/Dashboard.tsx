@@ -74,7 +74,10 @@ export default function Dashboard() {
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [price, setPrice] = useState('');
+  const [priceSAR, setPriceSAR] = useState('');
+  const [priceKWD, setPriceKWD] = useState('');
+  const [priceUSD, setPriceUSD] = useState('');
+  const [priceAED, setPriceAED] = useState('');
   const [serviceIcon, setServiceIcon] = useState('🎨');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [productFile, setProductFile] = useState<File | null>(null);
@@ -228,7 +231,10 @@ export default function Dashboard() {
     setEditingServiceId(null);
     setName(product.name);
     setDescription(product.description);
-    setPrice(product.price.toString());
+    setPriceSAR(product.priceSAR?.toString() || '');
+    setPriceKWD(product.priceKWD?.toString() || '');
+    setPriceUSD(product.priceUSD?.toString() || '');
+    setPriceAED(product.priceAED?.toString() || '');
     setCategory(product.category);
     setImageUrl(product.imageUrl);
     setDownloadUrl(product.downloadUrl);
@@ -241,7 +247,10 @@ export default function Dashboard() {
     setEditingId(null);
     setName(service.title);
     setDescription(service.description);
-    setPrice(service.price.toString());
+    setPriceSAR(service.priceSAR?.toString() || '');
+    setPriceKWD(service.priceKWD?.toString() || '');
+    setPriceUSD(service.priceUSD?.toString() || '');
+    setPriceAED(service.priceAED?.toString() || '');
     setServiceIcon(service.icon || '🎨');
     setImageUrl(service.imageUrl || '');
     setDownloadUrl(service.downloadUrl || '');
@@ -253,7 +262,10 @@ export default function Dashboard() {
     setEditingServiceId(null);
     setName('');
     setDescription('');
-    setPrice('');
+    setPriceSAR('');
+    setPriceKWD('');
+    setPriceUSD('');
+    setPriceAED('');
     setServiceIcon('🎨');
     setImageFile(null);
     setProductFile(null);
@@ -373,16 +385,16 @@ export default function Dashboard() {
       if (!isAdminUser) throw new Error(`حسابك ليس لديه صلاحيات المسؤول.`);
       if (!isEmailVerified) throw new Error("يرجى تأكيد بريدك الإلكتروني.");
 
-      const numericPrice = parseFloat(price);
-      if (isNaN(numericPrice)) throw new Error("يرجى إدخال سعر صحيح");
-
       if (activeTab === 'services' || editingServiceId) {
         addLog("جاري حفظ الخدمة...");
         let docId = editingServiceId;
         const serviceData = {
           title: name,
           description,
-          price: numericPrice,
+          priceSAR: parseFloat(priceSAR) || 0,
+          priceKWD: parseFloat(priceKWD) || 0,
+          priceUSD: parseFloat(priceUSD) || 0,
+          priceAED: parseFloat(priceAED) || 0,
           icon: serviceIcon,
           imageUrl: imageUploadType === 'link' ? imageUrl : (editingServiceId ? imageUrl : ''),
           downloadUrl: uploadMethod === 'link' ? downloadUrl : (editingServiceId ? downloadUrl : ''),
@@ -423,7 +435,10 @@ export default function Dashboard() {
         const productData = {
           name,
           description,
-          price: numericPrice,
+          priceSAR: parseFloat(priceSAR) || 0,
+          priceKWD: parseFloat(priceKWD) || 0,
+          priceUSD: parseFloat(priceUSD) || 0,
+          priceAED: parseFloat(priceAED) || 0,
           category,
           imageUrl: imageUploadType === 'link' ? imageUrl : (editingId ? imageUrl : ''),
           downloadUrl: uploadMethod === 'link' ? downloadUrl : (editingId ? downloadUrl : ''),
@@ -1094,48 +1109,33 @@ export default function Dashboard() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-1">
-                      {activeTab === 'services' || editingServiceId ? t('dashboard.form.iconLabel') : t('dashboard.form.categoryLabel')}
-                    </label>
-                    {activeTab === 'services' || editingServiceId ? (
-                      <input 
-                        type="text" 
-                        value={serviceIcon} 
-                        onChange={(e) => setServiceIcon(e.target.value)}
-                        placeholder="🎨"
-                        className="bg-white/5 border border-white/5 focus:border-primary/50 focus:bg-white/10 outline-none transition-all w-full p-4 rounded-2xl text-sm"
-                      />
-                    ) : (
-                      <div className="relative">
-                          <select 
-                            value={category} 
-                            onChange={(e) => setCategory(e.target.value)}
-                            className="bg-white/5 border border-white/5 focus:border-primary/50 focus:bg-white/10 outline-none transition-all w-full p-4 rounded-2xl text-sm appearance-none cursor-pointer"
-                          >
-                            <option value="cv">{t('hero.categories.cv')}</option>
-                            <option value="social">{t('hero.categories.social')}</option>
-                            <option value="web">{t('hero.categories.web')}</option>
-                            <option value="other">{t('hero.categories.other')}</option>
-                          </select>
-                        <Settings className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={14} />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-1">{t('dashboard.form.priceLabel')}</label>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-1">
+                    {activeTab === 'services' || editingServiceId ? t('dashboard.form.iconLabel') : t('dashboard.form.categoryLabel')}
+                  </label>
+                  {activeTab === 'services' || editingServiceId ? (
                     <input 
-                      type="number" 
-                      step="0.01"
-                      value={price} 
-                      onChange={(e) => setPrice(e.target.value)}
-                      placeholder="0.00"
+                      type="text" 
+                      value={serviceIcon} 
+                      onChange={(e) => setServiceIcon(e.target.value)}
+                      placeholder="🎨"
                       className="bg-white/5 border border-white/5 focus:border-primary/50 focus:bg-white/10 outline-none transition-all w-full p-4 rounded-2xl text-sm"
-                      required
                     />
-                  </div>
+                  ) : (
+                    <div className="relative">
+                        <select 
+                          value={category} 
+                          onChange={(e) => setCategory(e.target.value)}
+                          className="bg-white/5 border border-white/5 focus:border-primary/50 focus:bg-white/10 outline-none transition-all w-full p-4 rounded-2xl text-sm appearance-none cursor-pointer"
+                        >
+                          <option value="cv">{t('hero.categories.cv')}</option>
+                          <option value="social">{t('hero.categories.social')}</option>
+                          <option value="web">{t('hero.categories.web')}</option>
+                          <option value="other">{t('hero.categories.other')}</option>
+                        </select>
+                      <Settings className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={14} />
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1366,6 +1366,28 @@ export default function Dashboard() {
                 />
               </div>
 
+              <div className="space-y-4">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-1">الدفع</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-1">SAR (السعودية 🇸🇦)</label>
+                    <input type="number" step="0.01" value={priceSAR} onChange={(e) => setPriceSAR(e.target.value)} placeholder="0.00" className="bg-white/5 border border-white/5 focus:border-primary/50 focus:bg-white/10 outline-none transition-all w-full p-4 rounded-2xl text-sm" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-1">KWD (الكويت 🇰🇼)</label>
+                    <input type="number" step="0.01" value={priceKWD} onChange={(e) => setPriceKWD(e.target.value)} placeholder="0.00" className="bg-white/5 border border-white/5 focus:border-primary/50 focus:bg-white/10 outline-none transition-all w-full p-4 rounded-2xl text-sm" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-1">USD (الولايات المتحدة 🇺🇸)</label>
+                    <input type="number" step="0.01" value={priceUSD} onChange={(e) => setPriceUSD(e.target.value)} placeholder="0.00" className="bg-white/5 border border-white/5 focus:border-primary/50 focus:bg-white/10 outline-none transition-all w-full p-4 rounded-2xl text-sm" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-1">AED (الإمارات 🇦🇪)</label>
+                    <input type="number" step="0.01" value={priceAED} onChange={(e) => setPriceAED(e.target.value)} placeholder="0.00" className="bg-white/5 border border-white/5 focus:border-primary/50 focus:bg-white/10 outline-none transition-all w-full p-4 rounded-2xl text-sm" />
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-4 pt-4">
                 {status === 'uploading' && (
                   <div className="space-y-3 p-4 bg-primary/5 rounded-2xl border border-primary/10">
@@ -1506,7 +1528,7 @@ export default function Dashboard() {
                           )}
                         </div>
                         <div className="bg-gold/10 text-gold px-4 py-1.5 rounded-full text-sm font-black border border-gold/20">
-                          ${s.price}
+                          {s.price} {s.currency || 'USD'}
                         </div>
                       </div>
                       
@@ -1634,7 +1656,7 @@ export default function Dashboard() {
                             {p.category === 'cv' ? t('hero.categories.cv') : p.category === 'social' ? t('hero.categories.social') : t('hero.categories.web')}
                           </span>
                         </td>
-                        <td className="p-6 font-black text-gold tracking-tighter text-lg">${p.price}</td>
+                        <td className="p-6 font-black text-gold tracking-tighter text-lg">{p.price} {p.currency || 'USD'}</td>
                         <td className="p-6">
                           <div className="flex items-center gap-2 justify-end">
                             <button 

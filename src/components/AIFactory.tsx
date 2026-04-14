@@ -43,7 +43,7 @@ export default function AIFactory() {
 
   const joditConfig = useMemo(() => ({
     readonly: false,
-    direction: 'rtl',
+    direction: 'rtl' as const,
     language: 'ar',
     theme: 'default',
     height: 'auto',
@@ -143,9 +143,9 @@ export default function AIFactory() {
     const opt = {
       margin:       10,
       filename:     'moonlight-product.pdf',
-      image:        { type: 'jpeg', quality: 0.98 },
+      image:        { type: 'jpeg' as const, quality: 0.98 },
       html2canvas:  { scale: 2 },
-      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' as const }
     };
 
     html2pdf().set(opt).from(element).save();

@@ -18,6 +18,7 @@ export default function Home() {
   const [isSearching, setIsSearching] = useState(false);
   const [aiFilteredIds, setAiFilteredIds] = useState<string[] | null>(null);
   const [heroVideoUrl, setHeroVideoUrl] = useState<string | null>(null);
+  const [selectedCurrency, setSelectedCurrency] = useState('USD');
 
   const handleAiSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -188,7 +189,7 @@ export default function Home() {
                   <p className="text-gray-500 text-sm font-medium line-clamp-2">{service.description}</p>
                 </div>
                 <div className="flex justify-between items-center pt-4 border-t border-white/5">
-                  <div className="gold-capsule">{t('services.startFrom')} ${service.price}</div>
+                  <div className="gold-capsule">{t('services.startFrom')} {service.price} {service.currency || 'USD'}</div>
                   <Link to={`/service/${service.id}`} className="btn-gradient px-6 py-2 rounded-full text-xs">{t('services.orderNow')}</Link>
                 </div>
               </div>
@@ -324,7 +325,19 @@ export default function Home() {
                 
                 <div className="p-8 space-y-6 relative z-10">
                   <div className="flex justify-between items-start">
-                    <div className="gold-capsule">${product.price}</div>
+                    <div className="flex items-center gap-2">
+                        <div className="gold-capsule">{product.price} {product.currency || selectedCurrency}</div>
+                        <select 
+                            value={selectedCurrency}
+                            onChange={(e) => setSelectedCurrency(e.target.value)}
+                            className="bg-dark/50 text-[10px] p-1 rounded-lg border border-white/10"
+                        >
+                            <option value="SAR">SAR</option>
+                            <option value="KWD">KWD</option>
+                            <option value="USD">USD</option>
+                            <option value="AED">AED</option>
+                        </select>
+                    </div>
                     <h3 className="text-xl font-black group-hover:text-gold transition-colors text-right">{product.name}</h3>
                   </div>
                   

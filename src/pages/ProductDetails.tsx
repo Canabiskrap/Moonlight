@@ -60,8 +60,9 @@ export default function ProductDetails() {
       if (container && container.innerHTML !== '') return; // Prevent double rendering
 
       const clientId = (import.meta as any).env.VITE_PAYPAL_CLIENT_ID || 'AcbwuN16XVq7P_HKhjbHRTegmSRXI0DoFOoLw2pn-LilZUuf1FRl0v888wjPvs428lM5sdf97LUNcvT5';
+      const currency = product.currency || 'USD';
       const script = document.createElement('script');
-      script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD`;
+      script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=${currency}`;
       script.async = true;
       script.onload = () => {
         if ((window as any).paypal) {
@@ -72,7 +73,7 @@ export default function ProductDetails() {
                 purchase_units: [{
                   amount: {
                     value: priceValue,
-                    currency_code: 'USD'
+                    currency_code: product.currency || 'USD'
                   },
                   description: product.name
                 }]
@@ -176,7 +177,7 @@ export default function ProductDetails() {
             />
             
             <div className="absolute top-8 right-8 z-20">
-              <div className="gold-capsule text-sm px-6 py-2">${product.price}</div>
+              <div className="gold-capsule text-sm px-6 py-2">{product.price} {product.currency || 'USD'}</div>
             </div>
           </div>
         </div>

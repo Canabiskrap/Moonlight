@@ -14,7 +14,7 @@ export async function getProductInsights(product: any): Promise<ProductInsight> 
   if (!ai) throw new Error("AI service not initialized. Missing API Key.");
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-3-flash-preview",
       contents: `Analyze this product and provide creative insights in Arabic.
       Product Name: ${product.name}
       Description: ${product.description}
@@ -53,7 +53,7 @@ export async function getSmartRecommendations(query: string, products: any[]): P
     const productList = products.map(p => ({ id: p.id, name: p.name, description: p.description, category: p.category }));
     
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-3-flash-preview",
       contents: `User Query: "${query}"
       Available Products: ${JSON.stringify(productList)}`,
       config: {
@@ -114,7 +114,7 @@ export async function chatWithBot(userMessage: string, history: {role: 'user' | 
           5. الحلول العملية: أعطِ خطوات قابلة للتنفيذ (Actionable Steps) بدلاً من التنظير.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-3-flash-preview",
       contents: [
         ...history.map(h => ({ role: h.role, parts: h.parts })),
         { role: 'user', parts: [{ text: userMessage }] }
@@ -137,7 +137,7 @@ export async function generateFixSuggestion(prompt: string): Promise<string> {
   if (!ai) throw new Error("AI service not initialized. Missing API Key.");
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-3-flash-preview",
       contents: prompt,
       config: {
         systemInstruction: "You are an expert developer. Provide concise, production-ready code fixes.",
@@ -236,7 +236,7 @@ export async function runFactoryMachine(machineId: string, input: string): Promi
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-3-flash-preview",
       contents: input,
       config: {
         systemInstruction,
