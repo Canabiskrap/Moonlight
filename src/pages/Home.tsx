@@ -105,7 +105,7 @@ export default function Home() {
             
             <h1 className="text-5xl md:text-7xl xl:text-8xl font-black leading-[1.1] tracking-tighter">
               هويتك الرقمية <br />
-              <span className="text-primary text-glow">باحترافية</span>
+              <span className="text-gold text-glow">باحترافية</span>
             </h1>
             
             <p className="text-gray-400 text-lg md:text-xl leading-relaxed max-w-xl mr-auto font-medium">
@@ -182,7 +182,7 @@ export default function Home() {
                   <div className="absolute inset-0 bg-gradient-to-t from-dark/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 </div>
                 <div className="space-y-2">
-                  <h3 className="text-xl font-black group-hover:text-primary transition-colors">{service.title}</h3>
+                  <h3 className="text-xl font-black group-hover:text-gold transition-colors">{service.title}</h3>
                   <p className="text-gray-500 text-sm font-medium line-clamp-2">{service.description}</p>
                 </div>
                 <div className="flex justify-between items-center pt-4 border-t border-white/5">
@@ -323,7 +323,7 @@ export default function Home() {
                 <div className="p-8 space-y-6 relative z-10">
                   <div className="flex justify-between items-start">
                     <div className="gold-capsule">${product.price}</div>
-                    <h3 className="text-xl font-black group-hover:text-primary transition-colors text-right">{product.name}</h3>
+                    <h3 className="text-xl font-black group-hover:text-gold transition-colors text-right">{product.name}</h3>
                   </div>
                   
                   <p className="text-gray-500 text-sm line-clamp-2 font-medium leading-relaxed text-right">{product.description}</p>
@@ -340,6 +340,45 @@ export default function Home() {
             ))}
           </div>
         )}
+      </section>
+
+      {/* Buyer Protection Highlight */}
+      <section className="py-10">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="bg-gradient-to-br from-primary/10 to-transparent border border-primary/20 rounded-[3rem] p-10 md:p-16 flex flex-col md:flex-row items-center gap-12 relative overflow-hidden"
+        >
+          <div className="absolute top-0 left-0 w-64 h-64 bg-primary/5 blur-[100px] rounded-full -ml-32 -mt-32" />
+          
+          <div className="w-24 h-24 bg-primary/20 rounded-3xl flex items-center justify-center text-primary border border-primary/30 shadow-2xl shadow-primary/10 flex-shrink-0">
+            <ShieldCheck size={48} />
+          </div>
+          
+          <div className="flex-1 text-center md:text-right space-y-4 relative z-10">
+            <h2 className="text-3xl font-black text-white">حقوقك محفوظة في Moonlight 🌙</h2>
+            <p className="text-gray-400 font-medium text-lg leading-relaxed">
+              نحن نؤمن بأن ثقتك هي أغلى ما نملك. لذلك صممنا بروتوكولاً خاصاً يضمن لك الوصول الدائم لمشترياتك وحماية حقوقك التقنية بالكامل.
+            </p>
+            <div className="flex flex-wrap justify-center md:justify-end gap-4 pt-4">
+              <Link 
+                to="/buyer-protection" 
+                className="bg-white/5 hover:bg-white/10 text-white px-8 py-3 rounded-xl font-black text-sm border border-white/10 transition-all flex items-center gap-2"
+              >
+                اكتشف كيف نحميك
+                <ArrowRight size={18} />
+              </Link>
+              <Link 
+                to="/recover-order" 
+                className="text-gold hover:text-white transition-colors font-black text-sm flex items-center gap-2"
+              >
+                استعادة طلب مفقود
+                <Search size={18} />
+              </Link>
+            </div>
+          </div>
+        </motion.div>
       </section>
 
       {/* Contact Section */}

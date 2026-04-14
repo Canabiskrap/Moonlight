@@ -14,14 +14,14 @@ export default function Privacy() {
 
       <div className="bg-dark-light/50 border border-white/5 rounded-[2rem] p-8 md:p-12 space-y-8 backdrop-blur-sm">
         <section className="space-y-4">
-          <h2 className="text-2xl font-black text-primary">1. جمع المعلومات</h2>
+          <h2 className="text-2xl font-black text-gold">1. جمع المعلومات</h2>
           <p className="text-gray-300 leading-relaxed">
             نحن في Moonlight 🌕 نقوم بجمع المعلومات التي تقدمها لنا مباشرة عند استخدامك لخدماتنا، مثل الاسم، البريد الإلكتروني، ومعلومات الدفع عند إتمام عملية الشراء. نستخدم هذه المعلومات فقط لتقديم الخدمات المطلوبة وتحسين تجربة المستخدم.
           </p>
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-2xl font-black text-primary">2. استخدام المعلومات</h2>
+          <h2 className="text-2xl font-black text-gold">2. استخدام المعلومات</h2>
           <p className="text-gray-300 leading-relaxed">
             نستخدم المعلومات التي نجمعها من أجل:
           </p>
@@ -34,21 +34,21 @@ export default function Privacy() {
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-2xl font-black text-primary">3. حماية البيانات</h2>
+          <h2 className="text-2xl font-black text-gold">3. حماية البيانات</h2>
           <p className="text-gray-300 leading-relaxed">
             نحن نتخذ إجراءات أمنية مناسبة لحماية معلوماتك الشخصية من الوصول غير المصرح به أو التعديل أو الإفصاح أو الإتلاف. نستخدم بوابات دفع آمنة (مثل PayPal) ولا نقوم بتخزين معلومات بطاقتك الائتمانية على خوادمنا.
           </p>
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-2xl font-black text-primary">4. مشاركة المعلومات</h2>
+          <h2 className="text-2xl font-black text-gold">4. مشاركة المعلومات</h2>
           <p className="text-gray-300 leading-relaxed">
             لا نقوم ببيع أو تأجير معلوماتك الشخصية لأطراف ثالثة. قد نشارك معلوماتك فقط مع مزودي الخدمات الذين يساعدوننا في تشغيل موقعنا (مثل بوابات الدفع) والذين يلتزمون بالحفاظ على سرية هذه المعلومات.
           </p>
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-2xl font-black text-primary">5. حقوقك</h2>
+          <h2 className="text-2xl font-black text-gold">5. حقوقك</h2>
           <p className="text-gray-300 leading-relaxed">
             يحق لك طلب الوصول إلى معلوماتك الشخصية التي نحتفظ بها، أو طلب تصحيحها أو حذفها. يمكنك التواصل معنا في أي وقت لممارسة هذه الحقوق.
           </p>

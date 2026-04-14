@@ -113,18 +113,19 @@ export default function Footer() {
           </div>
 
           <div className="space-y-6">
-            <h4 className="text-sm font-black uppercase tracking-widest text-primary">روابط سريعة</h4>
+            <h4 className="text-sm font-black uppercase tracking-widest text-gold">روابط سريعة</h4>
             <ul className="space-y-4">
               <li><Link to="/" className="text-gray-400 hover:text-white font-bold transition-colors">الرئيسية</Link></li>
-              <li><a href="/#products" className="text-gray-400 hover:text-white font-bold transition-colors">المنتجات</a></li>
-              <li><a href="/#services" className="text-gray-400 hover:text-white font-bold transition-colors">خدماتنا</a></li>
+              <li><Link to="/my-orders" className="text-gray-400 hover:text-white font-bold transition-colors">طلباتي</Link></li>
+              <li><Link to="/recover-order" className="text-gray-400 hover:text-white font-bold transition-colors">استعادة طلب</Link></li>
+              <li><Link to="/buyer-protection" className="text-gray-400 hover:text-white font-bold transition-colors">حماية المشتري</Link></li>
               <li><Link to="/terms" className="text-gray-400 hover:text-white font-bold transition-colors">الشروط والأحكام</Link></li>
               <li><Link to="/privacy" className="text-gray-400 hover:text-white font-bold transition-colors">سياسة الخصوصية</Link></li>
             </ul>
           </div>
 
           <div className="space-y-6">
-            <h4 className="text-sm font-black uppercase tracking-widest text-primary">تواصل معنا</h4>
+            <h4 className="text-sm font-black uppercase tracking-widest text-gold">تواصل معنا</h4>
             <ul className="space-y-4">
               <li className="flex items-center gap-3 text-gray-400 font-bold">
                 <Mail size={18} className="text-primary" />

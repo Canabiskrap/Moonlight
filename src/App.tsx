@@ -18,6 +18,9 @@ import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
+import MyOrders from './pages/MyOrders';
+import RecoverOrder from './pages/RecoverOrder';
+import BuyerProtection from './pages/BuyerProtection';
 import FloatingActions from './components/FloatingActions';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { motion, AnimatePresence } from 'motion/react';
@@ -93,6 +96,9 @@ export default function App() {
                 <Route path="/service/:id" element={<ServiceDetails />} />
                 <Route path="/order-portal/:id" element={<OrderPortal />} />
                 <Route path="/login" element={<Login user={user} />} />
+                <Route path="/my-orders" element={<MyOrders />} />
+                <Route path="/recover-order" element={<RecoverOrder />} />
+                <Route path="/buyer-protection" element={<BuyerProtection />} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/terms" element={<Terms />} />
                 <Route path="/status" element={<Status />} />

@@ -1310,7 +1310,7 @@ export default function Dashboard() {
                             </div>
                             {imageUrl.includes('drive.google.com') && (
                               <div className="bg-primary/10 border border-primary/20 p-3 rounded-xl space-y-1">
-                                <p className="text-[10px] text-primary font-bold flex items-center gap-1">
+                                <p className="text-[10px] text-gold font-bold flex items-center gap-1">
                                   <Sparkles size={12} />
                                   تم اكتشاف رابط Google Drive
                                 </p>
@@ -1327,7 +1327,7 @@ export default function Dashboard() {
                         <div className="flex items-center justify-between">
                           <label className="text-sm font-bold text-gray-400">2. {activeTab === 'services' || editingServiceId ? 'رابط ملف الخدمة (اختياري)' : 'رابط تحميل الملف'}</label>
                             {downloadUrl.includes('drive.google.com') && (
-                              <span className="text-[10px] text-primary font-bold">رابط Google Drive ✅</span>
+                              <span className="text-[10px] text-gold font-bold">رابط Google Drive ✅</span>
                             )}
                           </div>
                           <input 
@@ -1366,7 +1366,7 @@ export default function Dashboard() {
                   <div className="space-y-3 p-4 bg-primary/5 rounded-2xl border border-primary/10">
                     <div className="flex justify-between items-center">
                       <div className="space-y-2 flex-1">
-                        <div className="flex justify-between text-[10px] font-black text-primary uppercase tracking-widest">
+                        <div className="flex justify-between text-[10px] font-black text-gold uppercase tracking-widest">
                           <span>جاري المعالجة</span>
                           <span>{uploadProgress}%</span>
                         </div>
@@ -1615,7 +1615,7 @@ export default function Dashboard() {
                               />
                             </div>
                             <div className="flex flex-col">
-                              <span className="font-black text-white group-hover:text-primary transition-colors">{p.name}</span>
+                              <span className="font-black text-white group-hover:text-gold transition-colors">{p.name}</span>
                               <span className="text-[10px] text-gray-500 line-clamp-1 max-w-[200px]">{p.description}</span>
                             </div>
                           </div>

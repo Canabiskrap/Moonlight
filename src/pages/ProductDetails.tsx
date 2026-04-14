@@ -233,7 +233,7 @@ export default function ProductDetails() {
           <div className="grid grid-cols-2 gap-6">
             <div className="glass-card p-6 rounded-2xl text-center space-y-1">
               <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest">الفئة</p>
-              <p className="font-black text-primary text-lg">{product.category}</p>
+              <p className="font-black text-gold text-lg">{product.category}</p>
             </div>
             <div className="glass-card p-6 rounded-2xl text-center space-y-1">
               <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest">التسليم</p>

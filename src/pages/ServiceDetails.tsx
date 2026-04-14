@@ -257,7 +257,7 @@ export default function ServiceDetails() {
           <div className="grid grid-cols-2 gap-6">
             <div className="glass-card p-6 rounded-2xl text-center space-y-1">
               <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest">نوع الخدمة</p>
-              <p className="font-black text-primary text-lg">احترافية</p>
+              <p className="font-black text-gold text-lg">احترافية</p>
             </div>
             <div className="glass-card p-6 rounded-2xl text-center space-y-1">
               <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest">طريقة الدفع</p>
