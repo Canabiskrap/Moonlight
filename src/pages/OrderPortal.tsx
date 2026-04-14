@@ -19,6 +19,34 @@ import {
   Lock
 } from 'lucide-react';
 
+const Stars = () => {
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden">
+      {[...Array(50)].map((_, i) => (
+        <motion.div
+          key={i}
+          className={`absolute rounded-full ${i % 5 === 0 ? 'bg-green-400/40' : 'bg-white/30'}`}
+          style={{
+            width: Math.random() * 3 + 1 + 'px',
+            height: Math.random() * 3 + 1 + 'px',
+            top: Math.random() * 100 + '%',
+            left: Math.random() * 100 + '%',
+          }}
+          animate={{
+            opacity: [0.2, 0.8, 0.2],
+            scale: [1, 1.2, 1],
+          }}
+          transition={{
+            duration: Math.random() * 3 + 2,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+      ))}
+    </div>
+  );
+};
+
 export default function OrderPortal() {
   const { id } = useParams();
   const [order, setOrder] = useState<any>(null);
@@ -110,11 +138,40 @@ export default function OrderPortal() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white font-sans selection:bg-primary selection:text-white pb-20">
-      {/* Background Effects */}
+    <div className="min-h-screen bg-black text-white font-sans selection:bg-primary selection:text-white pb-20 relative overflow-hidden">
+      {/* Noise Texture */}
+      <div className="fixed inset-0 pointer-events-none opacity-[0.03] z-[1]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }} />
+
+      {/* Aurora Background Effects */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="absolute top-[-10%] right-[-10%] w-[70vw] h-[70vw] bg-primary/10 blur-[120px] rounded-full animate-pulse" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-gold/5 blur-[100px] rounded-full" />
+        <motion.div 
+          animate={{ 
+            x: [0, 100, 0],
+            y: [0, 50, 0],
+            scale: [1, 1.2, 1]
+          }}
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+          className="absolute top-[-20%] right-[-10%] w-[80vw] h-[80vw] bg-primary/10 blur-[120px] rounded-full" 
+        />
+        <motion.div 
+          animate={{ 
+            x: [0, -80, 0],
+            y: [0, 100, 0],
+            scale: [1, 1.1, 1]
+          }}
+          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+          className="absolute bottom-[-10%] left-[-10%] w-[60vw] h-[60vw] bg-purple-500/10 blur-[100px] rounded-full" 
+        />
+        <motion.div 
+          animate={{ 
+            x: [0, 50, 0],
+            y: [0, -100, 0],
+            scale: [1, 1.3, 1]
+          }}
+          transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
+          className="absolute top-[20%] left-[10%] w-[40vw] h-[40vw] bg-green-500/5 blur-[100px] rounded-full" 
+        />
+        <Stars />
       </div>
 
       <div className="max-w-3xl mx-auto px-6 relative z-10">
@@ -131,7 +188,16 @@ export default function OrderPortal() {
                 }}
               />
             </div>
-            <span className="text-lg font-black tracking-widest uppercase text-white group-hover:text-primary transition-colors">Moonlight 🌕</span>
+            <span className="text-lg font-black tracking-widest uppercase text-white group-hover:text-primary transition-colors">
+              Moonlight 
+              <motion.span 
+                animate={{ y: [0, -5, 0] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                className="inline-block mr-2"
+              >
+                🌕
+              </motion.span>
+            </span>
           </Link>
           <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/20 px-4 py-1.5 rounded-full text-[10px] font-black text-green-500 uppercase tracking-widest">
             <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-ping" />
@@ -220,20 +286,20 @@ export default function OrderPortal() {
                   )}
                   
                   <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 z-10 transition-all duration-500 ${
-                    status === 'done' ? 'bg-primary text-white shadow-[0_0_20px_rgba(var(--primary-rgb),0.4)]' :
-                    status === 'active' ? 'bg-primary/20 border-2 border-primary text-primary animate-pulse shadow-[0_0_30px_rgba(var(--primary-rgb),0.6)]' :
+                    status === 'done' ? 'bg-green-500 text-white shadow-[0_0_20px_rgba(34,197,94,0.4)]' :
+                    status === 'active' ? 'bg-purple-500/20 border-2 border-purple-500 text-purple-400 animate-pulse shadow-[0_0_30px_rgba(168,85,247,0.4)]' :
                     'bg-white/5 border-2 border-white/10 text-white/20'
                   }`}>
                     {status === 'done' ? <CheckCircle2 size={18} /> : 
-                     status === 'active' ? <Clock size={18} /> : 
+                     status === 'active' ? <Clock size={18} className="animate-spin-slow" /> : 
                      <span className="text-xs font-black">{idx + 1}</span>}
                   </div>
 
                   <div className="flex-1 pt-1">
                     <h3 className={`font-black text-lg ${status === 'pending' ? 'text-white/20' : 'text-white'}`}>{step.title}</h3>
                     <p className="text-sm text-white/60 font-medium mt-1">{step.sub}</p>
-                    {status === 'done' && <span className="text-[10px] text-primary font-black mt-2 block tracking-widest uppercase">✓ مكتمل — {step.date}</span>}
-                    {status === 'active' && <span className="text-[10px] text-primary font-black mt-2 block tracking-widest uppercase animate-pulse">⟳ قيد التنفيذ</span>}
+                    {status === 'done' && <span className="text-[10px] text-green-400 font-black mt-2 block tracking-widest uppercase">✓ مكتمل — {step.date}</span>}
+                    {status === 'active' && <span className="text-[10px] text-purple-400 font-black mt-2 block tracking-widest uppercase animate-pulse">⟳ قيد التنفيذ</span>}
                   </div>
                 </div>
               );
@@ -253,9 +319,9 @@ export default function OrderPortal() {
           <div className="space-y-4">
             {order.status === 'completed' ? (
               <div className="space-y-4">
-                <div className="bg-black/40 border border-white/10 p-6 rounded-2xl flex items-center justify-between group hover:border-primary/50 transition-all cursor-pointer">
+                <div className="bg-black/40 border border-green-500/20 p-6 rounded-2xl flex items-center justify-between group hover:border-green-500/50 transition-all cursor-pointer shadow-[0_0_30px_rgba(34,197,94,0.1)]">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-primary/20 rounded-xl flex items-center justify-center text-primary">
+                    <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center text-green-400">
                       <Package size={24} />
                     </div>
                     <div>
@@ -267,14 +333,14 @@ export default function OrderPortal() {
                     href={order.downloadUrl || '#'} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="w-12 h-12 bg-primary text-white rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform"
+                    className="w-12 h-12 bg-green-500 text-white rounded-xl flex items-center justify-center shadow-lg shadow-green-500/20 group-hover:scale-110 transition-transform"
                   >
                     <Download size={20} />
                   </a>
                 </div>
               </div>
             ) : (
-              <div className="bg-black/20 border border-dashed border-white/10 p-10 rounded-2xl text-center space-y-4">
+              <div className="bg-black/20 border border-dashed border-white/10 p-10 rounded-2xl text-center space-y-4 grayscale opacity-60">
                 <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto text-gray-600">
                   <Lock size={28} />
                 </div>
