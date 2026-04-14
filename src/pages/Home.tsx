@@ -18,7 +18,11 @@ export default function Home() {
   const [isSearching, setIsSearching] = useState(false);
   const [aiFilteredIds, setAiFilteredIds] = useState<string[] | null>(null);
   const [heroVideoUrl, setHeroVideoUrl] = useState<string | null>(null);
-  const [selectedCurrency, setSelectedCurrency] = useState('USD');
+  const [productCurrencies, setProductCurrencies] = useState<Record<string, string>>({});
+
+  const setProductCurrency = (productId: string, currency: string) => {
+    setProductCurrencies(prev => ({ ...prev, [productId]: currency }));
+  };
 
   const handleAiSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -326,10 +330,19 @@ export default function Home() {
                 <div className="p-8 space-y-6 relative z-10">
                   <div className="flex justify-between items-start">
                     <div className="flex items-center gap-2">
-                        <div className="gold-capsule">{product.price} {product.currency || selectedCurrency}</div>
+                        <div className="gold-capsule">
+                          {(() => {
+                            const currency = productCurrencies[product.id] || 'USD';
+                            const price = currency === 'SAR' ? product.priceSAR : 
+                                          currency === 'KWD' ? product.priceKWD : 
+                                          currency === 'USD' ? product.priceUSD : 
+                                          product.priceAED;
+                            return `${price || 0} ${currency}`;
+                          })()}
+                        </div>
                         <select 
-                            value={selectedCurrency}
-                            onChange={(e) => setSelectedCurrency(e.target.value)}
+                            value={productCurrencies[product.id] || 'USD'}
+                            onChange={(e) => setProductCurrency(product.id, e.target.value)}
                             className="bg-dark/50 text-[10px] p-1 rounded-lg border border-white/10"
                         >
                             <option value="SAR">SAR</option>
