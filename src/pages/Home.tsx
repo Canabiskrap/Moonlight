@@ -168,7 +168,7 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {services.length > 0 ? (
             services.map((service, i) => (
-              <div key={service.id || i} className="glass-card p-8 rounded-[2.5rem] space-y-6 group hover:border-primary/50 transition-all duration-500">
+                <div key={service.id || i} className="glass-card p-8 rounded-[2.5rem] space-y-6 group hover:border-primary/50 transition-all duration-500">
                 <div className="w-full h-48 rounded-3xl overflow-hidden bg-dark/50 border border-white/5 relative group-hover:border-primary/20 transition-colors">
                   {service.imageUrl ? (
                     <img 
@@ -193,7 +193,31 @@ export default function Home() {
                   <p className="text-gray-500 text-sm font-medium line-clamp-2">{service.description}</p>
                 </div>
                 <div className="flex justify-between items-center pt-4 border-t border-white/5">
-                  <div className="gold-capsule">{t('services.startFrom')} {service.price} {service.currency || 'USD'}</div>
+                  <div className="flex items-center gap-2">
+                    <div className="gold-capsule">
+                      {(() => {
+                        const currency = productCurrencies[service.id] || 'USD';
+                        const price = currency === 'SAR' ? service.priceSAR : 
+                                      currency === 'KWD' ? service.priceKWD : 
+                                      currency === 'USD' ? service.priceUSD : 
+                                      service.priceAED;
+                        return `${price || 0} ${currency}`;
+                      })()}
+                    </div>
+                    <div className="relative">
+                      <select 
+                          value={productCurrencies[service.id] || 'USD'}
+                          onChange={(e) => setProductCurrency(service.id, e.target.value)}
+                          className="bg-dark/50 text-[10px] p-1 rounded-lg border border-white/10 appearance-none pl-6 pr-2"
+                      >
+                          <option value="SAR">SAR</option>
+                          <option value="KWD">KWD</option>
+                          <option value="USD">USD</option>
+                          <option value="AED">AED</option>
+                      </select>
+                      <Brain size={12} className="absolute left-1.5 top-1/2 -translate-y-1/2 text-gold pointer-events-none" />
+                    </div>
+                  </div>
                   <Link to={`/service/${service.id}`} className="btn-gradient px-6 py-2 rounded-full text-xs">{t('services.orderNow')}</Link>
                 </div>
               </div>
