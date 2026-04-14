@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { db } from '../lib/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'motion/react';
@@ -15,6 +16,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 
 export default function RecoverOrder() {
+  const { t, i18n } = useTranslation();
   const [email, setEmail] = useState('');
   const [orderId, setOrderId] = useState('');
   const [loading, setLoading] = useState(false);
@@ -38,7 +40,7 @@ export default function RecoverOrder() {
       const snapshot = await getDocs(q);
       
       if (snapshot.empty) {
-        setError("لم نجد أي طلبات مرتبطة بهذا البريد الإلكتروني.");
+        setError(t('recovery.emailNotFound'));
       } else {
         // Find the specific order by ID (either full ID or last 8 chars of PayPal ID)
         const foundOrder = snapshot.docs.find(doc => {
@@ -52,12 +54,12 @@ export default function RecoverOrder() {
         if (foundOrder) {
           setResult({ id: foundOrder.id, ...foundOrder.data() });
         } else {
-          setError("لم نجد طلباً بهذا الرقم تحت هذا البريد الإلكتروني. يرجى التأكد من البيانات.");
+          setError(t('recovery.orderNotFound'));
         }
       }
     } catch (err) {
       console.error("Recovery error:", err);
-      setError("حدث خطأ أثناء البحث. يرجى المحاولة لاحقاً.");
+      setError(t('recovery.errorSearching'));
     } finally {
       setLoading(false);
     }
@@ -69,8 +71,8 @@ export default function RecoverOrder() {
         <div className="bg-primary/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border border-primary/20">
           <ShieldCheck className="text-primary" size={40} />
         </div>
-        <h1 className="text-4xl font-black text-white tracking-tighter">استعادة <span className="text-gold">الوصول للطلب</span></h1>
-        <p className="text-gray-500 font-medium">أدخل بياناتك أدناه للعثور على رابط بوابة العميل الخاصة بك.</p>
+        <h1 className="text-4xl font-black text-white tracking-tighter">{t('recovery.title').split(' ')[0]} <span className="text-gold">{t('recovery.title').split(' ').slice(1).join(' ')}</span></h1>
+        <p className="text-gray-500 font-medium">{t('recovery.description')}</p>
       </header>
 
       <div className="bg-white/[0.03] border border-white/10 rounded-[2.5rem] p-8 md:p-12 shadow-2xl relative overflow-hidden">
@@ -80,7 +82,7 @@ export default function RecoverOrder() {
           <div className="space-y-2">
             <label className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
               <Mail size={14} />
-              البريد الإلكتروني المستخدم عند الشراء
+              {t('recovery.emailLabel')}
             </label>
             <input 
               type="email" 
@@ -95,7 +97,7 @@ export default function RecoverOrder() {
           <div className="space-y-2">
             <label className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
               <Hash size={14} />
-              رقم الطلب (أو آخر 8 أرقام منه)
+              {t('recovery.orderIdLabel')}
             </label>
             <input 
               type="text" 
@@ -121,7 +123,7 @@ export default function RecoverOrder() {
             ) : (
               <>
                 <Search size={22} />
-                ابحث عن طلبي
+                {t('recovery.searchButton')}
               </>
             )}
           </button>
@@ -151,7 +153,7 @@ export default function RecoverOrder() {
                   <ShieldCheck size={24} />
                 </div>
                 <div>
-                  <h3 className="font-black text-white">تم العثور على طلبك!</h3>
+                  <h3 className="font-black text-white">{t('recovery.orderFound')}</h3>
                   <p className="text-xs text-green-400/70 font-bold uppercase tracking-widest">#{result.id.slice(-8)} · {result.productName || result.serviceTitle}</p>
                 </div>
               </div>
@@ -160,7 +162,7 @@ export default function RecoverOrder() {
                 onClick={() => navigate(`/order-portal/${result.id}`)}
                 className="w-full bg-green-500 text-white py-4 rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-green-600 transition-colors"
               >
-                فتح بوابة العميل
+                {t('recovery.openPortal')}
                 <ExternalLink size={18} />
               </button>
             </motion.div>
@@ -170,8 +172,8 @@ export default function RecoverOrder() {
 
       <div className="mt-12 text-center">
         <Link to="/" className="inline-flex items-center gap-2 text-gray-500 hover:text-primary transition-colors font-bold">
-          <ArrowLeft size={18} />
-          العودة للمتجر
+          <ArrowLeft size={18} className={i18n.language === 'ar' ? 'rotate-180' : ''} />
+          {t('recovery.backToStore')}
         </Link>
       </div>
     </div>

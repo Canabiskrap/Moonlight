@@ -25,6 +25,7 @@ import FloatingActions from './components/FloatingActions';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { motion, AnimatePresence } from 'motion/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
+import { useTranslation } from 'react-i18next';
 
 import Status from './pages/Status';
 
@@ -37,6 +38,12 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { i18n } = useTranslation();
+
+  useEffect(() => {
+    document.documentElement.dir = i18n.language === 'ar' ? 'rtl' : 'ltr';
+    document.documentElement.lang = i18n.language;
+  }, [i18n.language]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -86,7 +93,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <Router>
-        <div className="min-h-screen bg-dark text-white font-sans flex flex-col">
+        <div className={`min-h-screen bg-dark text-white font-sans flex flex-col ${i18n.language === 'ar' ? 'font-arabic' : 'font-sans'}`}>
           <Navbar user={user} isAdmin={isAdmin} />
           <main className="pt-32 pb-10 px-6 max-w-7xl mx-auto flex-1 w-full relative z-10">
             <AnimatePresence mode="wait">

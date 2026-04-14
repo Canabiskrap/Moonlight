@@ -3,8 +3,10 @@ import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { useTranslation } from 'react-i18next';
 
 export default function Footer() {
+  const { t } = useTranslation();
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [instagramUrl, setInstagramUrl] = useState<string | null>(null);
   const [twitterUrl, setTwitterUrl] = useState<string | null>(null);
@@ -56,7 +58,7 @@ export default function Footer() {
               <span className="text-2xl font-black tracking-tighter">MOONLIGHT</span>
             </Link>
             <p className="text-gray-500 font-medium leading-relaxed max-w-sm">
-              نحن نؤمن بأن كل فكرة تستحق أن تظهر بأفضل صورة ممكنة. Moonlight هو شريكك في رحلة النجاح الرقمي.
+              {t('footer.description')}
             </p>
             <div className="flex items-center gap-4">
               {instagramUrl && (
@@ -113,19 +115,19 @@ export default function Footer() {
           </div>
 
           <div className="space-y-6">
-            <h4 className="text-sm font-black uppercase tracking-widest text-gold">روابط سريعة</h4>
+            <h4 className="text-sm font-black uppercase tracking-widest text-gold">{t('footer.quickLinks')}</h4>
             <ul className="space-y-4">
-              <li><Link to="/" className="text-gray-400 hover:text-white font-bold transition-colors">الرئيسية</Link></li>
-              <li><Link to="/my-orders" className="text-gray-400 hover:text-white font-bold transition-colors">طلباتي</Link></li>
-              <li><Link to="/recover-order" className="text-gray-400 hover:text-white font-bold transition-colors">استعادة طلب</Link></li>
-              <li><Link to="/buyer-protection" className="text-gray-400 hover:text-white font-bold transition-colors">حماية المشتري</Link></li>
-              <li><Link to="/terms" className="text-gray-400 hover:text-white font-bold transition-colors">الشروط والأحكام</Link></li>
-              <li><Link to="/privacy" className="text-gray-400 hover:text-white font-bold transition-colors">سياسة الخصوصية</Link></li>
+              <li><Link to="/" className="text-gray-400 hover:text-white font-bold transition-colors">{t('nav.home')}</Link></li>
+              <li><Link to="/my-orders" className="text-gray-400 hover:text-white font-bold transition-colors">{t('nav.orders')}</Link></li>
+              <li><Link to="/recover-order" className="text-gray-400 hover:text-white font-bold transition-colors">{t('footer.recover')}</Link></li>
+              <li><Link to="/buyer-protection" className="text-gray-400 hover:text-white font-bold transition-colors">{t('nav.protection')}</Link></li>
+              <li><Link to="/terms" className="text-gray-400 hover:text-white font-bold transition-colors">{t('footer.terms')}</Link></li>
+              <li><Link to="/privacy" className="text-gray-400 hover:text-white font-bold transition-colors">{t('footer.privacy')}</Link></li>
             </ul>
           </div>
 
           <div className="space-y-6">
-            <h4 className="text-sm font-black uppercase tracking-widest text-gold">تواصل معنا</h4>
+            <h4 className="text-sm font-black uppercase tracking-widest text-gold">{t('footer.contactUs')}</h4>
             <ul className="space-y-4">
               <li className="flex items-center gap-3 text-gray-400 font-bold">
                 <Mail size={18} className="text-primary" />
@@ -140,7 +142,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-12 text-center text-gray-600 text-xs font-black uppercase tracking-[0.3em]">
-          &copy; {new Date().getFullYear()} Moonlight Store. All Rights Reserved.
+          &copy; {new Date().getFullYear()} {t('footer.allRights')}
         </div>
       </div>
     </footer>

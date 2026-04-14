@@ -5,6 +5,7 @@ import { Sparkles, Brain, Zap, MessageSquare, Loader2, ArrowRight, User, Bot } f
 import { motion, AnimatePresence } from 'motion/react';
 import { chatWithBot } from '../services/geminiService';
 import ReactMarkdown from 'react-markdown';
+import { useTranslation } from 'react-i18next';
 
 interface SmartAIAssistantProps {
   products: any[];
@@ -12,6 +13,7 @@ interface SmartAIAssistantProps {
 }
 
 export default function SmartAIAssistant({ products, orders }: SmartAIAssistantProps) {
+  const { t } = useTranslation();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [insight, setInsight] = useState<string | null>(null);
   const [chatMessage, setChatMessage] = useState('');
@@ -67,10 +69,10 @@ export default function SmartAIAssistant({ products, orders }: SmartAIAssistantP
             <div className="bg-primary/20 p-2 rounded-xl text-primary">
               <Sparkles size={20} />
             </div>
-            <CardTitle className="text-xl font-black text-white">تحليل الذكاء الاصطناعي</CardTitle>
+            <CardTitle className="text-xl font-black text-white">{t('bot.title')}</CardTitle>
           </div>
           <CardDescription className="text-gray-400 font-medium">
-            دع الذكاء الاصطناعي يحلل أداء متجرك ويقترح عليك خطوات للنمو.
+            {t('bot.description')}
           </CardDescription>
         </CardHeader>
         
@@ -90,7 +92,7 @@ export default function SmartAIAssistant({ products, orders }: SmartAIAssistantP
                   className="mt-4 text-primary font-black hover:bg-primary/10"
                   onClick={() => setInsight(null)}
                 >
-                  إعادة التحليل
+                  {t('bot.reAnalyze')}
                 </Button>
               </motion.div>
             ) : (
@@ -102,14 +104,14 @@ export default function SmartAIAssistant({ products, orders }: SmartAIAssistantP
                 <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center text-primary animate-pulse">
                   <Zap size={32} />
                 </div>
-                <p className="text-sm text-gray-500 font-bold">جاهز لتحليل بيانات المتجر...</p>
+                <p className="text-sm text-gray-500 font-bold">{t('bot.ready')}</p>
                 <Button 
                   onClick={runAnalysis} 
                   disabled={isAnalyzing}
                   className="bg-primary hover:bg-primary-dark text-white px-8 py-6 rounded-2xl font-black text-lg shadow-xl shadow-primary/20"
                 >
                   {isAnalyzing ? <Loader2 className="animate-spin ml-2" /> : <Sparkles className="ml-2" />}
-                  ابدأ التحليل الذكي
+                  {t('bot.startAnalysis')}
                 </Button>
               </motion.div>
             )}
@@ -125,8 +127,8 @@ export default function SmartAIAssistant({ products, orders }: SmartAIAssistantP
               <MessageSquare size={20} />
             </div>
             <div>
-              <CardTitle className="text-xl font-black text-white">مساعد Moonlight الذكي</CardTitle>
-              <CardDescription className="text-gray-500 font-bold">اسألني عن أي شيء يخص إدارة المتجر</CardDescription>
+              <CardTitle className="text-xl font-black text-white">{t('bot.assistantTitle')}</CardTitle>
+              <CardDescription className="text-gray-500 font-bold">{t('bot.assistantDesc')}</CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -137,7 +139,7 @@ export default function SmartAIAssistant({ products, orders }: SmartAIAssistantP
               <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
                 <MessageSquare size={32} />
               </div>
-              <p className="text-sm font-bold">ابدأ المحادثة الآن للحصول على مساعدة فورية</p>
+              <p className="text-sm font-bold">{t('bot.startChat')}</p>
             </div>
           )}
           {chatHistory.map((msg, i) => (
@@ -185,7 +187,7 @@ export default function SmartAIAssistant({ products, orders }: SmartAIAssistantP
               type="text"
               value={chatMessage}
               onChange={(e) => setChatMessage(e.target.value)}
-              placeholder="اكتب سؤالك هنا..."
+              placeholder={t('bot.placeholder')}
               disabled={isChatting}
               className="w-full bg-white/5 border border-white/10 focus:border-primary/50 focus:bg-white/[0.08] outline-none p-5 pr-14 rounded-2xl text-sm transition-all text-right text-white font-bold placeholder:text-gray-600 disabled:opacity-50"
             />

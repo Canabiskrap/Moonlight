@@ -6,8 +6,10 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ShoppingBag, Sparkles, ShieldCheck, Zap, MessageCircle, Search, Brain, Loader2, X, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getSmartRecommendations } from '../services/geminiService';
+import { useTranslation } from 'react-i18next';
 
 export default function Home() {
+  const { t, i18n } = useTranslation();
   const [products, setProducts] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,11 +79,11 @@ export default function Home() {
         : products.filter(p => p.category === selectedCategory));
 
   const categories = [
-    { id: 'all', name: 'الكل' },
-    { id: 'cv', name: 'سيرة ذاتية' },
-    { id: 'social', name: 'سوشيال ميديا' },
-    { id: 'web', name: 'قوالب ويب' },
-    { id: 'other', name: 'أخرى' }
+    { id: 'all', name: t('hero.categories.all') },
+    { id: 'cv', name: t('hero.categories.cv') },
+    { id: 'social', name: t('hero.categories.social') },
+    { id: 'web', name: t('hero.categories.web') },
+    { id: 'other', name: t('hero.categories.other') }
   ];
 
   return (
@@ -100,24 +102,24 @@ export default function Home() {
           >
             <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.3em] text-primary-light">
               <Sparkles size={12} className="animate-pulse" />
-              Moonlight Digital Studio
+              {t('hero.subtitle')}
             </div>
             
             <h1 className="text-5xl md:text-7xl xl:text-8xl font-black leading-[1.1] tracking-tighter">
-              هويتك الرقمية <br />
-              <span className="text-gold text-glow">باحترافية</span>
+              {t('hero.title')} <br />
+              <span className="text-gold text-glow">{t('hero.titleAccent')}</span>
             </h1>
             
             <p className="text-gray-400 text-lg md:text-xl leading-relaxed max-w-xl mr-auto font-medium">
-              نصمم لك مستقبلاً رقمياً يتجاوز التوقعات. من الهوية البصرية إلى تطوير الويب، نحن هنا لنصنع لك حضوراً لا يُنسى.
+              {t('hero.description')}
             </p>
 
             <div className="flex flex-wrap gap-4 justify-end">
               <a href="#products" className="btn-gradient px-10 py-4 rounded-2xl text-sm border border-white/10">
-                تصفح المنتجات
+                {t('hero.browseProducts')}
               </a>
               <button onClick={() => document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' })} className="btn-premium bg-white/5 text-white px-10 py-4 rounded-2xl font-black text-sm border border-white/10 hover:bg-white/10">
-                خدماتنا
+                {t('hero.ourServices')}
               </button>
             </div>
           </motion.div>
@@ -142,7 +144,7 @@ export default function Home() {
                   className="w-full h-full object-cover"
                 >
                   <source src={heroVideoUrl || "https://uqemmhgfnriaeoyj.public.blob.vercel-storage.com/-8694076496645624839-uUCmBsrtnU4pJlimUGe3YXPAxVrDcA.mp4"} type="video/mp4" />
-                  Your browser does not support the video tag.
+                  {t('hero.videoFallback')}
                 </video>
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
               </motion.div>
@@ -154,8 +156,8 @@ export default function Home() {
       {/* Services Section */}
       <section id="services" className="space-y-12">
         <div className="text-center space-y-2">
-          <h2 className="text-3xl font-black">خدماتي</h2>
-          <p className="text-gray-500 text-sm font-bold">نقدم حلولاً رقمية متكاملة لنمو مشروعك</p>
+          <h2 className="text-3xl font-black">{t('services.title')}</h2>
+          <p className="text-gray-500 text-sm font-bold">{t('services.description')}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -186,14 +188,14 @@ export default function Home() {
                   <p className="text-gray-500 text-sm font-medium line-clamp-2">{service.description}</p>
                 </div>
                 <div className="flex justify-between items-center pt-4 border-t border-white/5">
-                  <div className="gold-capsule">ابدأ من ${service.price}</div>
-                  <Link to={`/service/${service.id}`} className="btn-gradient px-6 py-2 rounded-full text-xs">اطلب الآن</Link>
+                  <div className="gold-capsule">{t('services.startFrom')} ${service.price}</div>
+                  <Link to={`/service/${service.id}`} className="btn-gradient px-6 py-2 rounded-full text-xs">{t('services.orderNow')}</Link>
                 </div>
               </div>
             ))
           ) : (
             <div className="col-span-full text-center py-10 glass-card rounded-[2rem]">
-              <p className="text-gray-500 font-bold">سيتم إضافة الخدمات قريباً...</p>
+              <p className="text-gray-500 font-bold">{t('services.comingSoon')}</p>
             </div>
           )}
         </div>
@@ -203,8 +205,8 @@ export default function Home() {
       <section id="products" className="space-y-12">
         <div className="flex flex-col md:flex-row justify-between items-end gap-8">
           <div className="text-right space-y-2">
-            <h2 className="text-4xl font-black">منتجات رقمية جاهزة</h2>
-            <p className="text-gray-500 font-medium">اختر من بين أفضل القوالب المصممة بعناية</p>
+            <h2 className="text-4xl font-black">{t('products.title')}</h2>
+            <p className="text-gray-500 font-medium">{t('products.description')}</p>
           </div>
           
           <div className="flex flex-col gap-4 w-full md:w-96">
@@ -215,7 +217,7 @@ export default function Home() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="ابحث بذكاء... (مثلاً: أريد قالب بسيط)"
+                  placeholder={t('hero.searchPlaceholder')}
                   className="bg-transparent border-none focus:ring-0 text-white px-4 py-2 text-sm w-full text-right"
                   dir="rtl"
                 />
@@ -274,9 +276,9 @@ export default function Home() {
                 <Sparkles className="text-primary w-12 h-12 animate-pulse" />
               </div>
               <div className="space-y-3">
-                <h3 className="text-3xl font-black text-white">قريباً: معرض أعمالنا الحصري قيد التحديث</h3>
+                <h3 className="text-3xl font-black text-white">{t('products.comingSoonTitle')}</h3>
                 <p className="text-gray-400 font-medium max-w-md mx-auto leading-relaxed">
-                  نعمل حالياً على تجهيز مجموعة مميزة من القوالب والأعمال الرقمية التي سترتقي بمشاريعك. ابقَ على اطلاع!
+                  {t('products.comingSoonDesc')}
                 </p>
               </div>
             </div>
@@ -310,7 +312,7 @@ export default function Home() {
                     <div className="absolute top-6 left-6 bg-primary/90 backdrop-blur-md px-3 py-1 rounded-lg text-[10px] font-black text-white border border-white/20 shadow-xl z-20 animate-pulse">
                       <div className="flex items-center gap-1">
                         <Brain size={12} />
-                        AI RECOMMENDED
+                        {t('products.aiRecommended')}
                       </div>
                     </div>
                   )}
@@ -332,8 +334,8 @@ export default function Home() {
                     to={`/product/${product.id}`}
                     className="flex items-center justify-center w-full btn-gradient py-4 rounded-2xl font-black text-sm transition-all duration-500 border border-white/10 group/btn"
                   >
-                    <span>عرض التفاصيل</span>
-                    <ArrowRight size={16} className="mr-2 -translate-x-2 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all" />
+                    <span>{t('products.viewDetails')}</span>
+                    <ArrowRight size={16} className={`${i18n.language === 'ar' ? 'mr-2 -translate-x-2' : 'ml-2 translate-x-2'} opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all`} />
                   </Link>
                 </div>
               </motion.div>
@@ -357,23 +359,23 @@ export default function Home() {
           </div>
           
           <div className="flex-1 text-center md:text-right space-y-4 relative z-10">
-            <h2 className="text-3xl font-black text-white">حقوقك محفوظة في Moonlight 🌙</h2>
+            <h2 className="text-3xl font-black text-white">{t('protection.advice.footer')}</h2>
             <p className="text-gray-400 font-medium text-lg leading-relaxed">
-              نحن نؤمن بأن ثقتك هي أغلى ما نملك. لذلك صممنا بروتوكولاً خاصاً يضمن لك الوصول الدائم لمشترياتك وحماية حقوقك التقنية بالكامل.
+              {t('protection.header.description')}
             </p>
             <div className="flex flex-wrap justify-center md:justify-end gap-4 pt-4">
               <Link 
                 to="/buyer-protection" 
                 className="bg-white/5 hover:bg-white/10 text-white px-8 py-3 rounded-xl font-black text-sm border border-white/10 transition-all flex items-center gap-2"
               >
-                اكتشف كيف نحميك
-                <ArrowRight size={18} />
+                {t('protection.advice.buttonHome')}
+                <ArrowRight size={18} className={i18n.language === 'ar' ? '' : 'rotate-180'} />
               </Link>
               <Link 
                 to="/recover-order" 
                 className="text-gold hover:text-white transition-colors font-black text-sm flex items-center gap-2"
               >
-                استعادة طلب مفقود
+                {t('myOrders.recoverLost')}
                 <Search size={18} />
               </Link>
             </div>
@@ -385,13 +387,13 @@ export default function Home() {
       <section className="py-20">
         <div className="glass-card p-12 rounded-[3rem] text-center space-y-8 relative overflow-hidden">
           <div className="absolute inset-0 bg-primary/5 blur-[100px] rounded-full" />
-          <h2 className="text-4xl font-black relative z-10">تواصل معي</h2>
+          <h2 className="text-4xl font-black relative z-10">{t('footer.contact')}</h2>
           <p className="text-gray-400 font-medium max-w-lg mx-auto relative z-10">
-            لديك فكرة مشروع؟ دعنا نتحدث ونحولها إلى واقع رقمي ملموس.
+            {t('footer.contactDesc')}
           </p>
           <div className="flex justify-center gap-4 relative z-10">
             <a href="https://wa.me/96569929627" target="_blank" rel="noopener noreferrer" className="btn-gradient px-10 py-4 rounded-2xl text-sm">
-              واتساب مباشر
+              {t('services.contactWhatsapp')}
             </a>
           </div>
         </div>

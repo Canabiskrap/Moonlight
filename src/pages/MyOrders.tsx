@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Navigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { auth, db } from '../lib/firebase';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'motion/react';
@@ -14,6 +15,7 @@ import {
 } from 'lucide-react';
 
 export default function MyOrders() {
+  const { t, i18n } = useTranslation();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const user = auth.currentUser;
@@ -52,13 +54,13 @@ export default function MyOrders() {
       <header className="mb-12 space-y-4">
         <div className="flex items-center gap-3 text-primary mb-2">
           <ShoppingBag size={24} />
-          <span className="text-xs font-black uppercase tracking-[0.3em]">حسابي الشخصي</span>
+          <span className="text-xs font-black uppercase tracking-[0.3em]">{t('myOrders.personalAccount')}</span>
         </div>
         <h1 className="text-4xl md:text-5xl font-black text-white tracking-tighter">
-          طلباتي <span className="text-gold">المشتراة</span>
+          {t('myOrders.purchasedOrders').split(' ')[0]} <span className="text-gold">{t('myOrders.purchased')}</span>
         </h1>
         <p className="text-gray-500 text-lg max-w-2xl">
-          هنا تجد جميع مشترياتك السابقة من Moonlight. يمكنك الوصول إلى بوابات التحميل الخاصة بك في أي وقت.
+          {t('myOrders.description')}
         </p>
       </header>
 
@@ -69,7 +71,7 @@ export default function MyOrders() {
             transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
             className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full"
           />
-          <p className="text-gray-500 font-bold">جاري تحميل طلباتك...</p>
+          <p className="text-gray-500 font-bold">{t('myOrders.loading')}</p>
         </div>
       ) : orders.length === 0 ? (
         <motion.div 
@@ -81,14 +83,14 @@ export default function MyOrders() {
             <Package size={40} />
           </div>
           <div className="space-y-2">
-            <h3 className="text-2xl font-black text-white">لا توجد طلبات بعد</h3>
-            <p className="text-gray-500 max-w-xs mx-auto">يبدو أنك لم تقم بأي عملية شراء باستخدام هذا البريد الإلكتروني ({user.email}).</p>
+            <h3 className="text-2xl font-black text-white">{t('myOrders.noOrders')}</h3>
+            <p className="text-gray-500 max-w-xs mx-auto">{t('myOrders.noOrdersDesc', { email: user.email })}</p>
           </div>
           <Link 
             to="/" 
             className="inline-flex items-center gap-2 bg-primary text-white px-8 py-4 rounded-2xl font-black hover:scale-105 transition-transform shadow-xl shadow-primary/20"
           >
-            استكشف المتجر الآن
+            {t('myOrders.exploreStore')}
           </Link>
         </motion.div>
       ) : (
@@ -113,22 +115,22 @@ export default function MyOrders() {
                       <div className="flex items-center gap-3">
                         <h3 className="text-xl font-black text-white">{order.productName || order.serviceTitle}</h3>
                         {order.isTest && (
-                          <span className="px-2 py-0.5 bg-gold/20 text-gold text-[8px] rounded-md border border-gold/30 font-black">تجريبي</span>
+                          <span className="px-2 py-0.5 bg-gold/20 text-gold text-[8px] rounded-md border border-gold/30 font-black">{t('myOrders.test')}</span>
                         )}
                       </div>
                       <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">
-                        رقم الطلب: #{order.paypalOrderId?.slice(-8) || order.id.slice(-8)}
+                        {t('myOrders.orderNumber')}: #{order.paypalOrderId?.slice(-8) || order.id.slice(-8)}
                       </p>
                       <div className="flex items-center gap-4 mt-2">
                         <div className="flex items-center gap-1.5 text-[10px] font-black text-gray-400">
                           <Clock size={12} />
-                          {order.createdAt?.toDate().toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' })}
+                          {order.createdAt?.toDate().toLocaleDateString(i18n.language === 'ar' ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
                         </div>
                         <div className={`flex items-center gap-1.5 text-[10px] font-black ${
                           order.status === 'completed' ? 'text-green-400' : 'text-primary'
                         }`}>
                           {order.status === 'completed' ? <CheckCircle2 size={12} /> : <Clock size={12} className="animate-spin-slow" />}
-                          {order.status === 'completed' ? 'مكتمل وجاهز' : 'جاري التجهيز'}
+                          {order.status === 'completed' ? t('myOrders.completedReady') : t('myOrders.inProgress')}
                         </div>
                       </div>
                     </div>
@@ -138,7 +140,7 @@ export default function MyOrders() {
                     to={`/order-portal/${order.id}`}
                     className="bg-white/5 hover:bg-primary hover:text-white border border-white/10 hover:border-primary px-6 py-4 rounded-2xl flex items-center justify-center gap-3 transition-all group/btn"
                   >
-                    <span className="font-black text-sm">فتح البوابة</span>
+                    <span className="font-black text-sm">{t('myOrders.openPortal')}</span>
                     <ExternalLink size={18} className="group-hover/btn:translate-x-1 transition-transform" />
                   </Link>
                 </div>
@@ -153,15 +155,15 @@ export default function MyOrders() {
           <Search size={32} />
         </div>
         <div className="flex-1 text-center md:text-right space-y-2">
-          <h3 className="text-xl font-black text-white">هل فقدت الوصول لطلب معين؟</h3>
-          <p className="text-sm text-gray-400 font-medium">إذا قمت بشراء منتج ببريد إلكتروني مختلف، يمكنك استعادته يدوياً.</p>
+          <h3 className="text-xl font-black text-white">{t('myOrders.lostAccess')}</h3>
+          <p className="text-sm text-gray-400 font-medium">{t('myOrders.lostAccessDesc')}</p>
         </div>
         <Link 
           to="/recover-order"
           className="bg-white text-black px-8 py-4 rounded-2xl font-black hover:scale-105 transition-transform flex items-center gap-2"
         >
-          استعادة طلب مفقود
-          <ChevronLeft size={20} />
+          {t('myOrders.recoverLost')}
+          <ChevronLeft size={20} className={i18n.language === 'ar' ? '' : 'rotate-180'} />
         </Link>
       </div>
     </div>

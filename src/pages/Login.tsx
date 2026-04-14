@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { User } from 'firebase/auth';
+import { useTranslation } from 'react-i18next';
 import { loginWithGoogle } from '../lib/firebase';
 import { motion } from 'motion/react';
 import { LogIn, ShieldCheck, Loader2 } from 'lucide-react';
@@ -10,6 +11,7 @@ interface LoginProps {
 }
 
 export default function Login({ user }: LoginProps) {
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,16 +27,16 @@ export default function Login({ user }: LoginProps) {
       await loginWithGoogle();
     } catch (err: any) {
       console.error(err);
-      let message = "حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.";
+      let message = t('auth.errorUnexpected');
       
       if (err.code === 'auth/popup-blocked') {
-        message = "تم حظر النافذة المنبثقة. يرجى السماح بالمنبثقات لهذا الموقع أو المحاولة من متصفح آخر.";
+        message = t('auth.errorPopupBlocked');
       } else if (err.code === 'auth/unauthorized-domain') {
-        message = `هذا النطاق (${window.location.hostname}) غير مصرح به في إعدادات Firebase. يرجى إضافة رابط الموقع إلى Authorized Domains في Firebase Console.`;
+        message = t('auth.errorUnauthorizedDomain', { hostname: window.location.hostname });
       } else if (err.code === 'auth/network-request-failed') {
-        message = "خطأ في الاتصال بالشبكة. يرجى التحقق من اتصالك بالإنترنت.";
+        message = t('auth.errorNetwork');
       } else if (err.message) {
-        message = `فشل تسجيل الدخول: ${err.message}`;
+        message = `${t('auth.loginFailed')}: ${err.message}`;
       }
       
       setError(message);
@@ -63,8 +65,8 @@ export default function Login({ user }: LoginProps) {
         </div>
 
         <div className="space-y-3">
-          <h1 className="text-4xl font-black tracking-tighter text-white">مرحباً بك</h1>
-          <p className="text-gray-500 text-sm font-medium leading-relaxed">سجل دخولك للوصول إلى لوحة التحكم أو متابعة مشترياتك في Moonlight 🌕</p>
+          <h1 className="text-4xl font-black tracking-tighter text-white">{t('auth.welcome')}</h1>
+          <p className="text-gray-500 text-sm font-medium leading-relaxed">{t('auth.loginDesc')}</p>
           
           {error && (
             <motion.div 
@@ -88,7 +90,7 @@ export default function Login({ user }: LoginProps) {
           ) : (
             <>
               <img src="https://www.google.com/favicon.ico" className="w-6 h-6" alt="Google" />
-              الدخول بواسطة جوجل
+              {t('auth.googleLogin')}
             </>
           )}
         </button>
@@ -96,9 +98,9 @@ export default function Login({ user }: LoginProps) {
         <div className="pt-8 border-t border-white/5 flex flex-col items-center gap-4">
           <div className="flex items-center gap-2 text-gray-500 text-xs font-bold uppercase tracking-widest">
             <ShieldCheck size={14} className="text-green-500" />
-            دخول آمن ومحمي
+            {t('auth.secureLogin')}
           </div>
-          <Link to="/" className="text-[10px] text-gray-600 hover:text-primary transition-colors font-black uppercase tracking-widest">العودة للمتجر</Link>
+          <Link to="/" className="text-[10px] text-gray-600 hover:text-primary transition-colors font-black uppercase tracking-widest">{t('auth.backToHome')}</Link>
         </div>
       </motion.div>
     </div>

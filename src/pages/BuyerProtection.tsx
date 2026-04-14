@@ -10,41 +10,43 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 export default function BuyerProtection() {
+  const { t, i18n } = useTranslation();
   const protocols = [
     {
       icon: <ShoppingBag className="text-primary" size={32} />,
-      title: "نظام 'طلباتي' (المرجع الدائم)",
-      desc: "بمجرد إتمام عملية الشراء وأنت مسجل دخولك، يتم أرشفة الحزمة تلقائياً في حسابك.",
+      title: t('protection.protocols.0.title'),
+      desc: t('protection.protocols.0.desc'),
       details: [
-        "كيف تجدها؟ توجه إلى قائمة حسابك الشخصي > اختر 'طلباتي'.",
-        "الميزة: ستجد قائمة بجميع مشترياتك السابقة مع روابط مباشرة لبوابات الدخول الخاصة بها، متاحة لك في أي وقت ومن أي جهاز."
+        t('protection.protocols.0.details.0'),
+        t('protection.protocols.0.details.1')
       ]
     },
     {
       icon: <Lock className="text-primary" size={32} />,
-      title: "التوثيق الفوري (بوابة العميل)",
-      desc: "فور نجاح عملية الدفع، يتم توجيهك مباشرة إلى بوابة العميل الخاصة بك.",
+      title: t('protection.protocols.1.title'),
+      desc: t('protection.protocols.1.desc'),
       details: [
-        "المحتوى: تحتوي البوابة على تفاصيل الفاتورة، مراحل التنفيذ، وروابط التحميل.",
-        "نصيحة: احتفظ برابط البوابة أو رقم الطلب كمرجع دائم لك."
+        t('protection.protocols.1.details.0'),
+        t('protection.protocols.1.details.1')
       ]
     },
     {
       icon: <RefreshCw className="text-primary" size={32} />,
-      title: "خاصية استعادة الطلب (الطوارئ)",
-      desc: "في حال فقدت الوصول لطلبك أو أغلق الصفحة بالخطأ، وفرنا لك صفحة 'استعادة الطلب'.",
+      title: t('protection.protocols.2.title'),
+      desc: t('protection.protocols.2.desc'),
       details: [
-        "كل ما تحتاجه هو إدخال (بريدك الإلكتروني + رقم الطلب) وسيقوم النظام فوراً بإعادة توجيهك إلى حزمتك المشتراة."
+        t('protection.protocols.2.details.0')
       ]
     },
     {
       icon: <MessageCircle className="text-primary" size={32} />,
-      title: "الدعم الفني المباشر",
-      desc: "فريقنا متواجد لخدمتك عبر أيقونة WhatsApp الموجودة أسفل الموقع.",
+      title: t('protection.protocols.3.title'),
+      desc: t('protection.protocols.3.desc'),
       details: [
-        "لا تضطر أبداً للدفع مرتين؛ فبمجرد التحقق من رقم العملية في لوحة التحكم لدينا، يتم تزويدك بالرابط يدوياً فوراً."
+        t('protection.protocols.3.details.0')
       ]
     }
   ];
@@ -59,12 +61,15 @@ export default function BuyerProtection() {
         >
           <ShieldCheck className="text-primary" size={48} />
         </motion.div>
+        <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.3em] text-primary-light mx-auto">
+          {t('protection.header.badge')}
+        </div>
         <h1 className="text-5xl md:text-6xl font-black text-white tracking-tighter">
-          دليل ضمان وحماية <br />
-          <span className="text-primary">مشترياتك في Moonlight</span>
+          {t('protection.header.title')} <br />
+          <span className="text-gold">{t('protection.header.titleAccent')}</span>
         </h1>
         <p className="text-gray-500 text-xl max-w-2xl mx-auto leading-relaxed">
-          عزيزنا العميل، في Moonlight خصوصيتك وحقوقك التقنية هي أولويتنا. نحن نضمن لك وصولاً آمناً ودائماً لكل ما تشتريه.
+          {t('protection.header.description')}
         </p>
       </header>
 
@@ -107,9 +112,9 @@ export default function BuyerProtection() {
         <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }} />
         
         <div className="space-y-4 relative z-10">
-          <h2 className="text-3xl font-black text-white">💡 نصيحة لضمان أفضل تجربة</h2>
+          <h2 className="text-3xl font-black text-white">{t('protection.advice.title')}</h2>
           <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-            يرجى دائماً التأكد من تسجيل الدخول قبل عملية الشراء لضمان ربط الحزمة بحسابك فوراً، والتأكد من صحة بريدك الإلكتروني لاستلام روابط الوصول بسرعة.
+            {t('protection.advice.desc')}
           </p>
         </div>
 
@@ -118,19 +123,19 @@ export default function BuyerProtection() {
             to="/my-orders"
             className="bg-primary text-white px-10 py-5 rounded-2xl font-black text-lg hover:scale-105 transition-transform flex items-center gap-2 shadow-xl shadow-primary/20"
           >
-            تصفح طلباتي الآن
-            <ChevronLeft size={24} />
+            {t('protection.advice.buttonOrders')}
+            <ChevronLeft className={i18n.language === 'ar' ? '' : 'rotate-180'} size={24} />
           </Link>
           <Link 
             to="/"
             className="bg-white/5 hover:bg-white/10 text-white px-10 py-5 rounded-2xl font-black text-lg transition-all flex items-center gap-2 border border-white/10"
           >
-            العودة للمتجر
-            <ArrowRight size={24} />
+            {t('protection.advice.buttonHome')}
+            <ArrowRight className={i18n.language === 'ar' ? '' : 'rotate-180'} size={24} />
           </Link>
         </div>
 
-        <p className="text-primary font-black text-xl pt-4">حقوقك محفوظة، ورحلتك معنا آمنة تماماً. 🌙✨</p>
+        <p className="text-primary font-black text-xl pt-4">{t('protection.advice.footer')}</p>
       </div>
     </div>
   );

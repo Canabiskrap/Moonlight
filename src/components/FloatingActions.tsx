@@ -1,22 +1,26 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { MessageCircle, Bot, X, Send, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { MessageCircle, Bot, X, Send, Loader2, RefreshCw } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { chatWithBot } from '../services/geminiService';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { useTranslation } from 'react-i18next';
 
 export default function FloatingActions() {
+  const { t, i18n } = useTranslation();
   const [showBot, setShowBot] = useState(false);
   const [input, setInput] = useState("");
-  const [messages, setMessages] = useState<{role: 'bot' | 'user', text: string}[]>([
-    { role: 'bot', text: 'مرحباً بك في Moonlight 🌕! أنا مساعدك الذكي، كيف يمكنني مساعدتك اليوم؟' }
-  ]);
+  const [messages, setMessages] = useState<{role: 'bot' | 'user', text: string}[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const whatsappNumber = "96569929627"; 
   const whatsappUrl = `https://wa.me/${whatsappNumber}`;
+
+  useEffect(() => {
+    setMessages([{ role: 'bot', text: t('bot.welcome') }]);
+  }, [t]);
 
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'settings', 'appearance'), (doc) => {
@@ -41,9 +45,7 @@ export default function FloatingActions() {
     setMessages(prev => [...prev, { role: 'user', text: userMessage }]);
     setIsTyping(true);
 
-    console.log("Bot: Sending message...", userMessage);
     try {
-      // Map history to Gemini format
       const history = messages.slice(1).map(m => ({
         role: m.role === 'user' ? 'user' as const : 'model' as const,
         parts: [{ text: m.text }]
@@ -53,17 +55,17 @@ export default function FloatingActions() {
       setMessages(prev => [...prev, { role: 'bot', text: botResponse }]);
     } catch (error: any) {
       console.error("Bot Error Details:", error);
-      let errorMsg = "عذراً، حدث خطأ تقني. يمكنك التواصل معنا عبر الواتساب مباشرة.";
+      let errorMsg = t('bot.errorGeneral');
       
       const errorStr = JSON.stringify(error);
       if (errorStr.includes('403') || errorStr.includes('PERMISSION_DENIED')) {
-        errorMsg = "خطأ: ليس لديك صلاحية للوصول إلى الذكاء الاصطناعي. يرجى التأكد من صحة مفتاح API في الإعدادات وتفعيل Generative Language API.";
+        errorMsg = t('bot.errorPermission');
       } else if (error?.message?.includes('API_KEY_INVALID') || error?.message?.includes('API key')) {
-        errorMsg = "خطأ: مفتاح API الخاص بالذكاء الاصطناعي غير صالح أو مفقود.";
+        errorMsg = t('bot.errorApiKey');
       } else if (error?.message?.includes('quota')) {
-        errorMsg = "عذراً، تم تجاوز حصة الاستخدام اليومية للذكاء الاصطناعي.";
+        errorMsg = t('bot.errorQuota');
       } else if (error?.message) {
-        errorMsg = `خطأ تقني: ${error.message.substring(0, 100)}`;
+        errorMsg = `${t('bot.errorTechnical')}: ${error.message.substring(0, 100)}`;
       }
 
       setMessages(prev => [...prev, { role: 'bot', text: errorMsg }]);
@@ -85,7 +87,7 @@ export default function FloatingActions() {
       >
         <MessageCircle size={28} />
         <span className="absolute right-full mr-4 bg-white text-dark px-3 py-1 rounded-lg text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl">
-          تواصل معنا عبر واتساب
+          {t('bot.whatsappLabel')}
         </span>
       </motion.a>
 
@@ -100,7 +102,7 @@ export default function FloatingActions() {
           <div className="relative w-full h-full rounded-full overflow-hidden flex items-center justify-center">
             <Bot size={28} className="text-white" />
             <img 
-              src="https://i.ibb.co/zHNCDLwx/trashed-1778451723-file-0000000078f471fdabeb5ac18111456d.png" 
+              src={logoUrl || "https://i.ibb.co/zHNCDLwx/trashed-1778451723-file-0000000078f471fdabeb5ac18111456d.png"} 
               alt="Bot Avatar" 
               className="w-full h-full object-cover absolute inset-0 transition-opacity duration-300" 
               onLoad={(e) => e.currentTarget.style.opacity = '1'}
@@ -109,9 +111,11 @@ export default function FloatingActions() {
             />
           </div>
         )}
-        <span className="absolute right-full mr-4 bg-white text-dark px-3 py-1 rounded-lg text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl">
-          المساعد الذكي
-        </span>
+        {!showBot && (
+          <span className="absolute right-full mr-4 bg-white text-dark px-3 py-1 rounded-lg text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl">
+            {t('bot.chatLabel')}
+          </span>
+        )}
       </motion.button>
 
       {/* Smart Bot UI */}
@@ -126,16 +130,16 @@ export default function FloatingActions() {
             <div className="bg-primary p-5 flex items-center gap-3">
               <div className="flex items-center gap-2">
                 <button 
-                  onClick={() => setMessages([{ role: 'bot', text: 'مرحباً بك في Moonlight 🌕! أنا مساعدك الذكي، كيف يمكنني مساعدتك اليوم؟' }])}
+                  onClick={() => setMessages([{ role: 'bot', text: t('bot.welcome') }])}
                   className="p-1.5 hover:bg-white/10 rounded-lg text-white/50 hover:text-white transition-colors"
-                  title="مسح المحادثة"
+                  title={t('bot.clearChat')}
                 >
                   <RefreshCw size={16} />
                 </button>
                 <div className="bg-white/20 w-10 h-10 rounded-xl relative overflow-hidden flex items-center justify-center">
                   <Bot size={24} className="text-white" />
                   <img 
-                    src="https://i.ibb.co/zHNCDLwx/trashed-1778451723-file-0000000078f471fdabeb5ac18111456d.png" 
+                    src={logoUrl || "https://i.ibb.co/zHNCDLwx/trashed-1778451723-file-0000000078f471fdabeb5ac18111456d.png"} 
                     alt="Bot Avatar" 
                     className="w-full h-full object-cover absolute inset-0 transition-opacity duration-300" 
                     onLoad={(e) => e.currentTarget.style.opacity = '1'}
@@ -145,8 +149,8 @@ export default function FloatingActions() {
                 </div>
               </div>
               <div>
-                <p className="font-black text-sm">مساعد Moonlight 🌕 الذكي</p>
-                <p className="text-[10px] text-white/70">مدعوم بالذكاء الاصطناعي</p>
+                <p className="font-black text-sm">{t('bot.name')}</p>
+                <p className="text-[10px] text-white/70">{t('bot.status')}</p>
               </div>
             </div>
 
@@ -174,7 +178,7 @@ export default function FloatingActions() {
                 <div className="flex justify-end">
                   <div className="bg-primary/20 p-3 rounded-2xl rounded-tr-none flex items-center gap-2">
                     <Loader2 size={14} className="animate-spin text-primary" />
-                    <span className="text-[10px] font-bold text-primary">يفكر...</span>
+                    <span className="text-[10px] font-bold text-primary">{t('bot.thinking')}</span>
                   </div>
                 </div>
               )}
@@ -186,15 +190,16 @@ export default function FloatingActions() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                placeholder="اسألني أي شيء..." 
+                placeholder={t('bot.placeholder')} 
                 className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-primary transition-colors font-bold"
+                dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}
               />
               <button 
                 onClick={handleSendMessage}
                 disabled={isTyping}
                 className="bg-primary p-2 rounded-xl hover:bg-primary-dark transition-colors disabled:opacity-50"
               >
-                <Send size={18} />
+                <Send size={18} className={i18n.language === 'ar' ? 'rotate-180' : ''} />
               </button>
             </div>
           </motion.div>
