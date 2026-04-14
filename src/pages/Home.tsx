@@ -340,16 +340,19 @@ export default function Home() {
                             return `${price || 0} ${currency}`;
                           })()}
                         </div>
-                        <select 
-                            value={productCurrencies[product.id] || 'USD'}
-                            onChange={(e) => setProductCurrency(product.id, e.target.value)}
-                            className="bg-dark/50 text-[10px] p-1 rounded-lg border border-white/10"
-                        >
-                            <option value="SAR">SAR</option>
-                            <option value="KWD">KWD</option>
-                            <option value="USD">USD</option>
-                            <option value="AED">AED</option>
-                        </select>
+                        <div className="relative">
+                          <select 
+                              value={productCurrencies[product.id] || 'USD'}
+                              onChange={(e) => setProductCurrency(product.id, e.target.value)}
+                              className="bg-dark/50 text-[10px] p-1 rounded-lg border border-white/10 appearance-none pl-6 pr-2"
+                          >
+                              <option value="SAR">SAR</option>
+                              <option value="KWD">KWD</option>
+                              <option value="USD">USD</option>
+                              <option value="AED">AED</option>
+                          </select>
+                          <Brain size={12} className="absolute left-1.5 top-1/2 -translate-y-1/2 text-gold pointer-events-none" />
+                        </div>
                     </div>
                     <h3 className="text-xl font-black group-hover:text-gold transition-colors text-right">{product.name}</h3>
                   </div>
