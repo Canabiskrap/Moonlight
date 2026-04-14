@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { motion, AnimatePresence } from 'motion/react';
+import confetti from 'canvas-confetti';
 import { 
   CheckCircle2, 
   Clock, 
@@ -53,6 +54,7 @@ export default function OrderPortal() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [logoUrl, setLogoUrl] = useState('');
+  const prevStatus = useRef<string | null>(null);
 
   const fallbackLogo = "https://i.ibb.co/6cJ5wS0h/nf9gthbcbxrmw0cxg8993rpk28-result-0.png";
 
@@ -76,7 +78,19 @@ export default function OrderPortal() {
 
     const unsubscribe = onSnapshot(doc(db, 'orders', id), (docSnap) => {
       if (docSnap.exists()) {
-        setOrder({ id: docSnap.id, ...docSnap.data() });
+        const data = docSnap.data();
+        setOrder({ id: docSnap.id, ...data });
+        
+        // Trigger confetti if status just changed to completed
+        if (data.status === 'completed' && prevStatus.current !== 'completed') {
+          confetti({
+            particleCount: 150,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ['#00D2FF', '#B2FF05', '#ffffff']
+          });
+        }
+        prevStatus.current = data.status;
       } else {
         setError("الطلب غير موجود");
       }
@@ -312,42 +326,83 @@ export default function OrderPortal() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="mt-8 bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-[2.5rem] p-8 md:p-10"
+          className="mt-8 bg-white/[0.03] border border-white/10 rounded-[2.5rem] p-8 md:p-10 relative overflow-hidden"
         >
-          <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em] block mb-6">✦ ملفاتك الجاهزة</span>
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-green-500/20 to-transparent" />
+          <div className="flex items-center justify-between mb-8">
+            <span className="text-[10px] font-black text-green-400 uppercase tracking-[0.2em] flex items-center gap-2">
+              <Zap size={14} className="animate-pulse" />
+              ملفاتك الجاهزة
+            </span>
+            <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/10">
+              <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+              <span className="text-[8px] font-black text-white/40 uppercase tracking-widest">Live Sync</span>
+            </div>
+          </div>
           
-          <div className="space-y-4">
+          <div className="space-y-6">
             {order.status === 'completed' ? (
-              <div className="space-y-4">
-                <div className="bg-black/40 border border-green-500/20 p-6 rounded-2xl flex items-center justify-between group hover:border-green-500/50 transition-all cursor-pointer shadow-[0_0_30px_rgba(34,197,94,0.1)]">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center text-green-400">
-                      <Package size={24} />
-                    </div>
-                    <div>
-                      <h4 className="font-black text-white">الملف النهائي</h4>
-                      <p className="text-xs text-gray-500">جاهز للتحميل والاستخدام</p>
-                    </div>
+              <motion.div 
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="space-y-6"
+              >
+                <div className="bg-white/[0.02] border border-white/5 p-8 rounded-3xl flex flex-col items-center text-center space-y-4 relative overflow-hidden group">
+                  <div className="absolute inset-0 bg-gradient-to-b from-green-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  
+                  <div className="w-24 h-24 bg-gradient-to-br from-green-500/20 to-green-500/5 rounded-3xl flex items-center justify-center text-green-400 shadow-2xl border border-green-500/20 relative z-10">
+                    <Package size={48} className="group-hover:scale-110 transition-transform duration-500" />
                   </div>
-                  <a 
-                    href={order.downloadUrl || '#'} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="w-12 h-12 bg-green-500 text-white rounded-xl flex items-center justify-center shadow-lg shadow-green-500/20 group-hover:scale-110 transition-transform"
-                  >
-                    <Download size={20} />
-                  </a>
+                  
+                  <div className="relative z-10">
+                    <h4 className="text-2xl font-black text-white">الملف النهائي</h4>
+                    <p className="text-sm text-gray-500 font-medium">جاهز للتحميل والاستخدام الآن</p>
+                  </div>
                 </div>
-              </div>
+
+                <motion.a 
+                  href={order.downloadUrl || '#'} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  whileHover={{ scale: 1.02, translateY: -5 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full py-8 bg-gradient-to-r from-green-600 to-green-400 text-black rounded-[2rem] flex items-center justify-center gap-4 shadow-[0_20px_40px_rgba(34,197,94,0.3)] group transition-all"
+                >
+                  <span className="text-2xl font-black tracking-tight">اضغط هنا لتحميل ملفك</span>
+                  <Download size={28} className="animate-bounce" />
+                </motion.a>
+                
+                <p className="text-center text-[10px] text-gray-500 font-bold uppercase tracking-widest flex items-center justify-center gap-2">
+                  <ShieldCheck size={12} className="text-green-500" />
+                  رابط آمن ومفحوص ضد الفيروسات
+                </p>
+              </motion.div>
             ) : (
-              <div className="bg-black/20 border border-dashed border-white/10 p-10 rounded-2xl text-center space-y-4 grayscale opacity-60">
-                <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto text-gray-600">
-                  <Lock size={28} />
+              <div className="space-y-6">
+                <div className="bg-black/20 border border-dashed border-white/10 p-12 rounded-3xl text-center space-y-6 grayscale opacity-60">
+                  <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto text-gray-600 relative">
+                    <Lock size={32} />
+                    <motion.div 
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                      className="absolute inset-0 border-2 border-dashed border-white/10 rounded-full"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="text-xl font-black text-gray-400">الملفات قيد التجهيز</h4>
+                    <p className="text-sm text-gray-600 font-medium max-w-xs mx-auto">نحن نعمل على اللمسات الأخيرة لطلبك، سيتم تفعيل الرابط تلقائياً فور الجاهزية.</p>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <h4 className="font-black text-gray-400">الملفات قيد التجهيز</h4>
-                  <p className="text-xs text-gray-600">سيتم تفعيل روابط التحميل فور اكتمال الطلب</p>
+                
+                <div className="w-full py-8 bg-white/5 border border-white/10 text-white/20 rounded-[2rem] flex items-center justify-center gap-4 cursor-not-allowed">
+                  <span className="text-xl font-black tracking-tight">رابط التحميل مقفل حالياً</span>
+                  <Lock size={24} />
                 </div>
+                
+                <p className="text-center text-[10px] text-gray-600 font-bold uppercase tracking-widest flex items-center justify-center gap-2 animate-pulse">
+                  <Clock size={12} />
+                  سيفتح رابط التحميل فور اكتمال التجهيز
+                </p>
               </div>
             )}
           </div>

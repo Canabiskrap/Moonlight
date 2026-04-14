@@ -1744,7 +1744,7 @@ export default function Dashboard() {
                           <div className="flex items-center gap-4">
                             <button 
                               onClick={() => window.open(`/order-portal/${o.id}`, '_blank')}
-                              className="text-primary hover:text-white transition-colors flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
+                              className="text-gold hover:text-white transition-colors flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
                             >
                               <ExternalLink size={14} />
                               فتح البوابة
