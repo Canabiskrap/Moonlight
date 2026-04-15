@@ -256,7 +256,13 @@ export default function Dashboard() {
   }, []);
 
   const isAdminUser = currentUser && 
-    ["canabiskrap07@gmail.com", "esraa0badr@gmail.com"].includes(currentUser.email?.toLowerCase() || "");
+    [
+      "canabiskrap07@gmail.com", 
+      "canabiskrap007@gmail.com",
+      "esraa0badr@gmail.com",
+      "samemlywk@gmail.com",
+      "karmabiskrap@gmail.com"
+    ].includes(currentUser.email?.toLowerCase().trim() || "");
 
   const isEmailVerified = currentUser?.emailVerified;
 

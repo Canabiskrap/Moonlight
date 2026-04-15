@@ -85,7 +85,7 @@ export default function App() {
         let isUserAdmin = false;
 
         // 1. Check by email first (safest, doesn't require Firestore permissions)
-        if (currentUser.email && ADMIN_EMAILS.map(e => e.toLowerCase()).includes(currentUser.email.toLowerCase())) {
+        if (currentUser.email && ADMIN_EMAILS.map(e => e.toLowerCase().trim()).includes(currentUser.email.toLowerCase().trim())) {
           isUserAdmin = true;
         } 
         // 2. Fallback to Firestore check if not in the hardcoded list

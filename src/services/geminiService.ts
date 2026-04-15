@@ -270,7 +270,18 @@ export async function runFactoryMachine(machineId: string, input: string, imageU
       required: ["htmlContent"]
     };
   } else if (machineId === 'visualGenerator') {
-    systemInstruction = `You are the 'Visual Asset Generator' for 'Moonlight 🌕'. ${personaInstruction} ${brandContext} The user will provide a design request (e.g., Instagram post, Facebook cover) and the brand identity context. Your task is to generate a detailed, professional, and creative design prompt in English that can be used by an image generation AI (like Imagen) to create the visual asset. Include details about composition, lighting, mood, and style that match the 'Moonlight' brand identity. Also, provide a persuasive Arabic caption for the post.`;
+    systemInstruction = `You are the 'Senior Graphic Designer & Art Director' for 'Moonlight 🌕'. ${personaInstruction} ${brandContext} 
+    Your task is to generate a MASTERPIECE design prompt in English for a high-end social media advertisement. 
+    The prompt MUST describe a complete graphic design layout, not just a photo. 
+    Include: 
+    1. Professional layout (e.g., split screen, bento grid, or minimalist centered).
+    2. High-end typography placeholders and graphic elements (borders, shapes, icons).
+    3. Cinematic lighting and studio-quality product presentation.
+    4. Brand colors and a "Moonlight" luxury aesthetic.
+    5. Specific details about textures, materials, and 8k resolution.
+    
+    The prompt should be long, detailed, and optimized for advanced AI image generators like Flux or Midjourney.
+    Also, provide a persuasive, high-converting Arabic caption for the post.`;
     responseSchema = {
       type: Type.OBJECT,
       properties: {

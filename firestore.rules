@@ -10,11 +10,11 @@ service cloud.firestore {
     function isAdmin() {
       return isAuthenticated() && (
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-        request.auth.token.email == "canabiskrap07@gmail.com" ||
-        request.auth.token.email == "Esraa0badr@gmail.com" ||
-        request.auth.token.email == "karmabiskrap@gmail.com" ||
-        request.auth.token.email == "canabiskrap007@gmail.com" ||
-        request.auth.token.email == "Samemlywk@gmail.com"
+        request.auth.token.email.matches("(?i)canabiskrap07@gmail.com") ||
+        request.auth.token.email.matches("(?i)esraa0badr@gmail.com") ||
+        request.auth.token.email.matches("(?i)karmabiskrap@gmail.com") ||
+        request.auth.token.email.matches("(?i)canabiskrap007@gmail.com") ||
+        request.auth.token.email.matches("(?i)samemlywk@gmail.com")
       );
     }
 

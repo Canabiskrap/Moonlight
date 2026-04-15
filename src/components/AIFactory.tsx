@@ -240,6 +240,18 @@ export default function AIFactory({
     html2pdf().set(opt).from(element).save();
   };
 
+  const getImagePrompt = (machineId: string | null, res: any) => {
+    if (!machineId || !res) return "abstract digital art, luxury aesthetic";
+    const base = ", professional graphic design, high resolution, 8k, masterpiece, commercial advertising layout, flux model";
+    if (machineId === 'visualGenerator') return res.designPrompt + base;
+    if (machineId === 'strategy') return `business strategy concept, SWOT analysis, professional dashboard, ${res.persona?.name || ''}` + base;
+    if (machineId === 'product') return `digital product showcase, ${res.title}, professional marketing` + base;
+    if (machineId === 'cvMaker') return `professional modern resume layout, elegant typography, career success` + base;
+    if (machineId === 'templateMaker') return `professional document template, structured layout, clean design` + base;
+    if (machineId === 'brandGuidelines' || machineId === 'brandBook') return `brand identity guidelines, color palette, logo design showcase` + base;
+    return (res.title || "creative digital asset") + base;
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-2">
@@ -521,6 +533,27 @@ export default function AIFactory({
                     animate={{ opacity: 1, scale: 1 }}
                     className="space-y-6"
                   >
+                    {/* Global Image Preview for all machines except visual (which has its own grid) */}
+                    {activeMachine !== 'visual' && (
+                      <div className="aspect-video w-full rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl relative group mb-6">
+                        <img 
+                          src={`https://image.pollinations.ai/prompt/${encodeURIComponent(getImagePrompt(activeMachine, result))}?width=1280&height=720&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000)}`}
+                          alt="Machine Visual"
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                          referrerPolicy="no-referrer"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-8">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                            <p className="text-[10px] text-white font-black uppercase tracking-widest">تصور ذكاء Moonlight الاصطناعي</p>
+                          </div>
+                          <h3 className="text-lg font-black text-white line-clamp-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            {result.title || result.persona?.name || 'إبداع جديد من المصنع'}
+                          </h3>
+                        </div>
+                      </div>
+                    )}
+
                     {activeMachine === 'strategy' && (
                       <div className="space-y-6">
                         <Card className="bg-dark-light/30 border-white/10 backdrop-blur-xl rounded-[2.5rem] overflow-hidden">
@@ -619,7 +652,7 @@ export default function AIFactory({
                             <CardContent className="p-6 space-y-4">
                               <div className="aspect-video w-full rounded-xl overflow-hidden border border-white/5 bg-dark/50">
                                 <img 
-                                  src={`https://image.pollinations.ai/prompt/${encodeURIComponent(idea.content.substring(0, 100))}?width=800&height=450&nologo=true&seed=${i}`}
+                                  src={`https://image.pollinations.ai/prompt/${encodeURIComponent(idea.content.substring(0, 100) + ", professional graphic design, high resolution, 8k, flux model")}?width=800&height=450&nologo=true&model=flux&seed=${i}`}
                                   alt={idea.type}
                                   className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity"
                                   referrerPolicy="no-referrer"
@@ -690,31 +723,20 @@ export default function AIFactory({
                         <CardHeader className="border-b border-white/5">
                           <CardTitle className="text-lg font-black text-white flex items-center gap-2">
                             <Sparkles size={20} className="text-primary" />
-                            نتائج المصمم الآلي
+                            نتائج المصمم الآلي (V2 - High Quality)
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="p-8 space-y-6">
                           <div className="aspect-square w-full max-w-md mx-auto relative group rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl">
                             <img 
-                              src={`https://image.pollinations.ai/prompt/${encodeURIComponent(result.designPrompt)}?width=1024&height=1024&nologo=true&seed=${Math.floor(Math.random() * 1000)}`}
+                              src={`https://image.pollinations.ai/prompt/${encodeURIComponent(result.designPrompt + ", professional graphic design, high resolution, 8k, masterpiece, commercial advertising layout, flux model")}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000)}`}
                               alt="Generated Visual"
                               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                               referrerPolicy="no-referrer"
-                              onLoad={() => addLog?.("🎨 تم توليد الصورة بنجاح!")}
+                              onLoad={() => addLog?.("🎨 تم توليد التصميم الاحترافي بنجاح!")}
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-6">
-                              <p className="text-[10px] text-white/80 font-medium italic">تم التوليد بواسطة Moonlight AI</p>
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                              <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">وصف التصميم (Prompt)</p>
-                              <p className="text-xs text-gray-400 bg-dark/50 p-4 rounded-2xl border border-white/5 leading-relaxed">{result.designPrompt}</p>
-                            </div>
-                            <div className="space-y-2">
-                              <p className="text-[10px] font-black text-primary uppercase tracking-widest">النص التسويقي (Caption)</p>
-                              <p className="text-sm text-white font-bold bg-primary/10 p-4 rounded-2xl border border-primary/20 leading-relaxed">{result.arabicCaption}</p>
+                              <p className="text-[10px] text-white/80 font-medium italic">تم التوليد بواسطة Moonlight AI (Flux Engine)</p>
                             </div>
                           </div>
 
