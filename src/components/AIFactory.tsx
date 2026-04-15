@@ -38,6 +38,7 @@ export default function AIFactory() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [editorContent, setEditorContent] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null); // Added state
   const contentRef = useRef<HTMLDivElement>(null);
   const editor = useRef(null);
 
@@ -107,6 +108,20 @@ export default function AIFactory() {
       description: t('dashboard.factory.machines.visual.description'),
       icon: Sparkles,
       color: 'text-gold'
+    },
+    {
+      id: 'brandBook',
+      title: 'مهندس دليل الهوية',
+      description: 'أنشئ دليل هوية بصرية متكامل لعلامتك التجارية بضغطة زر.',
+      icon: Palette,
+      color: 'text-purple-500'
+    },
+    {
+      id: 'visualGenerator',
+      title: 'المصمم الآلي',
+      description: 'ولد تصاميم سوشيال ميديا احترافية لهويتك البصرية.',
+      icon: Sparkles,
+      color: 'text-primary'
     }
   ];
 
@@ -117,10 +132,21 @@ export default function AIFactory() {
     setEditorContent('');
 
     try {
+      let imageUrl = '';
+      if (selectedFile) {
+        // Upload file first
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+        const response = await fetch('/api/upload', { method: 'POST', body: formData });
+        const data = await response.json();
+        imageUrl = data.url;
+      }
+
       if (activeMachine) {
-        const data = await runFactoryMachine(activeMachine, input);
+        // Pass imageUrl to the machine
+        const data = await runFactoryMachine(activeMachine, input, imageUrl);
         setResult(data);
-        if ((activeMachine === 'contentMaker' || activeMachine === 'brandGuidelines') && data.htmlContent) {
+        if ((activeMachine === 'contentMaker' || activeMachine === 'brandGuidelines' || activeMachine === 'brandBook' || activeMachine === 'visualGenerator') && data.htmlContent) {
           setEditorContent(data.htmlContent);
         }
       }
@@ -225,6 +251,19 @@ export default function AIFactory() {
                     placeholder={activeMachine === 'strategy' ? t('dashboard.factory.placeholderStrategy') : t('dashboard.factory.placeholderProduct')}
                     className="w-full h-40 bg-dark/50 border border-white/10 rounded-3xl p-6 text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 transition-all resize-none font-medium"
                   />
+                  {activeMachine === 'brandBook' && (
+                    <div className="space-y-2">
+                       <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">ارفع شعارك أو صوراً للهوية الحالية (اختياري)</label>
+                       <input 
+                         type="file" 
+                         accept="image/*"
+                         onChange={(e) => {
+                           setSelectedFile(e.target.files?.[0] || null);
+                         }}
+                         className="w-full bg-dark/50 border border-white/10 rounded-3xl p-4 text-white text-sm"
+                       />
+                    </div>
+                  )}
                   <button
                     onClick={handleProcess}
                     disabled={isProcessing || !input.trim()}
@@ -371,12 +410,12 @@ export default function AIFactory() {
                       </div>
                     )}
 
-                    {(activeMachine === 'contentMaker' || activeMachine === 'brandGuidelines') && (
+                    {(activeMachine === 'contentMaker' || activeMachine === 'brandGuidelines' || activeMachine === 'brandBook') && (
                       <Card className="bg-dark-light/30 border-white/10 backdrop-blur-xl rounded-[2.5rem] overflow-hidden">
                         <CardHeader className="border-b border-white/5 flex flex-row items-center justify-between">
                           <CardTitle className="text-lg font-black text-white flex items-center gap-2">
-                            {activeMachine === 'brandGuidelines' ? <Palette size={20} className="text-pink-400" /> : <FileText size={20} className="text-green-400" />}
-                            {activeMachine === 'brandGuidelines' ? t('dashboard.factory.machines.brandGuidelines.title') : t('dashboard.factory.machines.contentMaker.editorTitle')}
+                            {activeMachine === 'brandGuidelines' ? <Palette size={20} className="text-pink-400" /> : activeMachine === 'brandBook' ? <Palette size={20} className="text-purple-500" /> : <FileText size={20} className="text-green-400" />}
+                            {activeMachine === 'brandGuidelines' ? t('dashboard.factory.machines.brandGuidelines.title') : activeMachine === 'brandBook' ? 'دليل الهوية البصرية' : t('dashboard.factory.machines.contentMaker.editorTitle')}
                           </CardTitle>
                           <button 
                             onClick={handleExportPDF}
@@ -394,6 +433,27 @@ export default function AIFactory() {
                               config={joditConfig}
                               onBlur={newContent => setEditorContent(newContent)}
                             />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {activeMachine === 'visualGenerator' && (
+                      <Card className="bg-dark-light/30 border-white/10 backdrop-blur-xl rounded-[2.5rem] overflow-hidden">
+                        <CardHeader className="border-b border-white/5">
+                          <CardTitle className="text-lg font-black text-white flex items-center gap-2">
+                            <Sparkles size={20} className="text-primary" />
+                            نتائج المصمم الآلي
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-8 space-y-6">
+                          <div>
+                            <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">وصف التصميم (Prompt)</p>
+                            <p className="text-sm text-gray-300 bg-dark/50 p-4 rounded-2xl border border-white/5">{result.designPrompt}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">النص التسويقي (Caption)</p>
+                            <p className="text-sm text-white font-bold bg-primary/10 p-4 rounded-2xl border border-primary/20">{result.arabicCaption}</p>
                           </div>
                         </CardContent>
                       </Card>

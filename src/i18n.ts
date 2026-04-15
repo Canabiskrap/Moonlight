@@ -9,6 +9,7 @@ const resources = {
         home: 'الرئيسية',
         orders: 'طلباتي',
         protection: 'حماية المشتري',
+        about: 'من نحن',
         dashboard: 'لوحة التحكم',
         login: 'دخول',
         logout: 'خروج'
@@ -484,6 +485,7 @@ const resources = {
         home: 'Home',
         orders: 'My Orders',
         protection: 'Buyer Protection',
+        about: 'About Us',
         dashboard: 'Dashboard',
         login: 'Login',
         logout: 'Logout'

@@ -62,6 +62,7 @@ export default function Navbar({ user, isAdmin }: NavbarProps) {
           
           <div className="hidden md:flex items-center gap-6">
             <Link to="/" className="text-sm font-bold text-gray-400 hover:text-white transition-colors">{t('nav.home')}</Link>
+            <Link to="/about" className="text-sm font-bold text-gray-400 hover:text-white transition-colors">{t('nav.about')}</Link>
             <Link to="/my-orders" className="text-sm font-bold text-gray-400 hover:text-white transition-colors">{t('nav.orders')}</Link>
             <Link to="/buyer-protection" className="text-sm font-bold text-gray-400 hover:text-white transition-colors">{t('nav.protection')}</Link>
           </div>

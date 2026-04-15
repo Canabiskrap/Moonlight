@@ -388,6 +388,20 @@ export default function Dashboard() {
       if (activeTab === 'services' || editingServiceId) {
         addLog("جاري حفظ الخدمة...");
         let docId = editingServiceId;
+        
+        // Encrypt downloadUrl if it's a link
+        let finalDownloadUrl = downloadUrl;
+        if (uploadMethod === 'link' && downloadUrl && !downloadUrl.includes(':')) {
+          addLog("جاري تشفير رابط التحميل...");
+          const res = await fetch('/api/encrypt', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: downloadUrl })
+          });
+          const data = await res.json();
+          if (data.encryptedUrl) finalDownloadUrl = data.encryptedUrl;
+        }
+
         const serviceData = {
           title: name,
           description,
@@ -397,7 +411,7 @@ export default function Dashboard() {
           priceAED: parseFloat(priceAED) || 0,
           icon: serviceIcon,
           imageUrl: imageUploadType === 'link' ? imageUrl : (editingServiceId ? imageUrl : ''),
-          downloadUrl: uploadMethod === 'link' ? downloadUrl : (editingServiceId ? downloadUrl : ''),
+          downloadUrl: finalDownloadUrl,
           updatedAt: Timestamp.now()
         };
 
@@ -432,6 +446,20 @@ export default function Dashboard() {
         // 1. Save to Firestore FIRST (with initial data)
         addLog("جاري حفظ البيانات الأساسية في قاعدة البيانات...");
         let docId = editingId;
+
+        // Encrypt downloadUrl if it's a link
+        let finalDownloadUrl = downloadUrl;
+        if (uploadMethod === 'link' && downloadUrl && !downloadUrl.includes(':')) {
+          addLog("جاري تشفير رابط التحميل...");
+          const res = await fetch('/api/encrypt', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: downloadUrl })
+          });
+          const data = await res.json();
+          if (data.encryptedUrl) finalDownloadUrl = data.encryptedUrl;
+        }
+
         const productData = {
           name,
           description,
@@ -441,7 +469,7 @@ export default function Dashboard() {
           priceAED: parseFloat(priceAED) || 0,
           category,
           imageUrl: imageUploadType === 'link' ? imageUrl : (editingId ? imageUrl : ''),
-          downloadUrl: uploadMethod === 'link' ? downloadUrl : (editingId ? downloadUrl : ''),
+          downloadUrl: finalDownloadUrl,
           updatedAt: Timestamp.now()
         };
 
@@ -459,7 +487,7 @@ export default function Dashboard() {
 
         // 2. Handle Uploads
         let finalImageUrl = imageUrl;
-        let finalDownloadUrl = downloadUrl;
+        finalDownloadUrl = downloadUrl;
 
         if (imageFile) {
           addLog("جاري رفع الصورة...");
@@ -470,8 +498,18 @@ export default function Dashboard() {
 
         if (productFile) {
           addLog("جاري رفع الملف الرقمي...");
-          finalDownloadUrl = await uploadFile(productFile, (p) => setUploadProgress(p));
-          addLog("تم رفع الملف.");
+          const rawUrl = await uploadFile(productFile, (p) => setUploadProgress(p));
+          addLog("تم رفع الملف. جاري التشفير...");
+          
+          const res = await fetch('/api/encrypt', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: rawUrl })
+          });
+          const data = await res.json();
+          finalDownloadUrl = data.encryptedUrl || rawUrl;
+          
+          addLog("تم التشفير.");
           await updateDoc(doc(db, 'products', docId!), { downloadUrl: finalDownloadUrl });
         }
 

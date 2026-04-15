@@ -150,11 +150,19 @@ export async function generateFixSuggestion(prompt: string): Promise<string> {
   }
 }
 
-export async function runFactoryMachine(machineId: string, input: string): Promise<any> {
+export async function runFactoryMachine(machineId: string, input: string, imageUrl?: string): Promise<any> {
   if (!ai) throw new Error("AI service not initialized. Missing API Key.");
   
   let systemInstruction = "";
   let responseSchema: any = {};
+  let contents: any = input;
+
+  if (imageUrl) {
+    contents = [
+      { text: input },
+      { text: `Image URL: ${imageUrl}` }
+    ];
+  }
 
   if (machineId === 'strategy') {
     systemInstruction = "You are a world-class marketing strategist for 'Moonlight 🌕'. Analyze the user's business idea and provide a SWOT analysis and a Buyer Persona in Arabic.";
@@ -213,6 +221,25 @@ export async function runFactoryMachine(machineId: string, input: string): Promi
       },
       required: ["htmlContent"]
     };
+  } else if (machineId === 'brandBook') {
+    systemInstruction = "You are the 'Brand Book Architect' for 'Moonlight 🌕'. The user will provide a brand name, industry, description, and optionally links to their logo or existing assets. Your task is to analyze these inputs and generate a comprehensive, professional 'Brand Book' (دليل الهوية البصرية) document in Arabic. Include: Brand Story & Vision, Logo Usage rules, Color Palette (with HEX/RGB codes), Typography recommendations, and Tone of Voice. Format the output ENTIRELY in clean HTML (using <h1>, <h2>, <p>, <ul>, <li>, <strong>, and inline styles for color swatches). Do not use markdown, only HTML.";
+    responseSchema = {
+      type: Type.OBJECT,
+      properties: {
+        htmlContent: { type: Type.STRING, description: "The full generated brand book formatted in HTML" }
+      },
+      required: ["htmlContent"]
+    };
+  } else if (machineId === 'visualGenerator') {
+    systemInstruction = "You are the 'Visual Asset Generator' for 'Moonlight 🌕'. The user will provide a design request (e.g., Instagram post, Facebook cover) and the brand identity context. Your task is to generate a detailed, professional, and creative design prompt in English that can be used by an image generation AI (like Imagen) to create the visual asset. Include details about composition, lighting, mood, and style that match the 'Moonlight' brand identity. Also, provide a persuasive Arabic caption for the post.";
+    responseSchema = {
+      type: Type.OBJECT,
+      properties: {
+        designPrompt: { type: Type.STRING, description: "The detailed English prompt for image generation" },
+        arabicCaption: { type: Type.STRING, description: "The persuasive Arabic caption for the social media post" }
+      },
+      required: ["designPrompt", "arabicCaption"]
+    };
   } else {
     systemInstruction = "You are a creative content director for 'Moonlight 🌕'. Provide 3-4 creative content ideas (video scripts, social media posts) based on the user's input in Arabic.";
     responseSchema = {
@@ -237,7 +264,7 @@ export async function runFactoryMachine(machineId: string, input: string): Promi
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: input,
+      contents: contents,
       config: {
         systemInstruction,
         responseMimeType: "application/json",

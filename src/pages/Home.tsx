@@ -197,11 +197,8 @@ export default function Home() {
                     <div className="gold-capsule">
                       {(() => {
                         const currency = productCurrencies[service.id] || 'USD';
-                        const price = currency === 'SAR' ? service.priceSAR : 
-                                      currency === 'KWD' ? service.priceKWD : 
-                                      currency === 'USD' ? service.priceUSD : 
-                                      service.priceAED;
-                        return `${price || 0} ${currency}`;
+                        const price = service[`price${currency}`] || service.price || 0;
+                        return `${price} ${currency}`;
                       })()}
                     </div>
                     <div className="relative">
@@ -357,11 +354,8 @@ export default function Home() {
                         <div className="gold-capsule">
                           {(() => {
                             const currency = productCurrencies[product.id] || 'USD';
-                            const price = currency === 'SAR' ? product.priceSAR : 
-                                          currency === 'KWD' ? product.priceKWD : 
-                                          currency === 'USD' ? product.priceUSD : 
-                                          product.priceAED;
-                            return `${price || 0} ${currency}`;
+                            const price = product[`price${currency}`] || product.price || 0;
+                            return `${price} ${currency}`;
                           })()}
                         </div>
                         <div className="relative">

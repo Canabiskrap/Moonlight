@@ -18,7 +18,8 @@ import {
   CreditCard,
   ExternalLink,
   ChevronLeft,
-  Lock
+  Lock,
+  Loader2
 } from 'lucide-react';
 
 const Stars = () => {
@@ -56,9 +57,38 @@ export default function OrderPortal() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [logoUrl, setLogoUrl] = useState('');
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [isVerifying, setIsVerifying] = useState(false);
   const prevStatus = useRef<string | null>(null);
 
   const fallbackLogo = "https://i.ibb.co/6cJ5wS0h/nf9gthbcbxrmw0cxg8993rpk28-result-0.png";
+
+  const verifyAndDownload = async () => {
+    if (!order || isVerifying) return;
+    setIsVerifying(true);
+    try {
+      const res = await fetch('/api/verify-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          orderId: order.paypalOrderId, 
+          encryptedUrl: order.encryptedUrl 
+        })
+      });
+      const data = await res.json();
+      if (data.downloadUrl) {
+        setDownloadUrl(data.downloadUrl);
+        window.open(data.downloadUrl, '_blank');
+      } else {
+        alert(t('orderPortal.verificationFailed') || "Verification failed. Please try again.");
+      }
+    } catch (err) {
+      console.error("Verification Error:", err);
+      alert(t('orderPortal.verificationError') || "Error verifying order.");
+    } finally {
+      setIsVerifying(false);
+    }
+  };
 
   useEffect(() => {
     // Fetch Logo
@@ -128,7 +158,7 @@ export default function OrderPortal() {
         <p className="text-gray-500 max-w-md mx-auto">{t('orderPortal.checkLink')}</p>
         <Link to="/" className="inline-flex items-center gap-2 text-primary hover:underline font-bold">
           <ArrowLeft size={20} className={i18n.language === 'ar' ? 'rotate-180' : ''} />
-          {t('orderPortal.backToStore')}
+          {t('orderPortal.backToHome') || "العودة للرئيسية"}
         </Link>
       </div>
     );
@@ -151,6 +181,13 @@ export default function OrderPortal() {
     // pending
     if (stepId === 'payment') return 'active';
     return 'pending';
+  };
+
+  const getProgressPercentage = () => {
+    const status = order.status || 'pending';
+    if (status === 'completed') return 100;
+    if (status === 'processing') return 50;
+    return 15;
   };
 
   return (
@@ -290,7 +327,20 @@ export default function OrderPortal() {
           transition={{ delay: 0.1 }}
           className="mt-8 bg-white/[0.03] border border-white/10 rounded-[2.5rem] p-8 md:p-10"
         >
-          <span className="text-[10px] font-black text-gold uppercase tracking-[0.2em] block mb-8">{t('orderPortal.stages')}</span>
+          <div className="flex items-center justify-between mb-8">
+            <span className="text-[10px] font-black text-gold uppercase tracking-[0.2em]">{t('orderPortal.stages')}</span>
+            <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">{getProgressPercentage()}%</span>
+          </div>
+          
+          {/* Progress Bar */}
+          <div className="w-full h-2 bg-white/5 rounded-full mb-10 overflow-hidden">
+            <motion.div 
+              className="h-full bg-gradient-to-r from-primary to-green-400"
+              initial={{ width: 0 }}
+              animate={{ width: `${getProgressPercentage()}%` }}
+              transition={{ duration: 1, ease: "easeInOut" }}
+            />
+          </div>
           
           <div className="space-y-0 relative">
             {steps.map((step, idx) => {
@@ -301,15 +351,22 @@ export default function OrderPortal() {
                     <div className={`absolute right-[17px] top-10 bottom-0 w-0.5 ${status === 'done' ? 'bg-primary' : 'bg-white/10'}`} />
                   )}
                   
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 z-10 transition-all duration-500 ${
-                    status === 'done' ? 'bg-green-500 text-white shadow-[0_0_20px_rgba(34,197,94,0.4)]' :
-                    status === 'active' ? 'bg-purple-500/20 border-2 border-purple-500 text-purple-400 animate-pulse shadow-[0_0_30px_rgba(168,85,247,0.4)]' :
-                    'bg-white/5 border-2 border-white/10 text-white/20'
-                  }`}>
+                  <motion.div 
+                    initial={false}
+                    animate={{
+                      backgroundColor: status === 'done' ? '#22c55e' : status === 'active' ? '#a855f7' : '#1f2937',
+                      borderColor: status === 'done' ? '#22c55e' : status === 'active' ? '#a855f7' : '#374151',
+                    }}
+                    className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 z-10 transition-all duration-500 border-2 ${
+                      status === 'done' ? 'text-white shadow-[0_0_20px_rgba(34,197,94,0.4)]' :
+                      status === 'active' ? 'text-white animate-pulse shadow-[0_0_30px_rgba(168,85,247,0.4)]' :
+                      'text-white/20'
+                    }`}
+                  >
                     {status === 'done' ? <CheckCircle2 size={18} /> : 
                      status === 'active' ? <Clock size={18} className="animate-spin-slow" /> : 
                      <span className="text-xs font-black">{idx + 1}</span>}
-                  </div>
+                  </motion.div>
 
                   <div className="flex-1 pt-1">
                     <h3 className={`font-black text-lg ${status === 'pending' ? 'text-white/20' : 'text-white'}`}>{step.title}</h3>
@@ -362,17 +419,34 @@ export default function OrderPortal() {
                   </div>
                 </div>
 
-                <motion.a 
-                  href={order.downloadUrl || '#'} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
+                {/* Personalized Thank You Card */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                  className="bg-gradient-to-br from-primary/20 to-dark-light p-8 rounded-3xl border border-primary/20 text-center space-y-4 shadow-2xl"
+                >
+                  <div className="text-4xl">✨</div>
+                  <h3 className="text-2xl font-black text-white">شكراً لثقتك بنا!</h3>
+                  <p className="text-white/70">نحن فخورون جداً بأنك اخترت <span className="text-primary font-bold">Moonlight 🌕</span>. نتمنى أن تنال خدمتنا إعجابك.</p>
+                </motion.div>
+
+                <motion.button 
+                  onClick={verifyAndDownload}
+                  disabled={isVerifying}
                   whileHover={{ scale: 1.02, translateY: -5 }}
                   whileTap={{ scale: 0.98 }}
-                  className="w-full py-8 bg-gradient-to-r from-green-600 to-green-400 text-black rounded-[2rem] flex items-center justify-center gap-4 shadow-[0_20px_40px_rgba(34,197,94,0.3)] group transition-all"
+                  className="w-full py-8 bg-gradient-to-r from-green-600 to-green-400 text-black rounded-[2rem] flex items-center justify-center gap-4 shadow-[0_20px_40px_rgba(34,197,94,0.3)] group transition-all disabled:opacity-50"
                 >
-                  <span className="text-2xl font-black tracking-tight">{t('orderPortal.downloadNow')}</span>
-                  <Download size={28} className="animate-bounce" />
-                </motion.a>
+                  <span className="text-2xl font-black tracking-tight">
+                    {isVerifying ? (
+                      <Loader2 className="animate-spin" size={28} />
+                    ) : (
+                      downloadUrl ? t('orderPortal.downloadAgain') : t('orderPortal.downloadNow')
+                    )}
+                  </span>
+                  {!isVerifying && <Download size={28} className="animate-bounce" />}
+                </motion.button>
                 
                 <p className="text-center text-[10px] text-gray-500 font-bold uppercase tracking-widest flex items-center justify-center gap-2">
                   <ShieldCheck size={12} className="text-green-500" />

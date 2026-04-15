@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { doc, getDoc, addDoc, collection, Timestamp } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { convertDriveLink } from '../lib/utils';
 import { motion } from 'motion/react';
 import { ArrowRight, Download, ShieldCheck, Sparkles, ExternalLink, Brain, Target, Lightbulb, CheckCircle2, Loader2, Zap } from 'lucide-react';
 import { getProductInsights, ProductInsight } from '../services/geminiService';
+import PayPalButton from '../components/PayPalButton';
 
 export default function ProductDetails() {
   const { t, i18n } = useTranslation();
@@ -18,6 +19,7 @@ export default function ProductDetails() {
   const [error, setError] = useState<string | null>(null);
   const [aiInsights, setAiInsights] = useState<ProductInsight | null>(null);
   const [loadingAi, setLoadingAi] = useState(false);
+  const [selectedCurrency, setSelectedCurrency] = useState('USD');
 
   const handleGetAiInsights = async () => {
     if (!product || loadingAi) return;
@@ -54,79 +56,6 @@ export default function ProductDetails() {
     fetchProduct();
   }, [id, t]);
 
-  useEffect(() => {
-    if (product && !paid && !loading) {
-      const container = document.getElementById('paypal-button-container');
-      if (container && container.innerHTML !== '') return; // Prevent double rendering
-
-      const clientId = (import.meta as any).env.VITE_PAYPAL_CLIENT_ID || 'AcbwuN16XVq7P_HKhjbHRTegmSRXI0DoFOoLw2pn-LilZUuf1FRl0v888wjPvs428lM5sdf97LUNcvT5';
-      const currency = product.currency || 'USD';
-      const script = document.createElement('script');
-      script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=${currency}`;
-      script.async = true;
-      script.onload = () => {
-        if ((window as any).paypal) {
-          (window as any).paypal.Buttons({
-            createOrder: (data: any, actions: any) => {
-              const priceValue = parseFloat(product.price).toFixed(2);
-              return actions.order.create({
-                purchase_units: [{
-                  amount: {
-                    value: priceValue,
-                    currency_code: product.currency || 'USD'
-                  },
-                  description: product.name
-                }]
-              });
-            },
-            onApprove: async (data: any, actions: any) => {
-              try {
-                // We don't capture here, we just get the order ID and let the server verify it.
-                // Wait, the client-side script usually captures it. Let's capture it here, then verify.
-                const order = await actions.order.capture();
-                console.log("Payment Success:", order);
-                
-                // Record order in Firestore
-                const orderRef = await addDoc(collection(db, 'orders'), {
-                  productId: product.id,
-                  productName: product.name,
-                  amount: product.price,
-                  customerEmail: order.payer.email_address,
-                  customerName: order.payer.name?.given_name || '',
-                  paypalOrderId: order.id,
-                  status: 'completed',
-                  downloadUrl: product.downloadUrl,
-                  createdAt: Timestamp.now()
-                });
-
-                setPaid(true);
-                
-                // Redirect to Order Portal after a short delay
-                setTimeout(() => {
-                  navigate(`/order-portal/${orderRef.id}`);
-                }, 2000);
-              } catch (err) {
-                console.error("Error processing approved order:", err);
-                alert(t('common.processingError'));
-              }
-            },
-            onError: (err: any) => {
-              console.error("PayPal Error Details:", err);
-              // Show a more helpful message if possible
-              const errorMsg = err?.message || "حدث خطأ أثناء عملية الدفع. يرجى التأكد من اتصالك بالإنترنت أو المحاولة مرة أخرى.";
-              alert(errorMsg);
-            }
-          }).render('#paypal-button-container');
-        }
-      };
-      document.body.appendChild(script);
-      return () => {
-        const existingScript = document.querySelector(`script[src*="paypal.com/sdk/js"]`);
-        if (existingScript) document.body.removeChild(existingScript);
-      };
-    }
-  }, [product, paid, loading]);
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-40">
@@ -147,6 +76,8 @@ export default function ProductDetails() {
       </div>
     );
   }
+
+  const currentPrice = product[`price${selectedCurrency}`] || product.price || 0;
 
   return (
     <div className="relative">
@@ -176,8 +107,21 @@ export default function ProductDetails() {
               }}
             />
             
-            <div className="absolute top-8 right-8 z-20">
-              <div className="gold-capsule text-sm px-6 py-2">{product.price} {product.currency || 'USD'}</div>
+            <div className="absolute top-8 right-8 z-20 flex flex-col items-end gap-2">
+              <div className="gold-capsule text-sm px-6 py-2">{currentPrice} {selectedCurrency}</div>
+              <div className="relative">
+                <select 
+                  value={selectedCurrency}
+                  onChange={(e) => setSelectedCurrency(e.target.value)}
+                  className="bg-black/50 backdrop-blur-md text-[10px] p-2 rounded-xl border border-white/10 appearance-none pl-8 pr-4 text-white font-bold"
+                >
+                  <option value="SAR">SAR</option>
+                  <option value="KWD">KWD</option>
+                  <option value="USD">USD</option>
+                  <option value="AED">AED</option>
+                </select>
+                <Brain size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-gold pointer-events-none" />
+              </div>
             </div>
           </div>
         </div>
@@ -203,7 +147,16 @@ export default function ProductDetails() {
 
             {!paid ? (
               <div className="space-y-6">
-                <div id="paypal-button-container" className="min-h-[150px] relative z-10" />
+                <PayPalButton 
+                  item={product} 
+                  type="product" 
+                  currency={selectedCurrency} 
+                  price={currentPrice} 
+                  onSuccess={(orderId) => {
+                    setPaid(true);
+                    setTimeout(() => navigate(`/order-portal/${orderId}`), 2000);
+                  }} 
+                />
                 <p className="text-center text-[10px] text-gray-600 font-bold uppercase tracking-widest">
                   Secure Payment via PayPal Global
                 </p>
@@ -219,17 +172,8 @@ export default function ProductDetails() {
                 </div>
                 <div className="space-y-2">
                   <h3 className="text-3xl font-black text-white">شكراً لثقتك!</h3>
-                  <p className="text-gray-400 font-medium">تم تأكيد الدفع، يمكنك التحميل الآن</p>
+                  <p className="text-gray-400 font-medium">تم تأكيد الدفع، جاري توجيهك لبوابة التحميل...</p>
                 </div>
-                <a 
-                  href={product.downloadUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="btn-premium flex items-center justify-center gap-3 bg-white text-black py-5 rounded-2xl font-black text-lg shadow-2xl shadow-white/10"
-                >
-                  تحميل الملفات
-                  <ExternalLink size={20} />
-                </a>
               </motion.div>
             )}
           </div>

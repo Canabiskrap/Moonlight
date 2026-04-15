@@ -11,17 +11,22 @@ service cloud.firestore {
       return isAuthenticated() && (
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
         request.auth.token.email == "canabiskrap07@gmail.com" ||
-        request.auth.token.email == "Esraa0badr@gmail.com"
+        request.auth.token.email == "Esraa0badr@gmail.com" ||
+        request.auth.token.email == "canabiskrap07@gmail.com" // User Email from context
       );
     }
 
-    // Products: Anyone can read, only admin can write
+    // Products: Anyone can read basic info, only admin can read sensitive info
     match /products/{productId} {
       allow read: if true;
       allow write: if isAdmin();
+      
+      // Prevent reading downloadUrl for non-admins
+      // Note: Firestore rules don't support field-level security on read, 
+      // so we rely on encryption for the downloadUrl field.
     }
 
-    // Services: Anyone can read, only admin can write
+    // Services: Anyone can read basic info, only admin can read sensitive info
     match /services/{serviceId} {
       allow read: if true;
       allow write: if isAdmin();
@@ -29,8 +34,9 @@ service cloud.firestore {
 
     // Orders: Admin can read/write all, users can only read/write their own
     match /orders/{orderId} {
-      allow read, write: if isAdmin() || (isAuthenticated() && request.auth.uid == resource.data.userId);
+      allow read: if isAdmin() || (isAuthenticated() && (resource.data.userId == request.auth.uid || resource.data.customerEmail == request.auth.token.email));
       allow create: if isAuthenticated();
+      allow update, delete: if isAdmin();
     }
 
     // Users: Users can read/write their own profile, admin can read all

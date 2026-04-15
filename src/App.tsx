@@ -27,6 +27,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import { useTranslation } from 'react-i18next';
 
+import About from './pages/About';
 import Status from './pages/Status';
 
 const ADMIN_EMAILS = [
@@ -99,6 +100,7 @@ export default function App() {
             <AnimatePresence mode="wait">
               <Routes>
                 <Route path="/" element={<Home />} />
+                <Route path="/about" element={<About />} />
                 <Route path="/product/:id" element={<ProductDetails />} />
                 <Route path="/service/:id" element={<ServiceDetails />} />
                 <Route path="/order-portal/:id" element={<OrderPortal />} />

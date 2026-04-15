@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { doc, getDoc, addDoc, collection, Timestamp } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { convertDriveLink } from '../lib/utils';
 import { motion } from 'motion/react';
 import { ArrowRight, ShieldCheck, Sparkles, CheckCircle2, Loader2, Zap, MessageSquare, CreditCard, Download, Brain, Target } from 'lucide-react';
 import { getProductInsights, ProductInsight } from '../services/geminiService';
+import PayPalButton from '../components/PayPalButton';
 
 export default function ServiceDetails() {
   const { t, i18n } = useTranslation();
@@ -18,17 +19,17 @@ export default function ServiceDetails() {
   const [error, setError] = useState<string | null>(null);
   const [aiInsights, setAiInsights] = useState<ProductInsight | null>(null);
   const [loadingAi, setLoadingAi] = useState(false);
+  const [selectedCurrency, setSelectedCurrency] = useState('USD');
 
   const handleGetAiInsights = async () => {
     if (!service || loadingAi) return;
     setLoadingAi(true);
     try {
-      // We can use the same insight service for services too
       const insights = await getProductInsights({
         name: service.title,
         description: service.description,
         category: 'Service',
-        price: service.price
+        price: service[`price${selectedCurrency}`] || service.price || 0
       });
       setAiInsights(insights);
     } catch (err) {
@@ -60,76 +61,6 @@ export default function ServiceDetails() {
     fetchService();
   }, [id, t]);
 
-  useEffect(() => {
-    if (service && !paid && !loading) {
-      const container = document.getElementById('paypal-button-container');
-      if (container && container.innerHTML !== '') return; // Prevent double rendering
-
-      const clientId = (import.meta as any).env.VITE_PAYPAL_CLIENT_ID || 'AcbwuN16XVq7P_HKhjbHRTegmSRXI0DoFOoLw2pn-LilZUuf1FRl0v888wjPvs428lM5sdf97LUNcvT5';
-      const currency = service.currency || 'USD';
-      const script = document.createElement('script');
-      script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=${currency}`;
-      script.async = true;
-      script.onload = () => {
-        if ((window as any).paypal) {
-          (window as any).paypal.Buttons({
-            createOrder: (data: any, actions: any) => {
-              const priceValue = parseFloat(service.price).toFixed(2);
-              return actions.order.create({
-                purchase_units: [{
-                  amount: {
-                    value: priceValue,
-                    currency_code: service.currency || 'USD'
-                  },
-                  description: `Service: ${service.title}`
-                }]
-              });
-            },
-            onApprove: async (data: any, actions: any) => {
-              try {
-                const order = await actions.order.capture();
-                console.log("Payment Success:", order);
-                
-                const orderRef = await addDoc(collection(db, 'orders'), {
-                  serviceId: service.id,
-                  serviceTitle: service.title,
-                  amount: service.price,
-                  customerEmail: order.payer.email_address,
-                  customerName: order.payer.name?.given_name || '',
-                  paypalOrderId: order.id,
-                  status: 'pending',
-                  downloadUrl: service.downloadUrl || '',
-                  type: 'service',
-                  createdAt: Timestamp.now()
-                });
-
-                setPaid(true);
-
-                // Redirect to Order Portal after a short delay
-                setTimeout(() => {
-                  navigate(`/order-portal/${orderRef.id}`);
-                }, 2000);
-              } catch (err) {
-                console.error("Error processing approved order:", err);
-                alert(t('common.processingError'));
-              }
-            },
-            onError: (err: any) => {
-              console.error("PayPal Error Details:", err);
-              const errorMsg = err?.message || "حدث خطأ أثناء عملية الدفع. يرجى التأكد من اتصالك بالإنترنت أو المحاولة مرة أخرى.";
-              alert(errorMsg);
-            }
-          }).render('#paypal-button-container');
-        }
-      };
-      document.body.appendChild(script);
-      return () => {
-        const existingScript = document.querySelector(`script[src*="paypal.com/sdk/js"]`);
-        if (existingScript) document.body.removeChild(existingScript);
-      };
-    }
-  }, [service, paid, loading]);
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-40">
@@ -150,6 +81,8 @@ export default function ServiceDetails() {
       </div>
     );
   }
+
+  const currentPrice = service[`price${selectedCurrency}`] || service.price || 0;
 
   return (
     <div className="relative">
@@ -183,8 +116,21 @@ export default function ServiceDetails() {
               <div className="text-9xl">{service.icon || '🎨'}</div>
             )}
             
-            <div className="absolute top-8 right-8 z-20">
-              <div className="gold-capsule text-sm px-6 py-2">{service.price} {service.currency || 'USD'}</div>
+            <div className="absolute top-8 right-8 z-20 flex flex-col items-end gap-2">
+              <div className="gold-capsule text-sm px-6 py-2">{currentPrice} {selectedCurrency}</div>
+              <div className="relative">
+                <select 
+                  value={selectedCurrency}
+                  onChange={(e) => setSelectedCurrency(e.target.value)}
+                  className="bg-black/50 backdrop-blur-md text-[10px] p-2 rounded-xl border border-white/10 appearance-none pl-8 pr-4 text-white font-bold"
+                >
+                  <option value="SAR">SAR</option>
+                  <option value="KWD">KWD</option>
+                  <option value="USD">USD</option>
+                  <option value="AED">AED</option>
+                </select>
+                <Brain size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-gold pointer-events-none" />
+              </div>
             </div>
           </div>
         </div>
@@ -210,7 +156,16 @@ export default function ServiceDetails() {
 
             {!paid ? (
               <div className="space-y-6">
-                <div id="paypal-button-container" className="min-h-[150px] relative z-10" />
+                <PayPalButton 
+                  item={service} 
+                  type="service" 
+                  currency={selectedCurrency} 
+                  price={currentPrice} 
+                  onSuccess={(orderId) => {
+                    setPaid(true);
+                    setTimeout(() => navigate(`/order-portal/${orderId}`), 2000);
+                  }} 
+                />
                 <p className="text-center text-[10px] text-gray-600 font-bold uppercase tracking-widest">
                   Secure Payment via PayPal Global
                 </p>
@@ -229,17 +184,6 @@ export default function ServiceDetails() {
                   <p className="text-gray-400 font-medium">شكراً لثقتك. سنتواصل معك عبر بريدك الإلكتروني قريباً جداً.</p>
                 </div>
                 <div className="flex flex-col gap-3">
-                  {service.downloadUrl && (
-                    <a 
-                      href={service.downloadUrl} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="btn-premium flex items-center justify-center gap-3 bg-white text-black py-5 rounded-2xl font-black text-lg shadow-2xl shadow-white/10"
-                    >
-                      <Download size={20} />
-                      تحميل الملفات المرفقة
-                    </a>
-                  )}
                   <button 
                     onClick={() => window.open('https://wa.me/96569929627', '_blank')}
                     className="btn-premium flex items-center justify-center gap-3 bg-green-500 text-white py-5 rounded-2xl font-black text-lg shadow-2xl shadow-green-500/10"

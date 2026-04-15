@@ -4,6 +4,8 @@ import dotenv from 'dotenv';
 import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
+import multer from 'multer';
+import { put } from '@vercel/blob';
 
 dotenv.config();
 
@@ -12,6 +14,9 @@ const PORT = 3000;
 
 app.use(cors());
 app.use(express.json());
+
+// Multer setup for file uploads
+const upload = multer({ storage: multer.memoryStorage() });
 
 // Encryption Setup
 const ENCRYPTION_KEY = process.env.ENCRYPTION_SECRET || 'default_secret_key_32_chars_long!';
@@ -40,6 +45,25 @@ function decrypt(text: string) {
     return text; // Fallback
   }
 }
+
+// 0. Upload Endpoint (Used by Dashboard)
+app.post('/api/upload', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    // Upload to Vercel Blob
+    const blob = await put(req.file.originalname, req.file.buffer, {
+      access: 'public',
+    });
+
+    res.json({ url: blob.url });
+  } catch (error: any) {
+    console.error("Upload Error:", error);
+    res.status(500).json({ error: error.message || 'Upload failed' });
+  }
+});
 
 // 1. Encrypt URL (Used by Dashboard when adding a product)
 app.post('/api/encrypt', (req, res) => {
