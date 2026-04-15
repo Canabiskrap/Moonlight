@@ -62,6 +62,31 @@
         "heroVideoUrl": { "type": "string", "format": "uri" },
         "updatedAt": { "type": "string", "format": "date-time" }
       }
+    },
+    "InspirationNote": {
+      "title": "Inspiration Note",
+      "description": "A note on the shared inspiration board",
+      "type": "object",
+      "properties": {
+        "text": { "type": "string" },
+        "user": { "type": "string" },
+        "date": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["text", "user", "date"]
+    },
+    "GalleryItem": {
+      "title": "Gallery Item",
+      "description": "An item saved in the creative gallery",
+      "type": "object",
+      "properties": {
+        "content": { "type": "string" },
+        "type": { "type": "string" },
+        "machineId": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["content", "type", "timestamp"]
     }
   },
   "firestore": {
@@ -84,6 +109,14 @@
     "/settings/{settingId}": {
       "schema": "Settings",
       "description": "Global application settings"
+    },
+    "/inspiration_notes/{noteId}": {
+      "schema": "InspirationNote",
+      "description": "Shared inspiration board notes"
+    },
+    "/creative_gallery/{itemId}": {
+      "schema": "GalleryItem",
+      "description": "Saved AI-generated content"
     }
   }
 }

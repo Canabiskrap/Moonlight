@@ -168,6 +168,25 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* Moon Phase Themes */
+.moon-new {
+  --primary: oklch(0.2 0.02 285);
+  --gold: oklch(0.4 0.02 285);
+}
+.moon-crescent {
+  --primary: oklch(0.4 0.1 285);
+}
+.moon-quarter {
+  --primary: oklch(0.55 0.15 285);
+}
+.moon-gibbous {
+  --primary: oklch(0.65 0.2 285);
+}
+.moon-full {
+  --primary: oklch(0.8 0.1 285);
+  --gold: oklch(0.85 0.2 90);
+}
+
 :root {
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);

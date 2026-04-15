@@ -73,7 +73,12 @@ export async function getSmartRecommendations(query: string, products: any[]): P
   }
 }
 
-export async function chatWithBot(userMessage: string, history: {role: 'user' | 'model', parts: {text: string}[]}[], context: 'customer' | 'dashboard' = 'customer'): Promise<string> {
+export async function chatWithBot(
+  userMessage: string, 
+  history: {role: 'user' | 'model', parts: {text: string}[]}[], 
+  context: 'customer' | 'dashboard' = 'customer',
+  settings?: any
+): Promise<string> {
   if (!ai) {
     const hasKey = !!GEMINI_KEY;
     const errorMsg = "Gemini AI not initialized. API Key is " + (hasKey ? "present" : "MISSING");
@@ -81,7 +86,24 @@ export async function chatWithBot(userMessage: string, history: {role: 'user' | 
     return `عذراً، هناك مشكلة في تهيئة الذكاء الاصطناعي (${hasKey ? 'مفتاح موجود ولكن فشل الاتصال' : 'مفتاح مفقود'}). يرجى التواصل مع الدعم الفني.`;
   }
   try {
+    const persona = settings?.aiPersona || 'ceo';
+    const brandDesc = settings?.brandDescription || '';
+    const brandColors = settings?.brandColors?.join(', ') || '';
+
+    let personaInstruction = "";
+    if (persona === 'artist') {
+      personaInstruction = "تحدث بنبرة فنية، ملهمة، وشاعرية. استخدم استعارات بصرية وجمالية.";
+    } else if (persona === 'buddy') {
+      personaInstruction = "تحدث بنبرة ودودة جداً، مرحة، وغير رسمية. استخدم الرموز التعبيرية بكثرة وكن كصديق مقرب.";
+    } else {
+      personaInstruction = "تحدث بنبرة رسمية، مباشرة، واحترافية جداً. ركز على النتائج والأعمال.";
+    }
+
+    const brandContext = brandDesc ? `معلومات عن العلامة التجارية: ${brandDesc}. الألوان المعتمدة: ${brandColors}.` : "";
+
     const customerInstruction = `أنت "المساعد الخبير" لـ Moonlight 🌕. أنت لست مجرد بوت، بل خبير في التصميم الرقمي والدعم الفني.
+          ${personaInstruction}
+          ${brandContext}
           
           قواعدك الذهبية:
           1. الهوية: اسمك "مساعد Moonlight 🌕 الذكي".
@@ -102,6 +124,8 @@ export async function chatWithBot(userMessage: string, history: {role: 'user' | 
           - الأسعار: تنافسية جداً مقابل الجودة العالية.`;
 
     const dashboardInstruction = `أنت "المستشار الاستراتيجي الأعلى" لمتجر Moonlight 🌕. أنت خبير عالمي في التجارة الإلكترونية، التسويق الرقمي، وتحليل البيانات.
+          ${personaInstruction}
+          ${brandContext}
           
           دورك:
           مساعدة مالك المتجر (الإدارة) في اتخاذ قرارات استراتيجية، زيادة المبيعات، تحسين تجربة المستخدم، وابتكار أفكار تسويقية غير تقليدية.
@@ -150,9 +174,24 @@ export async function generateFixSuggestion(prompt: string): Promise<string> {
   }
 }
 
-export async function runFactoryMachine(machineId: string, input: string, imageUrl?: string): Promise<any> {
+export async function runFactoryMachine(machineId: string, input: string, imageUrl?: string, settings?: any): Promise<any> {
   if (!ai) throw new Error("AI service not initialized. Missing API Key.");
   
+  const persona = settings?.aiPersona || 'ceo';
+  const brandDesc = settings?.brandDescription || '';
+  const brandColors = settings?.brandColors?.join(', ') || '';
+
+  let personaInstruction = "";
+  if (persona === 'artist') {
+    personaInstruction = "تحدث بنبرة فنية، ملهمة، وشاعرية. استخدم استعارات بصرية وجمالية.";
+  } else if (persona === 'buddy') {
+    personaInstruction = "تحدث بنبرة ودودة جداً، مرحة، وغير رسمية. استخدم الرموز التعبيرية بكثرة وكن كصديق مقرب.";
+  } else {
+    personaInstruction = "تحدث بنبرة رسمية، مباشرة، واحترافية جداً. ركز على النتائج والأعمال.";
+  }
+
+  const brandContext = brandDesc ? `معلومات عن العلامة التجارية: ${brandDesc}. الألوان المعتمدة: ${brandColors}.` : "";
+
   let systemInstruction = "";
   let responseSchema: any = {};
   let contents: any = input;
@@ -165,7 +204,7 @@ export async function runFactoryMachine(machineId: string, input: string, imageU
   }
 
   if (machineId === 'strategy') {
-    systemInstruction = "You are a world-class marketing strategist for 'Moonlight 🌕'. Analyze the user's business idea and provide a SWOT analysis and a Buyer Persona in Arabic.";
+    systemInstruction = `You are a world-class marketing strategist for 'Moonlight 🌕'. ${personaInstruction} ${brandContext} Analyze the user's business idea and provide a SWOT analysis and a Buyer Persona in Arabic.`;
     responseSchema = {
       type: Type.OBJECT,
       properties: {
@@ -192,7 +231,7 @@ export async function runFactoryMachine(machineId: string, input: string, imageU
       required: ["swot", "persona"]
     };
   } else if (machineId === 'product') {
-    systemInstruction = "You are a digital product creator for 'Moonlight 🌕'. Convert a simple idea into a full product proposal in Arabic, including a catchy title, persuasive description, marketing plan, and price suggestion.";
+    systemInstruction = `You are a digital product creator for 'Moonlight 🌕'. ${personaInstruction} ${brandContext} Convert a simple idea into a full product proposal in Arabic, including a catchy title, persuasive description, marketing plan, and price suggestion.`;
     responseSchema = {
       type: Type.OBJECT,
       properties: {
@@ -204,7 +243,7 @@ export async function runFactoryMachine(machineId: string, input: string, imageU
       required: ["title", "description", "marketingPlan", "priceSuggestion"]
     };
   } else if (machineId === 'contentMaker') {
-    systemInstruction = "You are an expert digital product creator and author for 'Moonlight 🌕'. The user wants to create a complete digital product (like an e-book, guide, article, or code snippet) based on their idea. Write the FULL content for this product in Arabic. Format the output ENTIRELY in clean HTML (using <h1>, <h2>, <p>, <ul>, <li>, <strong>, etc.). Do not use markdown, only HTML. Make it comprehensive, engaging, and ready to be sold or published.";
+    systemInstruction = `You are an expert digital product creator and author for 'Moonlight 🌕'. ${personaInstruction} ${brandContext} The user wants to create a complete digital product (like an e-book, guide, article, or code snippet) based on their idea. Write the FULL content for this product in Arabic. Format the output ENTIRELY in clean HTML (using <h1>, <h2>, <p>, <ul>, <li>, <strong>, etc.). Do not use markdown, only HTML. Make it comprehensive, engaging, and ready to be sold or published.`;
     responseSchema = {
       type: Type.OBJECT,
       properties: {
@@ -213,7 +252,7 @@ export async function runFactoryMachine(machineId: string, input: string, imageU
       required: ["htmlContent"]
     };
   } else if (machineId === 'brandGuidelines') {
-    systemInstruction = "You are an expert Brand Identity Designer and Strategist for 'Moonlight 🌕'. The user will provide a brand name, industry, and personality. Generate a comprehensive 'Brand Guidelines' (دليل الهوية البصرية) document in Arabic. Include: Brand Story & Vision, Logo Usage rules, Color Palette (with HEX/RGB codes), Typography recommendations, and Tone of Voice. Format the output ENTIRELY in clean HTML (using <h1>, <h2>, <p>, <ul>, <li>, <strong>, and inline styles for color swatches if possible). Do not use markdown, only HTML.";
+    systemInstruction = `You are an expert Brand Identity Designer and Strategist for 'Moonlight 🌕'. ${personaInstruction} ${brandContext} The user will provide a brand name, industry, and personality. Generate a comprehensive 'Brand Guidelines' (دليل الهوية البصرية) document in Arabic. Include: Brand Story & Vision, Logo Usage rules, Color Palette (with HEX/RGB codes), Typography recommendations, and Tone of Voice. Format the output ENTIRELY in clean HTML (using <h1>, <h2>, <p>, <ul>, <li>, <strong>, and inline styles for color swatches if possible). Do not use markdown, only HTML.`;
     responseSchema = {
       type: Type.OBJECT,
       properties: {
@@ -222,7 +261,7 @@ export async function runFactoryMachine(machineId: string, input: string, imageU
       required: ["htmlContent"]
     };
   } else if (machineId === 'brandBook') {
-    systemInstruction = "You are the 'Brand Book Architect' for 'Moonlight 🌕'. The user will provide a brand name, industry, description, and optionally links to their logo or existing assets. Your task is to analyze these inputs and generate a comprehensive, professional 'Brand Book' (دليل الهوية البصرية) document in Arabic. Include: Brand Story & Vision, Logo Usage rules, Color Palette (with HEX/RGB codes), Typography recommendations, and Tone of Voice. Format the output ENTIRELY in clean HTML (using <h1>, <h2>, <p>, <ul>, <li>, <strong>, and inline styles for color swatches). Do not use markdown, only HTML.";
+    systemInstruction = `You are the 'Brand Book Architect' for 'Moonlight 🌕'. ${personaInstruction} ${brandContext} The user will provide a brand name, industry, description, and optionally links to their logo or existing assets. Your task is to analyze these inputs and generate a comprehensive, professional 'Brand Book' (دليل الهوية البصرية) document in Arabic. Include: Brand Story & Vision, Logo Usage rules, Color Palette (with HEX/RGB codes), Typography recommendations, and Tone of Voice. Format the output ENTIRELY in clean HTML (using <h1>, <h2>, <p>, <ul>, <li>, <strong>, and inline styles for color swatches). Do not use markdown, only HTML.`;
     responseSchema = {
       type: Type.OBJECT,
       properties: {
@@ -231,7 +270,7 @@ export async function runFactoryMachine(machineId: string, input: string, imageU
       required: ["htmlContent"]
     };
   } else if (machineId === 'visualGenerator') {
-    systemInstruction = "You are the 'Visual Asset Generator' for 'Moonlight 🌕'. The user will provide a design request (e.g., Instagram post, Facebook cover) and the brand identity context. Your task is to generate a detailed, professional, and creative design prompt in English that can be used by an image generation AI (like Imagen) to create the visual asset. Include details about composition, lighting, mood, and style that match the 'Moonlight' brand identity. Also, provide a persuasive Arabic caption for the post.";
+    systemInstruction = `You are the 'Visual Asset Generator' for 'Moonlight 🌕'. ${personaInstruction} ${brandContext} The user will provide a design request (e.g., Instagram post, Facebook cover) and the brand identity context. Your task is to generate a detailed, professional, and creative design prompt in English that can be used by an image generation AI (like Imagen) to create the visual asset. Include details about composition, lighting, mood, and style that match the 'Moonlight' brand identity. Also, provide a persuasive Arabic caption for the post.`;
     responseSchema = {
       type: Type.OBJECT,
       properties: {
@@ -241,7 +280,7 @@ export async function runFactoryMachine(machineId: string, input: string, imageU
       required: ["designPrompt", "arabicCaption"]
     };
   } else {
-    systemInstruction = "You are a creative content director for 'Moonlight 🌕'. Provide 3-4 creative content ideas (video scripts, social media posts) based on the user's input in Arabic.";
+    systemInstruction = `You are a creative content director for 'Moonlight 🌕'. ${personaInstruction} ${brandContext} Provide 3-4 creative content ideas (video scripts, social media posts) based on the user's input in Arabic.`;
     responseSchema = {
       type: Type.OBJECT,
       properties: {

@@ -53,7 +53,10 @@ import {
   ExternalLink, 
   Clock,
   PlayCircle,
-  UserCheck
+  UserCheck,
+  Lightbulb,
+  Palette,
+  Rocket
 } from 'lucide-react';
 
 import { getProductInsights, chatWithBot } from '../services/geminiService';
@@ -61,6 +64,7 @@ import DashboardAnalytics from '../components/DashboardAnalytics';
 import AIFactory from '../components/AIFactory';
 import SmartAIAssistant from '../components/SmartAIAssistant';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 
 export default function Dashboard() {
   const { t } = useTranslation();
@@ -94,6 +98,12 @@ export default function Dashboard() {
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [imageUploadType, setImageUploadType] = useState<'file' | 'link'>('file');
   const [customBucket, setCustomBucket] = useState('');
+  const [isZenMode, setIsZenMode] = useState(false);
+  const [oracleIdeas, setOracleIdeas] = useState<any[]>([]);
+  const [isGeneratingOracle, setIsGeneratingOracle] = useState(false);
+  const [galleryItems, setGalleryItems] = useState<any[]>([]);
+  const [inspirationNotes, setInspirationNotes] = useState<any[]>([]);
+  const [newNote, setNewNote] = useState('');
   const navigate = useNavigate();
 
   const uploadFile = async (file: File, onProgress?: (progress: number) => void) => {
@@ -183,6 +193,8 @@ export default function Dashboard() {
     const qProds = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
     const qServices = query(collection(db, 'services'), orderBy('createdAt', 'desc'));
     const qOrders = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
+    const qInspiration = query(collection(db, 'inspiration_notes'), orderBy('createdAt', 'desc'));
+    const qGallery = query(collection(db, 'creative_gallery'), orderBy('createdAt', 'desc'));
 
     const unsubProds = onSnapshot(qProds, 
       (snapshot) => {
@@ -214,10 +226,30 @@ export default function Dashboard() {
       }
     );
 
+    const unsubInspiration = onSnapshot(qInspiration, 
+      (snapshot) => {
+        setInspirationNotes(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      },
+      (error) => {
+        console.error("Inspiration Snapshot Error:", error);
+      }
+    );
+
+    const unsubGallery = onSnapshot(qGallery, 
+      (snapshot) => {
+        setGalleryItems(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      },
+      (error) => {
+        console.error("Gallery Snapshot Error:", error);
+      }
+    );
+
     return () => {
       unsubProds();
       unsubServices();
       unsubOrders();
+      unsubInspiration();
+      unsubGallery();
     };
   }, []);
 
@@ -275,7 +307,7 @@ export default function Dashboard() {
     setUploadProgress(0);
   };
 
-  const [activeTab, setActiveTab] = useState<'products' | 'services' | 'orders' | 'settings' | 'analytics' | 'ai' | 'factory'>('analytics');
+  const [activeTab, setActiveTab] = useState<'products' | 'services' | 'orders' | 'settings' | 'analytics' | 'ai' | 'factory' | 'inspiration'>('analytics');
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [heroVideoFile, setHeroVideoFile] = useState<File | null>(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
@@ -286,6 +318,14 @@ export default function Dashboard() {
   const [facebookUrl, setFacebookUrl] = useState('');
   const [tiktokUrl, setTiktokUrl] = useState('');
   const [telegramUrl, setTelegramUrl] = useState('');
+  const [aiPersona, setAiPersona] = useState<'ceo' | 'artist' | 'buddy'>('ceo');
+  const [moonSyncEnabled, setMoonSyncEnabled] = useState(false);
+  const [whatsappNotificationsEnabled, setWhatsappNotificationsEnabled] = useState(false);
+  const [whatsappNumber, setWhatsappNumber] = useState('');
+  const [weeklyReportEnabled, setWeeklyReportEnabled] = useState(false);
+  const [brandColors, setBrandColors] = useState<string[]>([]);
+  const [brandFonts, setBrandFonts] = useState<string[]>([]);
+  const [brandDescription, setBrandDescription] = useState('');
 
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'settings', 'appearance'), (doc) => {
@@ -297,10 +337,40 @@ export default function Dashboard() {
         setFacebookUrl(data.facebookUrl || '');
         setTiktokUrl(data.tiktokUrl || '');
         setTelegramUrl(data.telegramUrl || '');
+        setAiPersona(data.aiPersona || 'ceo');
+        setMoonSyncEnabled(data.moonSyncEnabled || false);
+        setWhatsappNotificationsEnabled(data.whatsappNotificationsEnabled || false);
+        setWhatsappNumber(data.whatsappNumber || '');
+        setWeeklyReportEnabled(data.weeklyReportEnabled || false);
+        setBrandColors(data.brandColors || []);
+        setBrandFonts(data.brandFonts || []);
+        setBrandDescription(data.brandDescription || '');
       }
     });
     return () => unsub();
   }, []);
+
+  const handleSaveGeneralSettings = async () => {
+    try {
+      addLog("جاري حفظ الإعدادات العامة...");
+      await setDoc(doc(db, 'settings', 'appearance'), {
+        aiPersona,
+        moonSyncEnabled,
+        whatsappNotificationsEnabled,
+        whatsappNumber,
+        weeklyReportEnabled,
+        brandColors,
+        brandFonts,
+        brandDescription,
+        updatedAt: Timestamp.now()
+      }, { merge: true });
+      addLog("✅ تم حفظ الإعدادات بنجاح");
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    } catch (err: any) {
+      addLog(`❌ فشل الحفظ: ${err.message}`);
+    }
+  };
 
   const handleSaveSocialLinks = async () => {
     try {
@@ -655,6 +725,62 @@ export default function Dashboard() {
     }
   };
 
+  const handleInstantPublish = (data: any) => {
+    setName(data.title || '');
+    setDescription(data.description || data.content || '');
+    setPriceUSD(data.priceSuggestion?.replace(/[^0-9.]/g, '') || '');
+    setActiveTab('products'); // Switch to products tab to see the form
+    addLog("🚀 تم نقل بيانات المنتج إلى النموذج بنجاح!");
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const saveToGallery = async (item: any) => {
+    try {
+      const newItem = {
+        content: item.content || item.title || '',
+        type: item.type || 'إبداع',
+        machineId: item.machineId || 'unknown',
+        timestamp: new Date().toLocaleString('ar-SA'),
+        createdAt: Timestamp.now()
+      };
+      await addDoc(collection(db, 'creative_gallery'), newItem);
+      addLog("🎨 تم حفظ الإبداع في الرواق!");
+    } catch (err: any) {
+      console.error("Gallery Save Error:", err);
+      addLog("❌ فشل حفظ الإبداع: " + err.message);
+    }
+  };
+
+  const deleteFromGallery = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'creative_gallery', id));
+      addLog("🗑️ تم حذف الإبداع من الرواق");
+    } catch (err: any) {
+      addLog("❌ فشل حذف الإبداع: " + err.message);
+    }
+  };
+
+  const generateOracleIdeas = async () => {
+    setIsGeneratingOracle(true);
+    addLog("🔮 العراف يستحضر الأفكار من ضوء القمر...");
+    try {
+      const prompt = `بناءً على براند "Moonlight Digital" وقصته: "${brandDescription}"، اقترح 3 أفكار لمنتجات رقمية مبتكرة جداً ومطلوبة حالياً. لكل فكرة، أعطني: عنواناً جذاباً، وصفاً قصيراً، وسعراً مقترحاً بالدولار. اجعل النبرة متوافقة مع شخصية: ${aiPersona}.`;
+      const result = await chatWithBot(prompt, []);
+      // Simple parsing logic for the AI response
+      const ideas = result.split('\n\n').slice(0, 3).map((text, i) => ({
+        id: i,
+        content: text,
+        timestamp: new Date().toLocaleTimeString()
+      }));
+      setOracleIdeas(ideas);
+      addLog("✅ العراف كشف عن رؤيته!");
+    } catch (err: any) {
+      addLog("❌ العراف مشوش حالياً: " + err.message);
+    } finally {
+      setIsGeneratingOracle(false);
+    }
+  };
+
   const handleUpdateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
       await updateDoc(doc(db, 'orders', orderId), {
@@ -717,6 +843,34 @@ export default function Dashboard() {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-10 pb-64"
     >
+      {/* Store Health Pulse Background */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <motion.div
+          animate={{
+            opacity: [0.05, 0.15, 0.05],
+            scale: [1, 1.1, 1],
+          }}
+          transition={{
+            duration: status === 'uploading' ? 1 : 4,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          className="absolute -top-[20%] -right-[10%] w-[60%] h-[60%] bg-primary/20 blur-[120px] rounded-full"
+        />
+        <motion.div
+          animate={{
+            opacity: [0.03, 0.1, 0.03],
+            scale: [1, 1.2, 1],
+          }}
+          transition={{
+            duration: status === 'uploading' ? 1.5 : 6,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 1
+          }}
+          className="absolute -bottom-[20%] -left-[10%] w-[50%] h-[50%] bg-gold/10 blur-[120px] rounded-full"
+        />
+      </div>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
         <div className="flex flex-col">
           <div className="flex items-center gap-4">
@@ -736,6 +890,7 @@ export default function Dashboard() {
             { id: 'products', label: t('dashboard.tabs.products'), icon: Package, color: 'primary' },
             { id: 'services', label: t('dashboard.tabs.services'), icon: Sparkles, color: 'primary' },
             { id: 'orders', label: t('dashboard.tabs.orders'), icon: ShoppingBag, color: 'primary' },
+            { id: 'inspiration', label: 'لوحة الإلهام', icon: Lightbulb, color: 'gold' },
             { id: 'settings', label: t('dashboard.tabs.settings'), icon: Settings, color: 'primary' },
           ].map((tab) => (
             <button
@@ -1012,13 +1167,157 @@ export default function Dashboard() {
                     </p>
                   </div>
                 </div>
+
+                {/* AI Persona Section */}
+                <div className="p-8 bg-white/5 rounded-[2rem] border border-white/5 space-y-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-purple-500/10 rounded-2xl flex items-center justify-center text-purple-500">
+                      <Brain size={24} />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-black text-white">شخصية الذكاء الاصطناعي</h3>
+                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">اختر كيف يتحدث معك المصنع والمساعد</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { id: 'ceo', label: 'المدير (CEO)', desc: 'رسمي ومباشر' },
+                      { id: 'artist', label: 'الفنان (Artist)', desc: 'ملهم وشاعري' },
+                      { id: 'buddy', label: 'الصديق (Buddy)', desc: 'مرح وودود' }
+                    ].map((p) => (
+                      <button
+                        key={p.id}
+                        onClick={() => setAiPersona(p.id as any)}
+                        className={`p-4 rounded-2xl border transition-all text-center space-y-1 ${
+                          aiPersona === p.id 
+                            ? 'border-primary bg-primary/10 text-white' 
+                            : 'border-white/5 bg-white/5 text-gray-500 hover:border-white/20'
+                        }`}
+                      >
+                        <p className="text-xs font-black">{p.label}</p>
+                        <p className="text-[9px] opacity-60">{p.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Moon Sync Section */}
+                <div className="p-8 bg-white/5 rounded-[2rem] border border-white/5 space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-500">
+                        <Zap size={24} />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-black text-white">مزامنة دورة القمر</h3>
+                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">تغيير ثيم الموقع حسب حالة القمر الحقيقية</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setMoonSyncEnabled(!moonSyncEnabled)}
+                      className={`w-14 h-8 rounded-full transition-all relative ${moonSyncEnabled ? 'bg-primary' : 'bg-gray-700'}`}
+                    >
+                      <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all ${moonSyncEnabled ? 'right-7' : 'right-1'}`} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Notification Hub Section */}
+                <div className="p-8 bg-white/5 rounded-[2rem] border border-white/5 space-y-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-green-500/10 rounded-2xl flex items-center justify-center text-green-500">
+                      <Send size={24} />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-black text-white">مركز الإشعارات</h3>
+                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">إشعارات الواتساب والتقارير</p>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+                      <div>
+                        <p className="text-sm font-bold text-white">إشعارات WhatsApp</p>
+                        <p className="text-[10px] text-gray-500">استلام تحديثات الطلبات فوراً</p>
+                      </div>
+                      <button
+                        onClick={() => setWhatsappNotificationsEnabled(!whatsappNotificationsEnabled)}
+                        className={`w-12 h-6 rounded-full transition-all relative ${whatsappNotificationsEnabled ? 'bg-green-500' : 'bg-gray-700'}`}
+                      >
+                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${whatsappNotificationsEnabled ? 'right-7' : 'right-1'}`} />
+                      </button>
+                    </div>
+                    {whatsappNotificationsEnabled && (
+                      <input 
+                        type="text"
+                        value={whatsappNumber}
+                        onChange={(e) => setWhatsappNumber(e.target.value)}
+                        placeholder="رقم الواتساب (مثال: 966500000000)"
+                        className="w-full bg-white/5 border border-white/5 focus:border-green-500 outline-none p-4 rounded-2xl text-sm transition-all"
+                      />
+                    )}
+                    <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+                      <div>
+                        <p className="text-sm font-bold text-white">تقرير Moonlight الأسبوعي</p>
+                        <p className="text-[10px] text-gray-500">ملخص ذكاء اصطناعي لأداء متجرك</p>
+                      </div>
+                      <button
+                        onClick={() => setWeeklyReportEnabled(!weeklyReportEnabled)}
+                        className={`w-12 h-6 rounded-full transition-all relative ${weeklyReportEnabled ? 'bg-primary' : 'bg-gray-700'}`}
+                      >
+                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${weeklyReportEnabled ? 'right-7' : 'right-1'}`} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Brand Vault Section */}
+                <div className="p-8 bg-white/5 rounded-[2rem] border border-white/5 space-y-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-gold/10 rounded-2xl flex items-center justify-center text-gold">
+                      <Sparkles size={24} />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-black text-white">خزنة الهوية (Brand Vault)</h3>
+                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">تخزين أصول علامتك التجارية للذكاء الاصطناعي</p>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">وصف العلامة التجارية (للذكاء الاصطناعي)</label>
+                      <textarea 
+                        value={brandDescription}
+                        onChange={(e) => setBrandDescription(e.target.value)}
+                        placeholder="اشرح قصة براندك، قيمك، والجمهور المستهدف..."
+                        className="w-full bg-white/5 border border-white/5 focus:border-primary outline-none p-4 rounded-2xl text-sm min-h-[100px] resize-none"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">أكواد الألوان (HEX)</label>
+                      <input 
+                        type="text"
+                        value={brandColors.join(', ')}
+                        onChange={(e) => setBrandColors(e.target.value.split(',').map(c => c.trim()))}
+                        placeholder="#A855F7, #050505, #F59E0B"
+                        className="w-full bg-white/5 border border-white/5 focus:border-primary outline-none p-4 rounded-2xl text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={handleSaveGeneralSettings}
+                  className="w-full py-5 bg-primary text-white rounded-[2rem] font-black text-sm hover:bg-primary-dark transition-all shadow-2xl shadow-primary/20 flex items-center justify-center gap-3"
+                >
+                  <CheckCircle2 size={20} />
+                  حفظ جميع الإعدادات الجديدة
+                </button>
               </div>
             </div>
           </div>
         )}
 
         {activeTab !== 'settings' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+          <div className={`grid grid-cols-1 lg:grid-cols-3 gap-10 transition-all duration-700 ${isZenMode ? 'blur-sm opacity-20 pointer-events-none scale-95' : ''}`}>
             {/* Add/Edit Product Form */}
             <div className={`lg:col-span-1 space-y-8 ${activeTab === 'orders' ? 'hidden lg:block opacity-30 pointer-events-none' : ''}`}>
           <div className="bg-dark-light/30 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-white/10 shadow-2xl relative overflow-hidden">
@@ -1522,11 +1821,20 @@ export default function Dashboard() {
               isTestingAI={isTestingAI}
               isTestingConnection={isTestingConnection}
               debugLogs={debugLogs}
+              weeklyReportEnabled={weeklyReportEnabled}
             />
           )}
 
           {activeTab === 'factory' && (
-            <AIFactory />
+            <AIFactory 
+              oracleIdeas={oracleIdeas} 
+              generateOracle={generateOracleIdeas} 
+              isGeneratingOracle={isGeneratingOracle}
+              onInstantPublish={handleInstantPublish}
+              onSaveToGallery={saveToGallery}
+              onDeleteFromGallery={deleteFromGallery}
+              galleryItems={galleryItems}
+            />
           )}
 
           {activeTab === 'ai' && (
@@ -1859,6 +2167,103 @@ export default function Dashboard() {
               </div>
             </div>
           )}
+
+          {activeTab === 'inspiration' && (
+            <div className="space-y-8">
+              <div className="bg-dark-light/30 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-white/10 shadow-2xl">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 bg-gold/10 rounded-2xl flex items-center justify-center text-gold border border-gold/20">
+                    <Lightbulb size={28} />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-black text-white">لوحة الإلهام المشتركة</h2>
+                    <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">مساحة خاصة لك ولزوجتك لتبادل الأفكار</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <Card className="lg:col-span-1 bg-dark-light/30 border-white/10 backdrop-blur-xl rounded-[2.5rem] overflow-hidden shadow-2xl self-start">
+                  <CardHeader>
+                    <CardTitle className="text-xl font-black text-white">إضافة فكرة جديدة</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <textarea 
+                      value={newNote}
+                      onChange={(e) => setNewNote(e.target.value)}
+                      placeholder="اكتب فكرتك هنا..."
+                      className="w-full h-32 bg-dark/50 border border-white/10 rounded-2xl p-4 text-white resize-none focus:border-gold outline-none transition-all"
+                    />
+                    <button 
+                      onClick={async () => {
+                        if (!newNote.trim()) return;
+                        try {
+                          let userName = 'ضيف';
+                          const email = auth.currentUser?.email;
+                          if (email === 'canabiskrap07@gmail.com' || email === 'canabiskrap007@gmail.com') userName = 'المدير';
+                          else if (email === 'Esraa0badr@gmail.com') userName = 'إسراء';
+                          else if (email === 'karmabiskrap@gmail.com') userName = 'كارما';
+                          
+                          await addDoc(collection(db, 'inspiration_notes'), {
+                            text: newNote,
+                            user: userName,
+                            date: new Date().toLocaleString('ar-SA'),
+                            createdAt: Timestamp.now()
+                          });
+                          setNewNote('');
+                          addLog("💡 تم إضافة فكرة جديدة للوحة الإلهام!");
+                        } catch (err: any) {
+                          addLog("❌ فشل إضافة الفكرة: " + err.message);
+                        }
+                      }}
+                      className="w-full py-4 bg-gold text-dark rounded-2xl font-black text-sm hover:scale-[1.02] transition-all shadow-xl shadow-gold/20"
+                    >
+                      تثبيت الفكرة
+                    </button>
+                  </CardContent>
+                </Card>
+
+                <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {inspirationNotes.length > 0 ? (
+                    inspirationNotes.map((note) => (
+                      <motion.div
+                        key={note.id}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="bg-white/5 border border-white/10 p-6 rounded-[2rem] relative group hover:border-gold/30 transition-all"
+                      >
+                        <button 
+                          onClick={async () => {
+                            try {
+                              await deleteDoc(doc(db, 'inspiration_notes', note.id));
+                              addLog("🗑️ تم حذف الفكرة من اللوحة");
+                            } catch (err: any) {
+                              addLog("❌ فشل حذف الفكرة: " + err.message);
+                            }
+                          }}
+                          className="absolute top-4 right-4 text-gray-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                        <div className="flex items-center gap-2 mb-4">
+                          <div className="w-8 h-8 bg-gold/20 rounded-full flex items-center justify-center text-gold text-[10px] font-black">
+                            {note.user[0]}
+                          </div>
+                          <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{note.date}</span>
+                        </div>
+                        <p className="text-sm text-gray-200 leading-relaxed font-medium">{note.text}</p>
+                      </motion.div>
+                    ))
+                  ) : (
+                    <div className="col-span-full h-64 flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-[2.5rem] text-gray-600">
+                      <Lightbulb size={48} className="mb-4 opacity-20" />
+                      <p className="text-sm font-bold uppercase tracking-widest">لا توجد أفكار مثبتة بعد</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     )}
@@ -1930,6 +2335,62 @@ export default function Dashboard() {
           <div className="h-[1px] w-12 bg-gray-500"></div>
         </div>
       </div>
+
+      {/* Zen Mode Overlay */}
+      <AnimatePresence>
+        {isZenMode && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-dark/80 backdrop-blur-3xl flex flex-col items-center justify-center p-6 text-center"
+          >
+            <motion.div
+              animate={{ 
+                scale: [1, 1.1, 1],
+                opacity: [0.5, 1, 0.5]
+              }}
+              transition={{ duration: 4, repeat: Infinity }}
+              className="w-40 h-40 rounded-full bg-primary/20 blur-3xl absolute"
+            />
+            
+            <div className="relative space-y-8 max-w-2xl">
+              <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto border border-primary/20 text-primary">
+                <Clock size={40} className="animate-pulse" />
+              </div>
+              <h2 className="text-4xl font-black text-white tracking-tighter">وضع الهدوء (Zen Mode)</h2>
+              <p className="text-xl text-gray-400 font-medium leading-relaxed">
+                "الإبداع يزدهر في الصمت. ركز على فكرتك القادمة، وسنتولى نحن الباقي."
+              </p>
+              
+              <div className="flex flex-wrap justify-center gap-4">
+                <button 
+                  onClick={() => { setActiveTab('factory'); setIsZenMode(false); }}
+                  className="px-8 py-4 bg-primary text-white rounded-2xl font-black hover:scale-105 transition-all flex items-center gap-2"
+                >
+                  <Zap size={20} />
+                  انتقل للمصنع الآن
+                </button>
+                <button 
+                  onClick={() => setIsZenMode(false)}
+                  className="px-8 py-4 bg-white/5 text-white rounded-2xl font-black hover:bg-white/10 transition-all"
+                >
+                  العودة للوحة التحكم
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Floating Zen Toggle */}
+      <button
+        onClick={() => setIsZenMode(!isZenMode)}
+        className="fixed bottom-8 left-8 z-[110] w-14 h-14 bg-dark-light/50 backdrop-blur-xl border border-white/10 rounded-full flex items-center justify-center text-white hover:text-primary hover:border-primary/50 transition-all shadow-2xl group"
+        title="Zen Mode"
+      >
+        <Activity size={24} className={isZenMode ? 'animate-spin' : 'group-hover:rotate-12 transition-transform'} />
+      </button>
     </motion.div>
   );
 }

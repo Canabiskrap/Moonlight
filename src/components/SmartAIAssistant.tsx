@@ -4,6 +4,8 @@ import { Button } from './ui/button';
 import { Sparkles, Brain, Zap, MessageSquare, Loader2, ArrowRight, User, Bot } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { chatWithBot } from '../services/geminiService';
+import { db } from '../lib/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
 import ReactMarkdown from 'react-markdown';
 import { useTranslation } from 'react-i18next';
 
@@ -19,6 +21,16 @@ export default function SmartAIAssistant({ products, orders }: SmartAIAssistantP
   const [chatMessage, setChatMessage] = useState('');
   const [chatHistory, setChatHistory] = useState<any[]>([]);
   const [isChatting, setIsChatting] = useState(false);
+  const [settings, setSettings] = useState<any>(null);
+
+  React.useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'settings', 'appearance'), (doc) => {
+      if (doc.exists()) {
+        setSettings(doc.data());
+      }
+    });
+    return () => unsub();
+  }, []);
 
   const runAnalysis = async () => {
     setIsAnalyzing(true);
@@ -28,7 +40,7 @@ export default function SmartAIAssistant({ products, orders }: SmartAIAssistantP
       عدد الطلبات: ${orders.length}
       المنتجات: ${products.slice(0, 5).map(p => p.name).join(', ')}`;
       
-      const response = await chatWithBot(prompt, [], 'dashboard');
+      const response = await chatWithBot(prompt, [], 'dashboard', settings);
       setInsight(response);
     } catch (error) {
       console.error("AI Analysis Error:", error);
@@ -47,7 +59,7 @@ export default function SmartAIAssistant({ products, orders }: SmartAIAssistantP
     setIsChatting(true);
 
     try {
-      const response = await chatWithBot(userMsg, chatHistory, 'dashboard');
+      const response = await chatWithBot(userMsg, chatHistory, 'dashboard', settings);
       setChatHistory(prev => [...prev, { role: 'model', parts: [{ text: response }] }]);
     } catch (error) {
       console.error("Chat Error:", error);

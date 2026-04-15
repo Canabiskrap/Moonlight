@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, db } from './lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './pages/Home';
@@ -26,6 +26,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { motion, AnimatePresence } from 'motion/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import { useTranslation } from 'react-i18next';
+import { getMoonPhase } from './lib/moonUtils';
 
 import About from './pages/About';
 import Status from './pages/Status';
@@ -39,7 +40,34 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [moonSyncEnabled, setMoonSyncEnabled] = useState(false);
   const { i18n } = useTranslation();
+
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'settings', 'appearance'), (doc) => {
+      if (doc.exists()) {
+        setMoonSyncEnabled(doc.data().moonSyncEnabled || false);
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    if (moonSyncEnabled) {
+      const phase = getMoonPhase();
+      let moonClass = '';
+      if (phase < 0.06 || phase > 0.94) moonClass = 'moon-new';
+      else if (phase < 0.19 || phase > 0.81) moonClass = 'moon-crescent';
+      else if (phase < 0.31 || phase > 0.69) moonClass = 'moon-quarter';
+      else if (phase < 0.44 || phase > 0.56) moonClass = 'moon-gibbous';
+      else moonClass = 'moon-full';
+
+      document.body.classList.remove('moon-new', 'moon-crescent', 'moon-quarter', 'moon-gibbous', 'moon-full');
+      document.body.classList.add(moonClass);
+    } else {
+      document.body.classList.remove('moon-new', 'moon-crescent', 'moon-quarter', 'moon-gibbous', 'moon-full');
+    }
+  }, [moonSyncEnabled]);
 
   useEffect(() => {
     document.documentElement.dir = i18n.language === 'ar' ? 'rtl' : 'ltr';

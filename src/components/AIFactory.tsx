@@ -18,10 +18,13 @@ import {
   Lightbulb,
   BarChart3,
   Download,
-  Palette
+  Palette,
+  Trash2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
-import { runFactoryMachine } from '../services/geminiService';
+import { runFactoryMachine, chatWithBot } from '../services/geminiService';
+import { db } from '../lib/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
 
 interface MachineProps {
   id: string;
@@ -31,15 +34,44 @@ interface MachineProps {
   color: string;
 }
 
-export default function AIFactory() {
+interface FactoryProps {
+  oracleIdeas?: any[];
+  generateOracle?: () => void;
+  isGeneratingOracle?: boolean;
+  onInstantPublish?: (data: any) => void;
+  onSaveToGallery?: (item: any) => void;
+  onDeleteFromGallery?: (id: string) => void;
+  galleryItems?: any[];
+}
+
+export default function AIFactory({ 
+  oracleIdeas = [], 
+  generateOracle, 
+  isGeneratingOracle,
+  onInstantPublish,
+  onSaveToGallery,
+  onDeleteFromGallery,
+  galleryItems = []
+}: FactoryProps) {
   const { t } = useTranslation();
   const [activeMachine, setActiveMachine] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isRefining, setIsRefining] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [editorContent, setEditorContent] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null); // Added state
+  const [settings, setSettings] = useState<any>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'settings', 'appearance'), (doc) => {
+      if (doc.exists()) {
+        setSettings(doc.data());
+      }
+    });
+    return () => unsub();
+  }, []);
   const editor = useRef(null);
 
   const joditConfig = useMemo(() => ({
@@ -143,8 +175,8 @@ export default function AIFactory() {
       }
 
       if (activeMachine) {
-        // Pass imageUrl to the machine
-        const data = await runFactoryMachine(activeMachine, input, imageUrl);
+        // Pass imageUrl and settings to the machine
+        const data = await runFactoryMachine(activeMachine, input, imageUrl, settings);
         setResult(data);
         if ((activeMachine === 'contentMaker' || activeMachine === 'brandGuidelines' || activeMachine === 'brandBook' || activeMachine === 'visualGenerator') && data.htmlContent) {
           setEditorContent(data.htmlContent);
@@ -154,6 +186,20 @@ export default function AIFactory() {
       console.error("Factory Error:", error);
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const refinePrompt = async () => {
+    if (!input.trim()) return;
+    setIsRefining(true);
+    try {
+      const prompt = `حول هذه الفكرة البسيطة إلى مطالبة (Prompt) احترافية ومفصلة جداً لاستخدامها في الذكاء الاصطناعي لإنتاج أفضل نتيجة ممكنة. الفكرة: "${input}". اجعل النتيجة باللغة العربية والإنجليزية.`;
+      const refined = await chatWithBot(prompt, []);
+      setInput(refined);
+    } catch (error) {
+      console.error("Refine Error:", error);
+    } finally {
+      setIsRefining(false);
     }
   };
 
@@ -190,6 +236,134 @@ export default function AIFactory() {
           {t('dashboard.factory.subtitle')}
         </p>
       </div>
+
+      {/* Moonlight Oracle Section */}
+      {!activeMachine && (
+        <div className="space-y-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-gradient-to-br from-primary/10 via-purple-500/5 to-transparent border border-primary/20 rounded-[2.5rem] p-8 relative overflow-hidden group"
+          >
+            <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+              <Sparkles size={120} className="text-primary" />
+            </div>
+            
+            <div className="relative flex flex-col md:flex-row items-center justify-between gap-8">
+              <div className="space-y-4 max-w-xl">
+                <div className="flex items-center gap-3">
+                  <div className="bg-primary/20 p-2 rounded-xl text-primary">
+                    <Brain size={24} />
+                  </div>
+                  <h3 className="text-2xl font-black text-white">عراف Moonlight (AI Oracle)</h3>
+                </div>
+                <p className="text-gray-400 font-medium leading-relaxed">
+                  "دع الذكاء الاصطناعي يقرأ مستقبل متجرك. العراف يحلل هويتك ويقترح عليك منتجات رقمية مبتكرة لتوسيع إمبراطوريتك."
+                </p>
+                <button
+                  onClick={generateOracle}
+                  disabled={isGeneratingOracle}
+                  className="px-8 py-4 bg-primary text-white rounded-2xl font-black hover:scale-105 transition-all flex items-center gap-3 shadow-xl shadow-primary/20 disabled:opacity-50"
+                >
+                  {isGeneratingOracle ? <RefreshCw size={20} className="animate-spin" /> : <Sparkles size={20} />}
+                  استشر العراف الآن
+                </button>
+              </div>
+
+              <div className="flex-1 w-full grid grid-cols-1 gap-4">
+                {oracleIdeas.length > 0 ? (
+                  oracleIdeas.map((idea, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.1 }}
+                      className="p-4 bg-white/5 border border-white/10 rounded-2xl hover:border-primary/30 transition-all cursor-pointer group/idea flex items-center justify-between"
+                    >
+                      <div 
+                        className="flex-1"
+                        onClick={() => { setInput(idea.content); setActiveMachine('product'); }}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[10px] font-black text-primary uppercase tracking-widest">فكرة مقترحة #{i+1}</span>
+                        </div>
+                        <p className="text-sm text-gray-300 line-clamp-2 font-medium">{idea.content}</p>
+                      </div>
+                      <button 
+                        onClick={() => onInstantPublish?.(idea)}
+                        className="ml-4 p-3 bg-primary/10 text-primary rounded-xl hover:bg-primary hover:text-white transition-all shadow-lg"
+                        title="نشر فوري"
+                      >
+                        <Rocket size={18} />
+                      </button>
+                    </motion.div>
+                  ))
+                ) : (
+                  <div className="h-40 flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-2xl text-gray-600">
+                    <p className="text-xs font-bold uppercase tracking-widest">بانتظار استشارة العراف...</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Creative Gallery Section */}
+          {galleryItems.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-6"
+            >
+              <div className="flex items-center gap-3">
+                <div className="bg-gold/20 p-2 rounded-xl text-gold">
+                  <Palette size={24} />
+                </div>
+                <h3 className="text-2xl font-black text-white">رواق الإبداع (Gallery)</h3>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {galleryItems.map((item) => (
+                  <Card key={item.id} className="bg-dark-light/30 border-white/10 backdrop-blur-xl rounded-[2rem] overflow-hidden group hover:border-primary/50 transition-all duration-500">
+                    <CardContent className="p-6 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{item.timestamp}</span>
+                        <div className="flex items-center gap-2">
+                          <div className="bg-primary/10 text-primary px-3 py-1 rounded-full text-[10px] font-black uppercase">
+                            {item.type || 'إبداع'}
+                          </div>
+                          <button 
+                            onClick={() => onDeleteFromGallery?.(item.id)}
+                            className="p-1 text-gray-600 hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-300 line-clamp-4 font-medium leading-relaxed">
+                        {item.content || item.title}
+                      </p>
+                      <div className="flex gap-2 pt-2">
+                        <button 
+                          onClick={() => { setInput(item.content || item.title); setActiveMachine(item.machineId || 'contentMaker'); }}
+                          className="flex-1 py-2 bg-white/5 hover:bg-white/10 text-white rounded-xl text-[10px] font-black transition-all"
+                        >
+                          تعديل
+                        </button>
+                        <button 
+                          onClick={() => onInstantPublish?.(item)}
+                          className="flex-1 py-2 bg-primary/10 hover:bg-primary text-primary hover:text-white rounded-xl text-[10px] font-black transition-all"
+                        >
+                          نشر فوري
+                        </button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </div>
+      )}
 
       {!activeMachine ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -251,36 +425,61 @@ export default function AIFactory() {
                     placeholder={activeMachine === 'strategy' ? t('dashboard.factory.placeholderStrategy') : t('dashboard.factory.placeholderProduct')}
                     className="w-full h-40 bg-dark/50 border border-white/10 rounded-3xl p-6 text-white placeholder:text-gray-600 focus:outline-none focus:border-primary/50 transition-all resize-none font-medium"
                   />
-                  {activeMachine === 'brandBook' && (
-                    <div className="space-y-2">
-                       <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">ارفع شعارك أو صوراً للهوية الحالية (اختياري)</label>
-                       <input 
-                         type="file" 
-                         accept="image/*"
-                         onChange={(e) => {
-                           setSelectedFile(e.target.files?.[0] || null);
-                         }}
-                         className="w-full bg-dark/50 border border-white/10 rounded-3xl p-4 text-white text-sm"
-                       />
-                    </div>
-                  )}
-                  <button
-                    onClick={handleProcess}
-                    disabled={isProcessing || !input.trim()}
-                    className="w-full py-5 bg-primary text-white rounded-3xl font-black text-sm hover:bg-primary-dark transition-all shadow-xl shadow-primary/20 disabled:opacity-50 flex items-center justify-center gap-3"
-                  >
-                    {isProcessing ? (
-                      <>
-                        <RefreshCw size={20} className="animate-spin" />
-                        {t('dashboard.factory.runningMachine')}
-                      </>
-                    ) : (
-                      <>
-                        <Zap size={20} />
-                        {t('dashboard.factory.startProduction')}
-                      </>
+                  
+                  <div className="flex gap-3">
+                    <button
+                      onClick={refinePrompt}
+                      disabled={isRefining || !input.trim()}
+                      className="flex-1 py-4 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-2 border border-white/10 disabled:opacity-50"
+                    >
+                      {isRefining ? <RefreshCw size={16} className="animate-spin" /> : <Sparkles size={16} className="text-primary" />}
+                      تحسين الفكرة سحرياً
+                    </button>
+                    
+                    <button
+                      onClick={() => setInput('')}
+                      className="px-6 py-4 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-2xl font-black text-xs transition-all border border-red-500/20"
+                    >
+                      مسح
+                    </button>
+                  </div>
+
+                    <button
+                      onClick={handleProcess}
+                      disabled={isProcessing || !input.trim()}
+                      className="flex-1 py-5 bg-primary text-white rounded-3xl font-black text-sm hover:bg-primary-dark transition-all shadow-xl shadow-primary/20 disabled:opacity-50 flex items-center justify-center gap-3"
+                    >
+                      {isProcessing ? (
+                        <>
+                          <RefreshCw size={20} className="animate-spin" />
+                          {t('dashboard.factory.runningMachine')}
+                        </>
+                      ) : (
+                        <>
+                          <Zap size={20} />
+                          {t('dashboard.factory.startProduction')}
+                        </>
+                      )}
+                    </button>
+
+                    {result && (
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => onSaveToGallery?.({ content: result.htmlContent || result.description || input, type: activeMachine, machineId: activeMachine })}
+                          className="flex-1 py-4 bg-gold/10 hover:bg-gold/20 text-gold rounded-2xl font-black text-xs transition-all border border-gold/20 flex items-center justify-center gap-2"
+                        >
+                          <Palette size={16} />
+                          حفظ في الرواق
+                        </button>
+                        <button
+                          onClick={() => onInstantPublish?.({ title: result.title || input.substring(0, 20), description: result.description || result.htmlContent || input, priceSuggestion: result.priceSuggestion })}
+                          className="flex-1 py-4 bg-primary/10 hover:bg-primary text-primary hover:text-white rounded-2xl font-black text-xs transition-all border border-primary/20 flex items-center justify-center gap-2"
+                        >
+                          <Rocket size={16} />
+                          نشر فوري
+                        </button>
+                      </div>
                     )}
-                  </button>
                 </CardContent>
               </Card>
 

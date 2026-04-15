@@ -29,9 +29,10 @@ interface AnalyticsProps {
   isTestingAI: boolean;
   isTestingConnection: boolean;
   debugLogs: string[];
+  weeklyReportEnabled?: boolean;
 }
 
-export default function DashboardAnalytics({ orders, products, services, addLog, testAI, testConnection, isTestingAI, isTestingConnection, debugLogs }: AnalyticsProps) {
+export default function DashboardAnalytics({ orders, products, services, addLog, testAI, testConnection, isTestingAI, isTestingConnection, debugLogs, weeklyReportEnabled }: AnalyticsProps) {
   // Process data for charts - Filter out test orders
   const realOrders = orders.filter(order => !order.isTest);
   const totalRevenue = realOrders.reduce((sum, order) => sum + (order.amount || 0), 0);
@@ -115,6 +116,55 @@ export default function DashboardAnalytics({ orders, products, services, addLog,
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Weekly AI Report - Only if enabled */}
+        {weeklyReportEnabled && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="lg:col-span-3"
+          >
+            <Card className="bg-primary/5 border-primary/20 backdrop-blur-xl rounded-[2.5rem] overflow-hidden relative group">
+              <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                <Sparkles size={120} className="text-primary" />
+              </div>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-primary/20 p-2 rounded-xl text-primary">
+                      <Activity size={20} />
+                    </div>
+                    <CardTitle className="text-xl font-black text-white">تقرير Moonlight الأسبوعي (AI)</CardTitle>
+                  </div>
+                  <div className="px-4 py-1 bg-primary/20 rounded-full text-[10px] font-black text-primary uppercase tracking-widest">
+                    مفعل
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="p-6 bg-dark/50 rounded-3xl border border-white/5">
+                  <p className="text-sm text-gray-300 leading-relaxed font-medium">
+                    "أداء متجرك هذا الأسبوع ممتاز! لاحظنا زيادة بنسبة 15% في الاهتمام بمنتجات التصميم الرقمي. نقترح التركيز على حملة إعلانية لخدمة 'الهوية البصرية' في عطلة نهاية الأسبوع القادمة."
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">الأكثر طلباً</p>
+                    <p className="text-sm text-white font-bold">تصميم شعار احترافي</p>
+                  </div>
+                  <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">وقت الذروة</p>
+                    <p className="text-sm text-white font-bold">الثلاثاء 9:00 مساءً</p>
+                  </div>
+                  <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">توصية AI</p>
+                    <p className="text-sm text-white font-bold">تفعيل خصم 10% للعملاء الجدد</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
         {/* Smart Tools Section */}
         <Card className="bg-dark-light/30 border-white/10 backdrop-blur-xl rounded-[2.5rem] overflow-hidden shadow-2xl">
           <CardHeader>

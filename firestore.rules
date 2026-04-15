@@ -50,6 +50,16 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+
+    // Inspiration Notes: Only admins can read/write
+    match /inspiration_notes/{noteId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Creative Gallery: Only admins can read/write
+    match /creative_gallery/{itemId} {
+      allow read, write: if isAdmin();
+    }
     
     // Default deny
     match /{document=**} {
