@@ -47,7 +47,7 @@ function decrypt(text: string) {
 }
 
 // 0. Upload Endpoint (Used by Dashboard)
-app.post('/api/upload', upload.single('file'), async (req, res) => {
+app.post('/api/upload', (upload.single('file') as any), async (req: any, res: any) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
