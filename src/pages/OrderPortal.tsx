@@ -333,12 +333,12 @@ export default function OrderPortal() {
           </div>
           
           {/* Progress Bar */}
-          <div className="w-full h-2 bg-white/5 rounded-full mb-10 overflow-hidden">
+          <div className="w-full h-3 bg-white/10 rounded-full mb-10 overflow-hidden shadow-inner">
             <motion.div 
-              className="h-full bg-gradient-to-r from-primary to-green-400"
+              className="h-full bg-gradient-to-r from-primary via-purple-500 to-green-400"
               initial={{ width: 0 }}
               animate={{ width: `${getProgressPercentage()}%` }}
-              transition={{ duration: 1, ease: "easeInOut" }}
+              transition={{ duration: 1.5, ease: "easeInOut" }}
             />
           </div>
           
