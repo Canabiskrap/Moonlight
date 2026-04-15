@@ -33,7 +33,10 @@ import Status from './pages/Status';
 
 const ADMIN_EMAILS = [
   'canabiskrap07@gmail.com',
+  'canabiskrap007@gmail.com',
   'Esraa0badr@gmail.com',
+  'Samemlywk@gmail.com',
+  'karmabiskrap@gmail.com',
 ];
 
 export default function App() {

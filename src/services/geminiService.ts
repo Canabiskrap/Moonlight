@@ -279,6 +279,24 @@ export async function runFactoryMachine(machineId: string, input: string, imageU
       },
       required: ["designPrompt", "arabicCaption"]
     };
+  } else if (machineId === 'cvMaker') {
+    systemInstruction = `You are an expert CV Designer and Career Coach for 'Moonlight 🌕'. ${personaInstruction} ${brandContext} The user will provide their professional details. Generate a high-impact, professional CV in Arabic. Include: Professional Summary, Work Experience, Education, Skills, and Contact Info. Format the output ENTIRELY in clean HTML with professional styling (using <h1>, <h2>, <p>, <ul>, <li>, <strong>, and inline styles for a clean, modern layout). Do not use markdown, only HTML.`;
+    responseSchema = {
+      type: Type.OBJECT,
+      properties: {
+        htmlContent: { type: Type.STRING, description: "The full generated CV formatted in HTML" }
+      },
+      required: ["htmlContent"]
+    };
+  } else if (machineId === 'templateMaker') {
+    systemInstruction = `You are a Creative Template Designer for 'Moonlight 🌕'. ${personaInstruction} ${brandContext} The user wants a template for a specific purpose (e.g., Invoice, Letterhead, Social Media Plan). Generate a comprehensive, ready-to-use template in Arabic. Format the output ENTIRELY in clean HTML with professional styling (using <h1>, <h2>, <p>, <ul>, <li>, <strong>, and inline styles for a structured layout). Do not use markdown, only HTML.`;
+    responseSchema = {
+      type: Type.OBJECT,
+      properties: {
+        htmlContent: { type: Type.STRING, description: "The full generated template formatted in HTML" }
+      },
+      required: ["htmlContent"]
+    };
   } else {
     systemInstruction = `You are a creative content director for 'Moonlight 🌕'. ${personaInstruction} ${brandContext} Provide 3-4 creative content ideas (video scripts, social media posts) based on the user's input in Arabic.`;
     responseSchema = {

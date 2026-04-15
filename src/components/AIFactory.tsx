@@ -19,7 +19,8 @@ import {
   BarChart3,
   Download,
   Palette,
-  Trash2
+  Trash2,
+  UserCheck
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { runFactoryMachine, chatWithBot } from '../services/geminiService';
@@ -42,6 +43,7 @@ interface FactoryProps {
   onSaveToGallery?: (item: any) => void;
   onDeleteFromGallery?: (id: string) => void;
   galleryItems?: any[];
+  addLog?: (msg: string) => void;
 }
 
 export default function AIFactory({ 
@@ -51,7 +53,8 @@ export default function AIFactory({
   onInstantPublish,
   onSaveToGallery,
   onDeleteFromGallery,
-  galleryItems = []
+  galleryItems = [],
+  addLog
 }: FactoryProps) {
   const { t } = useTranslation();
   const [activeMachine, setActiveMachine] = useState<string | null>(null);
@@ -149,6 +152,20 @@ export default function AIFactory({
       color: 'text-purple-500'
     },
     {
+      id: 'cvMaker',
+      title: 'صانع السيرة الذاتية',
+      description: 'صمم CV احترافي وعصري يبرز مهاراتك وخبراتك.',
+      icon: UserCheck,
+      color: 'text-blue-500'
+    },
+    {
+      id: 'templateMaker',
+      title: 'صانع القوالب',
+      description: 'أنشئ قوالب جاهزة (فواتير، خطابات، خطط) بلمسة فنية.',
+      icon: Palette,
+      color: 'text-orange-400'
+    },
+    {
       id: 'visualGenerator',
       title: 'المصمم الآلي',
       description: 'ولد تصاميم سوشيال ميديا احترافية لهويتك البصرية.',
@@ -178,7 +195,7 @@ export default function AIFactory({
         // Pass imageUrl and settings to the machine
         const data = await runFactoryMachine(activeMachine, input, imageUrl, settings);
         setResult(data);
-        if ((activeMachine === 'contentMaker' || activeMachine === 'brandGuidelines' || activeMachine === 'brandBook' || activeMachine === 'visualGenerator') && data.htmlContent) {
+        if ((activeMachine === 'contentMaker' || activeMachine === 'brandGuidelines' || activeMachine === 'brandBook' || activeMachine === 'visualGenerator' || activeMachine === 'cvMaker' || activeMachine === 'templateMaker') && data.htmlContent) {
           setEditorContent(data.htmlContent);
         }
       }
@@ -592,29 +609,60 @@ export default function AIFactory({
                     {activeMachine === 'visual' && (
                       <div className="space-y-6">
                         {result.ideas.map((idea: any, i: number) => (
-                          <Card key={i} className="bg-dark-light/30 border-white/10 backdrop-blur-xl rounded-[2.5rem] overflow-hidden">
+                          <Card key={i} className="bg-dark-light/30 border-white/10 backdrop-blur-xl rounded-[2.5rem] overflow-hidden group hover:border-gold/30 transition-all">
                             <CardHeader className="border-b border-white/5 bg-white/[0.02]">
                               <CardTitle className="text-sm font-black text-primary flex items-center gap-2 uppercase tracking-widest">
                                 <Sparkles size={16} />
                                 {idea.type}
                               </CardTitle>
                             </CardHeader>
-                            <CardContent className="p-6">
+                            <CardContent className="p-6 space-y-4">
+                              <div className="aspect-video w-full rounded-xl overflow-hidden border border-white/5 bg-dark/50">
+                                <img 
+                                  src={`https://image.pollinations.ai/prompt/${encodeURIComponent(idea.content.substring(0, 100))}?width=800&height=450&nologo=true&seed=${i}`}
+                                  alt={idea.type}
+                                  className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity"
+                                  referrerPolicy="no-referrer"
+                                />
+                              </div>
                               <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">
                                 {idea.content}
                               </p>
+                              <div className="flex gap-2 pt-2">
+                                <button 
+                                  onClick={() => onSaveToGallery?.({
+                                    title: idea.type,
+                                    content: idea.content,
+                                    type: 'فكرة مرئية',
+                                    machineId: 'visual',
+                                    imageUrl: `https://image.pollinations.ai/prompt/${encodeURIComponent(idea.content.substring(0, 100))}?width=800&height=450&nologo=true`
+                                  })}
+                                  className="flex-1 py-2 bg-white/5 hover:bg-white/10 text-white rounded-xl text-[10px] font-black transition-all"
+                                >
+                                  حفظ في الرواق
+                                </button>
+                              </div>
                             </CardContent>
                           </Card>
                         ))}
                       </div>
                     )}
 
-                    {(activeMachine === 'contentMaker' || activeMachine === 'brandGuidelines' || activeMachine === 'brandBook') && (
+                    {(activeMachine === 'contentMaker' || activeMachine === 'brandGuidelines' || activeMachine === 'brandBook' || activeMachine === 'cvMaker' || activeMachine === 'templateMaker') && (
                       <Card className="bg-dark-light/30 border-white/10 backdrop-blur-xl rounded-[2.5rem] overflow-hidden">
                         <CardHeader className="border-b border-white/5 flex flex-row items-center justify-between">
                           <CardTitle className="text-lg font-black text-white flex items-center gap-2">
-                            {activeMachine === 'brandGuidelines' ? <Palette size={20} className="text-pink-400" /> : activeMachine === 'brandBook' ? <Palette size={20} className="text-purple-500" /> : <FileText size={20} className="text-green-400" />}
-                            {activeMachine === 'brandGuidelines' ? t('dashboard.factory.machines.brandGuidelines.title') : activeMachine === 'brandBook' ? 'دليل الهوية البصرية' : t('dashboard.factory.machines.contentMaker.editorTitle')}
+                            {activeMachine === 'brandGuidelines' ? <Palette size={20} className="text-pink-400" /> : 
+                             activeMachine === 'brandBook' ? <Palette size={20} className="text-purple-500" /> : 
+                             activeMachine === 'cvMaker' ? <UserCheck size={20} className="text-blue-500" /> :
+                             activeMachine === 'templateMaker' ? <Palette size={20} className="text-orange-400" /> :
+                             <FileText size={20} className="text-green-400" />}
+                            
+                            {activeMachine === 'brandGuidelines' ? t('dashboard.factory.machines.brandGuidelines.title') : 
+                             activeMachine === 'brandBook' ? 'دليل الهوية البصرية' : 
+                             activeMachine === 'cvMaker' ? 'محرر السيرة الذاتية' :
+                             activeMachine === 'templateMaker' ? 'محرر القوالب' :
+                             t('dashboard.factory.machines.contentMaker.editorTitle')}
                           </CardTitle>
                           <button 
                             onClick={handleExportPDF}
@@ -646,13 +694,55 @@ export default function AIFactory({
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="p-8 space-y-6">
-                          <div>
-                            <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">وصف التصميم (Prompt)</p>
-                            <p className="text-sm text-gray-300 bg-dark/50 p-4 rounded-2xl border border-white/5">{result.designPrompt}</p>
+                          <div className="aspect-square w-full max-w-md mx-auto relative group rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl">
+                            <img 
+                              src={`https://image.pollinations.ai/prompt/${encodeURIComponent(result.designPrompt)}?width=1024&height=1024&nologo=true&seed=${Math.floor(Math.random() * 1000)}`}
+                              alt="Generated Visual"
+                              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                              referrerPolicy="no-referrer"
+                              onLoad={() => addLog?.("🎨 تم توليد الصورة بنجاح!")}
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-6">
+                              <p className="text-[10px] text-white/80 font-medium italic">تم التوليد بواسطة Moonlight AI</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">النص التسويقي (Caption)</p>
-                            <p className="text-sm text-white font-bold bg-primary/10 p-4 rounded-2xl border border-primary/20">{result.arabicCaption}</p>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                              <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">وصف التصميم (Prompt)</p>
+                              <p className="text-xs text-gray-400 bg-dark/50 p-4 rounded-2xl border border-white/5 leading-relaxed">{result.designPrompt}</p>
+                            </div>
+                            <div className="space-y-2">
+                              <p className="text-[10px] font-black text-primary uppercase tracking-widest">النص التسويقي (Caption)</p>
+                              <p className="text-sm text-white font-bold bg-primary/10 p-4 rounded-2xl border border-primary/20 leading-relaxed">{result.arabicCaption}</p>
+                            </div>
+                          </div>
+
+                          <div className="flex gap-4">
+                            <button 
+                              onClick={() => onSaveToGallery?.({
+                                title: result.arabicCaption.substring(0, 50) + '...',
+                                content: result.arabicCaption,
+                                type: 'تصميم',
+                                machineId: 'visualGenerator',
+                                imageUrl: `https://image.pollinations.ai/prompt/${encodeURIComponent(result.designPrompt)}?width=1024&height=1024&nologo=true`
+                              })}
+                              className="flex-1 py-4 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-black text-xs transition-all border border-white/10 flex items-center justify-center gap-2"
+                            >
+                              <Download size={16} />
+                              حفظ في الرواق
+                            </button>
+                            <button 
+                              onClick={() => onInstantPublish?.({
+                                name: result.arabicCaption.substring(0, 30),
+                                description: result.arabicCaption,
+                                priceUSD: '15'
+                              })}
+                              className="flex-1 py-4 bg-primary text-white rounded-2xl font-black text-xs hover:scale-105 transition-all shadow-xl shadow-primary/20 flex items-center justify-center gap-2"
+                            >
+                              <Rocket size={16} />
+                              نشر كمنتج
+                            </button>
                           </div>
                         </CardContent>
                       </Card>

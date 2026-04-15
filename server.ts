@@ -138,6 +138,51 @@ app.post('/api/verify-order', async (req, res) => {
   }
 });
 
+// 3. Smart Link Doctor - Check URL Accessibility
+app.post('/api/check-links', async (req, res) => {
+  const { urls } = req.body;
+  if (!urls || !Array.isArray(urls)) {
+    return res.status(400).json({ error: 'URLs array is required' });
+  }
+
+  const results = await Promise.all(urls.map(async (url) => {
+    try {
+      // We use a timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      const response = await fetch(url, { 
+        method: 'GET', // Some hosts block HEAD
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+      });
+      
+      clearTimeout(timeoutId);
+
+      // For Google Drive, if it redirects to a login page, it's private
+      const finalUrl = response.url;
+      const isPrivate = finalUrl.includes('accounts.google.com/ServiceLogin') || response.status === 403;
+      const isBroken = response.status === 404;
+
+      return {
+        url,
+        status: isBroken ? 'broken' : (isPrivate ? 'private' : 'ok'),
+        statusCode: response.status
+      };
+    } catch (error: any) {
+      return {
+        url,
+        status: 'error',
+        message: error.message
+      };
+    }
+  }));
+
+  res.json({ results });
+});
+
 // Vite Middleware for Development / Static Serving for Production
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {

@@ -96,6 +96,8 @@ export default function Dashboard() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [debugLogs, setDebugLogs] = useState<string[]>([]);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [isCheckingLinks, setIsCheckingLinks] = useState(false);
+  const [linkResults, setLinkResults] = useState<any[]>([]);
   const [imageUploadType, setImageUploadType] = useState<'file' | 'link'>('file');
   const [customBucket, setCustomBucket] = useState('');
   const [isZenMode, setIsZenMode] = useState(false);
@@ -757,6 +759,44 @@ export default function Dashboard() {
       addLog("🗑️ تم حذف الإبداع من الرواق");
     } catch (err: any) {
       addLog("❌ فشل حذف الإبداع: " + err.message);
+    }
+  };
+
+  const checkProductLinks = async () => {
+    setIsCheckingLinks(true);
+    addLog("🩺 طبيب الروابط يبدأ الفحص الشامل...");
+    
+    try {
+      const allLinks = [
+        ...products.map(p => p.downloadUrl).filter(url => url && url.startsWith('http')),
+        ...services.map(s => s.downloadUrl).filter(url => url && url.startsWith('http'))
+      ];
+
+      if (allLinks.length === 0) {
+        addLog("ℹ️ لا توجد روابط خارجية للفحص.");
+        setIsCheckingLinks(false);
+        return;
+      }
+
+      const response = await fetch('/api/check-links', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ urls: allLinks })
+      });
+
+      const data = await response.json();
+      setLinkResults(data.results || []);
+      
+      const issues = data.results.filter((r: any) => r.status !== 'ok');
+      if (issues.length > 0) {
+        addLog(`⚠️ تم اكتشاف ${issues.length} مشكلة في الروابط!`);
+      } else {
+        addLog("✅ جميع الروابط سليمة ومتاحة للعملاء.");
+      }
+    } catch (err: any) {
+      addLog("❌ فشل فحص الروابط: " + err.message);
+    } finally {
+      setIsCheckingLinks(false);
     }
   };
 
@@ -1820,6 +1860,9 @@ export default function Dashboard() {
               testConnection={testConnection}
               isTestingAI={isTestingAI}
               isTestingConnection={isTestingConnection}
+              checkLinks={checkProductLinks}
+              isCheckingLinks={isCheckingLinks}
+              linkResults={linkResults}
               debugLogs={debugLogs}
               weeklyReportEnabled={weeklyReportEnabled}
             />
@@ -1834,6 +1877,7 @@ export default function Dashboard() {
               onSaveToGallery={saveToGallery}
               onDeleteFromGallery={deleteFromGallery}
               galleryItems={galleryItems}
+              addLog={addLog}
             />
           )}
 
@@ -2199,10 +2243,10 @@ export default function Dashboard() {
                         if (!newNote.trim()) return;
                         try {
                           let userName = 'ضيف';
-                          const email = auth.currentUser?.email;
-                          if (email === 'canabiskrap07@gmail.com' || email === 'canabiskrap007@gmail.com') userName = 'المدير';
-                          else if (email === 'Esraa0badr@gmail.com') userName = 'إسراء';
-                          else if (email === 'karmabiskrap@gmail.com') userName = 'كارما';
+                          const email = auth.currentUser?.email?.toLowerCase();
+                          if (email === 'canabiskrap07@gmail.com' || email === 'canabiskrap007@gmail.com' || email === 'karmabiskrap@gmail.com') userName = 'المدير';
+                          else if (email === 'esraa0badr@gmail.com') userName = 'إسراء';
+                          else if (email === 'samemlywk@gmail.com') userName = 'المصممة';
                           
                           await addDoc(collection(db, 'inspiration_notes'), {
                             text: newNote,

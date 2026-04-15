@@ -13,7 +13,8 @@ service cloud.firestore {
         request.auth.token.email == "canabiskrap07@gmail.com" ||
         request.auth.token.email == "Esraa0badr@gmail.com" ||
         request.auth.token.email == "karmabiskrap@gmail.com" ||
-        request.auth.token.email == "canabiskrap007@gmail.com"
+        request.auth.token.email == "canabiskrap007@gmail.com" ||
+        request.auth.token.email == "Samemlywk@gmail.com"
       );
     }
 

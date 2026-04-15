@@ -28,11 +28,28 @@ interface AnalyticsProps {
   testConnection: () => void;
   isTestingAI: boolean;
   isTestingConnection: boolean;
+  checkLinks?: () => void;
+  isCheckingLinks?: boolean;
+  linkResults?: any[];
   debugLogs: string[];
   weeklyReportEnabled?: boolean;
 }
 
-export default function DashboardAnalytics({ orders, products, services, addLog, testAI, testConnection, isTestingAI, isTestingConnection, debugLogs, weeklyReportEnabled }: AnalyticsProps) {
+export default function DashboardAnalytics({ 
+  orders, 
+  products, 
+  services, 
+  addLog, 
+  testAI, 
+  testConnection, 
+  isTestingAI, 
+  isTestingConnection,
+  checkLinks,
+  isCheckingLinks,
+  linkResults = [],
+  debugLogs, 
+  weeklyReportEnabled 
+}: AnalyticsProps) {
   // Process data for charts - Filter out test orders
   const realOrders = orders.filter(order => !order.isTest);
   const totalRevenue = realOrders.reduce((sum, order) => sum + (order.amount || 0), 0);
@@ -200,6 +217,15 @@ export default function DashboardAnalytics({ orders, products, services, addLog,
               </button>
 
               <button 
+                onClick={checkLinks}
+                disabled={isCheckingLinks}
+                className="w-full py-4 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+              >
+                {isCheckingLinks ? <RefreshCw size={18} className="animate-spin" /> : <Activity size={18} />}
+                طبيب الروابط (Link Doctor)
+              </button>
+
+              <button 
                 onClick={testAI}
                 disabled={isTestingAI}
                 className="w-full py-4 bg-gold/10 hover:bg-gold/20 text-gold border border-gold/20 rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-3 disabled:opacity-50"
@@ -208,6 +234,29 @@ export default function DashboardAnalytics({ orders, products, services, addLog,
                 اختبار الذكاء الاصطناعي
               </button>
             </div>
+
+            {/* Link Doctor Results */}
+            {linkResults.length > 0 && (
+              <div className="space-y-2 mt-4">
+                <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">نتائج فحص الروابط</p>
+                <div className="space-y-2 max-h-40 overflow-auto pr-2 scrollbar-hide">
+                  {linkResults.map((res, i) => (
+                    <div key={i} className="p-3 bg-dark/50 rounded-xl border border-white/5 flex items-center justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[10px] text-gray-400 truncate">{res.url}</p>
+                      </div>
+                      <div className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase ${
+                        res.status === 'ok' ? 'bg-green-500/20 text-green-400' :
+                        res.status === 'private' ? 'bg-yellow-500/20 text-yellow-400' :
+                        'bg-red-500/20 text-red-400'
+                      }`}>
+                        {res.status === 'ok' ? 'سليم' : res.status === 'private' ? 'خاص' : 'معطل'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Log Display */}
             {debugLogs.length > 0 && (
