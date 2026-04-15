@@ -773,10 +773,20 @@ export default function Dashboard() {
     addLog("🩺 طبيب الروابط يبدأ الفحص الشامل...");
     
     try {
-      const allLinks = [
-        ...products.map(p => p.downloadUrl).filter(url => url && url.startsWith('http')),
-        ...services.map(s => s.downloadUrl).filter(url => url && url.startsWith('http'))
+      const rawLinks = [
+        ...products.map(p => p.downloadUrl),
+        ...services.map(s => s.downloadUrl),
+        ...products.map(p => p.imageUrl),
+        ...services.map(s => s.imageUrl),
+        settings?.socialLinks?.twitter,
+        settings?.socialLinks?.instagram,
+        settings?.socialLinks?.tiktok,
+        settings?.socialLinks?.snapchat,
+        settings?.socialLinks?.youtube,
+        settings?.heroVideo
       ];
+
+      const allLinks = Array.from(new Set(rawLinks.filter(url => url && typeof url === 'string' && url.trim() !== '')));
 
       if (allLinks.length === 0) {
         addLog("ℹ️ لا توجد روابط خارجية للفحص.");

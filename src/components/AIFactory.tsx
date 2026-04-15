@@ -20,7 +20,9 @@ import {
   Download,
   Palette,
   Trash2,
-  UserCheck
+  UserCheck,
+  ChevronDown,
+  Image as ImageIcon
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { runFactoryMachine, chatWithBot } from '../services/geminiService';
@@ -63,6 +65,7 @@ export default function AIFactory({
   const [isRefining, setIsRefining] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [editorContent, setEditorContent] = useState('');
+  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null); // Added state
   const [settings, setSettings] = useState<any>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -231,13 +234,32 @@ export default function AIFactory({
     
     const opt = {
       margin:       10,
-      filename:     'moonlight-product.pdf',
-      image:        { type: 'jpeg' as const, quality: 0.98 },
-      html2canvas:  { scale: 2 },
+      filename:     `moonlight-${activeMachine || 'document'}.pdf`,
+      image:        { type: 'jpeg' as const, quality: 1.0 },
+      html2canvas:  { scale: 4, useCORS: true, letterRendering: true },
       jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' as const }
     };
 
     html2pdf().set(opt).from(element).save();
+    setShowDownloadMenu(false);
+  };
+
+  const handleDownloadImage = async (imageUrl: string, filename: string) => {
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      setShowDownloadMenu(false);
+    } catch (error) {
+      console.error('Error downloading image:', error);
+    }
   };
 
   const getImagePrompt = (machineId: string | null, res: any) => {
@@ -533,8 +555,8 @@ export default function AIFactory({
                     animate={{ opacity: 1, scale: 1 }}
                     className="space-y-6"
                   >
-                    {/* Global Image Preview for all machines except visual (which has its own grid) */}
-                    {activeMachine !== 'visual' && (
+                    {/* Global Image Preview for all machines except visual and visualGenerator (which have their own outputs) */}
+                    {activeMachine !== 'visual' && activeMachine !== 'visualGenerator' && (
                       <div className="aspect-video w-full rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl relative group mb-6">
                         <img 
                           src={`https://image.pollinations.ai/prompt/${encodeURIComponent(getImagePrompt(activeMachine, result))}?width=1280&height=720&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000)}`}
@@ -663,6 +685,16 @@ export default function AIFactory({
                               </p>
                               <div className="flex gap-2 pt-2">
                                 <button 
+                                  onClick={() => {
+                                    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(idea.content.substring(0, 100) + ", professional graphic design, high resolution, 8k, flux model")}?width=1280&height=720&nologo=true&model=flux&seed=${i}`;
+                                    handleDownloadImage(imageUrl, `moonlight-idea-${i}.jpg`);
+                                  }}
+                                  className="flex-1 py-2 bg-primary/20 hover:bg-primary/30 text-primary rounded-xl text-[10px] font-black transition-all flex items-center justify-center gap-1"
+                                >
+                                  <Download size={12} />
+                                  تحميل الصورة
+                                </button>
+                                <button 
                                   onClick={() => onSaveToGallery?.({
                                     title: idea.type,
                                     content: idea.content,
@@ -697,13 +729,41 @@ export default function AIFactory({
                              activeMachine === 'templateMaker' ? 'محرر القوالب' :
                              t('dashboard.factory.machines.contentMaker.editorTitle')}
                           </CardTitle>
-                          <button 
-                            onClick={handleExportPDF}
-                            className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-colors"
-                          >
-                            <Download size={14} />
-                            {t('dashboard.factory.machines.contentMaker.exportPdf')}
-                          </button>
+                          <div className="relative">
+                            <button 
+                              onClick={() => setShowDownloadMenu(!showDownloadMenu)}
+                              className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-colors"
+                            >
+                              <Download size={14} />
+                              تحميل
+                              <ChevronDown size={14} />
+                            </button>
+                            {showDownloadMenu && (
+                              <div className="absolute top-full left-0 mt-2 w-48 bg-dark-light border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
+                                <button
+                                  onClick={handleExportPDF}
+                                  className="w-full text-right px-4 py-3 text-xs font-bold text-white hover:bg-white/5 flex items-center gap-2 transition-colors"
+                                >
+                                  <FileText size={14} className="text-green-400" />
+                                  {activeMachine === 'cvMaker' ? 'تحميل السيرة الذاتية (PDF)' : 
+                                   activeMachine === 'templateMaker' ? 'تحميل القالب (PDF)' :
+                                   activeMachine === 'brandBook' ? 'تحميل دليل الهوية (PDF)' :
+                                   activeMachine === 'brandGuidelines' ? 'تحميل الإرشادات (PDF)' :
+                                   'تحميل كملف PDF'}
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(getImagePrompt(activeMachine, result))}?width=1280&height=720&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000)}`;
+                                    handleDownloadImage(imageUrl, `moonlight-${activeMachine}.jpg`);
+                                  }}
+                                  className="w-full text-right px-4 py-3 text-xs font-bold text-white hover:bg-white/5 flex items-center gap-2 transition-colors border-t border-white/5"
+                                >
+                                  <ImageIcon size={14} className="text-blue-400" />
+                                  تحميل صورة عالية الجودة
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </CardHeader>
                         <CardContent className="p-0 bg-gray-100 rounded-b-[2.5rem]">
                           <div className="text-black overflow-hidden jodit-wrapper">
@@ -729,7 +789,7 @@ export default function AIFactory({
                         <CardContent className="p-8 space-y-6">
                           <div className="aspect-square w-full max-w-md mx-auto relative group rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl">
                             <img 
-                              src={`https://image.pollinations.ai/prompt/${encodeURIComponent(result.designPrompt + ", professional graphic design, high resolution, 8k, masterpiece, commercial advertising layout, flux model")}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000)}`}
+                              src={`https://image.pollinations.ai/prompt/${encodeURIComponent(getImagePrompt(activeMachine, result))}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000)}`}
                               alt="Generated Visual"
                               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                               referrerPolicy="no-referrer"
@@ -741,6 +801,16 @@ export default function AIFactory({
                           </div>
 
                           <div className="flex gap-4">
+                            <button 
+                              onClick={() => {
+                                const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(getImagePrompt(activeMachine, result))}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000)}`;
+                                handleDownloadImage(imageUrl, `moonlight-design.jpg`);
+                              }}
+                              className="flex-1 py-4 bg-primary text-white rounded-2xl font-black text-sm hover:bg-primary-dark transition-all shadow-2xl shadow-primary/20 flex items-center justify-center gap-2"
+                            >
+                              <Download size={18} />
+                              تحميل التصميم (عالي الجودة)
+                            </button>
                             <button 
                               onClick={() => onSaveToGallery?.({
                                 title: result.arabicCaption.substring(0, 50) + '...',

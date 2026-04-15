@@ -145,8 +145,11 @@ app.post('/api/check-links', async (req, res) => {
     return res.status(400).json({ error: 'URLs array is required' });
   }
 
-  const results = await Promise.all(urls.map(async (url) => {
+  const results = await Promise.all(urls.map(async (encryptedUrl) => {
+    let url = encryptedUrl;
     try {
+      url = decrypt(encryptedUrl);
+      
       // We use a timeout to prevent hanging
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
