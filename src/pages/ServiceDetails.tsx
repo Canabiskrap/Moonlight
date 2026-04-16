@@ -85,14 +85,15 @@ export default function ServiceDetails() {
   const currentPrice = service[`price${selectedCurrency}`] || service.price || 0;
 
   return (
-    <div className="relative">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="relative"
+    >
       <div className="cosmic-bg" />
       
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="grid grid-cols-1 lg:grid-cols-2 gap-12 py-12 relative z-10"
-      >
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 py-12 relative z-10">
         {/* Image Side */}
         <div className="space-y-8">
           <Link to="/" className="inline-flex items-center gap-2 text-gray-500 hover:text-white transition-all mb-4 group">
@@ -276,7 +277,7 @@ export default function ServiceDetails() {
             )}
           </div>
         </div>
-      </motion.div>
-    </div>
+      </div>
+    </motion.div>
   );
 }

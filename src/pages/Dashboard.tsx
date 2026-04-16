@@ -32,6 +32,7 @@ import {
   Link as LinkIcon, 
   FileText, 
   Upload, 
+  ArrowRight, 
   CheckCircle2, 
   Globe, 
   Search, 
@@ -61,7 +62,6 @@ import {
 
 import { getProductInsights, chatWithBot } from '../services/geminiService';
 import DashboardAnalytics from '../components/DashboardAnalytics';
-import AIFactory from '../components/AIFactory';
 import SmartAIAssistant from '../components/SmartAIAssistant';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -101,9 +101,6 @@ export default function Dashboard() {
   const [imageUploadType, setImageUploadType] = useState<'file' | 'link'>('file');
   const [customBucket, setCustomBucket] = useState('');
   const [isZenMode, setIsZenMode] = useState(false);
-  const [oracleIdeas, setOracleIdeas] = useState<any[]>([]);
-  const [isGeneratingOracle, setIsGeneratingOracle] = useState(false);
-  const [galleryItems, setGalleryItems] = useState<any[]>([]);
   const [inspirationNotes, setInspirationNotes] = useState<any[]>([]);
   const [newNote, setNewNote] = useState('');
   const navigate = useNavigate();
@@ -237,21 +234,11 @@ export default function Dashboard() {
       }
     );
 
-    const unsubGallery = onSnapshot(qGallery, 
-      (snapshot) => {
-        setGalleryItems(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      },
-      (error) => {
-        console.error("Gallery Snapshot Error:", error);
-      }
-    );
-
     return () => {
       unsubProds();
       unsubServices();
       unsubOrders();
       unsubInspiration();
-      unsubGallery();
     };
   }, []);
 
@@ -742,32 +729,6 @@ export default function Dashboard() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const saveToGallery = async (item: any) => {
-    try {
-      const newItem = {
-        content: item.content || item.title || '',
-        type: item.type || 'إبداع',
-        machineId: item.machineId || 'unknown',
-        timestamp: new Date().toLocaleString('ar-SA'),
-        createdAt: Timestamp.now()
-      };
-      await addDoc(collection(db, 'creative_gallery'), newItem);
-      addLog("🎨 تم حفظ الإبداع في الرواق!");
-    } catch (err: any) {
-      console.error("Gallery Save Error:", err);
-      addLog("❌ فشل حفظ الإبداع: " + err.message);
-    }
-  };
-
-  const deleteFromGallery = async (id: string) => {
-    try {
-      await deleteDoc(doc(db, 'creative_gallery', id));
-      addLog("🗑️ تم حذف الإبداع من الرواق");
-    } catch (err: any) {
-      addLog("❌ فشل حذف الإبداع: " + err.message);
-    }
-  };
-
   const checkProductLinks = async () => {
     setIsCheckingLinks(true);
     addLog("🩺 طبيب الروابط يبدأ الفحص الشامل...");
@@ -778,12 +739,12 @@ export default function Dashboard() {
         ...services.map(s => s.downloadUrl),
         ...products.map(p => p.imageUrl),
         ...services.map(s => s.imageUrl),
-        settings?.socialLinks?.twitter,
-        settings?.socialLinks?.instagram,
-        settings?.socialLinks?.tiktok,
-        settings?.socialLinks?.snapchat,
-        settings?.socialLinks?.youtube,
-        settings?.heroVideo
+        heroVideoUrl,
+        instagramUrl,
+        twitterUrl,
+        facebookUrl,
+        tiktokUrl,
+        telegramUrl
       ];
 
       const allLinks = Array.from(new Set(rawLinks.filter(url => url && typeof url === 'string' && url.trim() !== '')));
@@ -813,27 +774,6 @@ export default function Dashboard() {
       addLog("❌ فشل فحص الروابط: " + err.message);
     } finally {
       setIsCheckingLinks(false);
-    }
-  };
-
-  const generateOracleIdeas = async () => {
-    setIsGeneratingOracle(true);
-    addLog("🔮 العراف يستحضر الأفكار من ضوء القمر...");
-    try {
-      const prompt = `بناءً على براند "Moonlight Digital" وقصته: "${brandDescription}"، اقترح 3 أفكار لمنتجات رقمية مبتكرة جداً ومطلوبة حالياً. لكل فكرة، أعطني: عنواناً جذاباً، وصفاً قصيراً، وسعراً مقترحاً بالدولار. اجعل النبرة متوافقة مع شخصية: ${aiPersona}.`;
-      const result = await chatWithBot(prompt, []);
-      // Simple parsing logic for the AI response
-      const ideas = result.split('\n\n').slice(0, 3).map((text, i) => ({
-        id: i,
-        content: text,
-        timestamp: new Date().toLocaleTimeString()
-      }));
-      setOracleIdeas(ideas);
-      addLog("✅ العراف كشف عن رؤيته!");
-    } catch (err: any) {
-      addLog("❌ العراف مشوش حالياً: " + err.message);
-    } finally {
-      setIsGeneratingOracle(false);
     }
   };
 
@@ -897,6 +837,7 @@ export default function Dashboard() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
       className="space-y-10 pb-64"
     >
       {/* Store Health Pulse Background */}
@@ -1885,16 +1826,50 @@ export default function Dashboard() {
           )}
 
           {activeTab === 'factory' && (
-            <AIFactory 
-              oracleIdeas={oracleIdeas} 
-              generateOracle={generateOracleIdeas} 
-              isGeneratingOracle={isGeneratingOracle}
-              onInstantPublish={handleInstantPublish}
-              onSaveToGallery={saveToGallery}
-              onDeleteFromGallery={deleteFromGallery}
-              galleryItems={galleryItems}
-              addLog={addLog}
-            />
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-dark-light/30 backdrop-blur-2xl p-12 rounded-[3rem] border border-white/10 shadow-2xl relative overflow-hidden text-center"
+            >
+              <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-[100px] -mr-48 -mt-48 animate-pulse" />
+              <div className="absolute bottom-0 left-0 w-96 h-96 bg-gold/5 rounded-full blur-[100px] -ml-48 -mb-48 animate-pulse" />
+              
+              <div className="relative z-10 space-y-8 max-w-2xl mx-auto">
+                <div className="w-24 h-24 bg-gradient-to-br from-primary to-purple-600 rounded-[2rem] flex items-center justify-center text-white mx-auto shadow-2xl shadow-primary/30 rotate-3 hover:rotate-0 transition-transform duration-500">
+                  <Brain size={48} />
+                </div>
+                
+                <div className="space-y-4">
+                  <h2 className="text-4xl font-black text-white tracking-tight">AI Factory Portal</h2>
+                  <p className="text-gray-400 leading-relaxed">
+                    مرحباً بك في واجهة المصنع الموحدة. هنا يمكنك الوصول إلى جميع أدوات الذكاء الاصطناعي، توليد المحتوى، وتصميم الصور في بيئة عمل غامرة واحترافية.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 py-8">
+                  <div className="p-6 bg-white/5 rounded-3xl border border-white/10">
+                    <Zap className="text-primary mx-auto mb-3" size={24} />
+                    <h3 className="text-xs font-black uppercase tracking-widest">سرعة فائقة</h3>
+                  </div>
+                  <div className="p-6 bg-white/5 rounded-3xl border border-white/10">
+                    <Palette className="text-gold mx-auto mb-3" size={24} />
+                    <h3 className="text-xs font-black uppercase tracking-widest">تصميم احترافي</h3>
+                  </div>
+                  <div className="p-6 bg-white/5 rounded-3xl border border-white/10">
+                    <Sparkles className="text-primary mx-auto mb-3" size={24} />
+                    <h3 className="text-xs font-black uppercase tracking-widest">ذكاء متطور</h3>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={() => navigate('/factory')}
+                  className="w-full py-6 bg-primary text-white rounded-[2rem] font-black text-xl hover:bg-primary-dark transition-all shadow-xl shadow-primary/20 flex items-center justify-center gap-4 group"
+                >
+                  <span>دخول المصنع الذكي</span>
+                  <ArrowRight className="group-hover:translate-x-2 transition-transform" />
+                </button>
+              </div>
+            </motion.div>
           )}
 
           {activeTab === 'ai' && (

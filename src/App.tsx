@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, db } from './lib/firebase';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
@@ -30,6 +30,7 @@ import { getMoonPhase } from './lib/moonUtils';
 
 import About from './pages/About';
 import Status from './pages/Status';
+import FactoryPortal from './pages/FactoryPortal';
 
 const ADMIN_EMAILS = [
   'canabiskrap07@gmail.com',
@@ -38,6 +39,41 @@ const ADMIN_EMAILS = [
   'Samemlywk@gmail.com',
   'karmabiskrap@gmail.com',
 ];
+
+function AppRoutes({ user, isAdmin }: { user: User | null, isAdmin: boolean }) {
+  const location = useLocation();
+  
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<Home />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/product/:id" element={<ProductDetails />} />
+        <Route path="/service/:id" element={<ServiceDetails />} />
+        <Route path="/order-portal/:id" element={<OrderPortal />} />
+        <Route path="/login" element={<Login user={user} />} />
+        <Route path="/my-orders" element={<MyOrders />} />
+        <Route path="/recover-order" element={<RecoverOrder />} />
+        <Route path="/buyer-protection" element={<BuyerProtection />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/status" element={<Status />} />
+        <Route 
+          path="/dashboard" 
+          element={isAdmin ? <Dashboard /> : <Navigate to="/login" />} 
+        />
+        <Route 
+          path="/factory" 
+          element={isAdmin ? <FactoryPortal /> : <Navigate to="/login" />} 
+        />
+        <Route 
+          path="/factory/:machineId" 
+          element={isAdmin ? <FactoryPortal /> : <Navigate to="/login" />} 
+        />
+      </Routes>
+    </AnimatePresence>
+  );
+}
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -128,26 +164,7 @@ export default function App() {
         <div className={`min-h-screen bg-dark text-white font-sans flex flex-col ${i18n.language === 'ar' ? 'font-arabic' : 'font-sans'}`}>
           <Navbar user={user} isAdmin={isAdmin} />
           <main className="pt-32 pb-10 px-6 max-w-7xl mx-auto flex-1 w-full relative z-10">
-            <AnimatePresence mode="wait">
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/product/:id" element={<ProductDetails />} />
-                <Route path="/service/:id" element={<ServiceDetails />} />
-                <Route path="/order-portal/:id" element={<OrderPortal />} />
-                <Route path="/login" element={<Login user={user} />} />
-                <Route path="/my-orders" element={<MyOrders />} />
-                <Route path="/recover-order" element={<RecoverOrder />} />
-                <Route path="/buyer-protection" element={<BuyerProtection />} />
-                <Route path="/privacy" element={<Privacy />} />
-                <Route path="/terms" element={<Terms />} />
-                <Route path="/status" element={<Status />} />
-                <Route 
-                  path="/dashboard" 
-                  element={isAdmin ? <Dashboard /> : <Navigate to="/login" />} 
-                />
-              </Routes>
-            </AnimatePresence>
+            <AppRoutes user={user} isAdmin={isAdmin} />
           </main>
           <Footer />
           <FloatingActions />

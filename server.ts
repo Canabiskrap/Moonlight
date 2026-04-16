@@ -32,17 +32,26 @@ function encrypt(text: string) {
 
 function decrypt(text: string) {
   try {
-    if (!text.includes(':')) return text; // Fallback for unencrypted legacy URLs
+    if (!text || typeof text !== 'string') return text;
+    if (!text.includes(':')) return text;
+    
     const textParts = text.split(':');
-    const iv = Buffer.from(textParts.shift()!, 'hex');
-    const encryptedText = Buffer.from(textParts.join(':'), 'hex');
+    // Basic check: IV should be 32 hex chars (16 bytes)
+    const ivPart = textParts[0];
+    const isHex = /^[0-9a-fA-F]+$/.test(ivPart);
+    
+    if (ivPart.length !== 32 || !isHex) {
+      return text; // Not an encrypted string
+    }
+
+    const iv = Buffer.from(ivPart, 'hex');
+    const encryptedText = Buffer.from(textParts.slice(1).join(':'), 'hex');
     const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY.padEnd(32, '0').slice(0, 32)), iv);
     let decrypted = decipher.update(encryptedText);
     decrypted = Buffer.concat([decrypted, decipher.final()]);
     return decrypted.toString();
   } catch (e) {
-    console.error("Decryption failed:", e);
-    return text; // Fallback
+    return text;
   }
 }
 
@@ -150,15 +159,26 @@ app.post('/api/check-links', async (req, res) => {
     try {
       url = decrypt(encryptedUrl);
       
+      // Ensure URL has a protocol
+      if (url && typeof url === 'string' && !url.startsWith('http://') && !url.startsWith('https://')) {
+        url = 'https://' + url;
+      }
+
+      if (!url || typeof url !== 'string' || !url.includes('.')) {
+        return { url, status: 'broken', message: 'Invalid URL format' };
+      }
+      
       // We use a timeout to prevent hanging
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
       const response = await fetch(url, { 
-        method: 'GET', // Some hosts block HEAD
+        method: 'GET',
         signal: controller.signal,
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9,ar;q=0.8'
         }
       });
       
@@ -167,7 +187,7 @@ app.post('/api/check-links', async (req, res) => {
       // For Google Drive, if it redirects to a login page, it's private
       const finalUrl = response.url;
       const isPrivate = finalUrl.includes('accounts.google.com/ServiceLogin') || response.status === 403;
-      const isBroken = response.status === 404;
+      const isBroken = response.status >= 400 && response.status !== 403;
 
       return {
         url,
@@ -178,7 +198,7 @@ app.post('/api/check-links', async (req, res) => {
       return {
         url,
         status: 'error',
-        message: error.message
+        message: error.name === 'AbortError' ? 'Timeout' : error.message
       };
     }
   }));

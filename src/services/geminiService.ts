@@ -53,7 +53,7 @@ export async function getSmartRecommendations(query: string, products: any[]): P
     const productList = products.map(p => ({ id: p.id, name: p.name, description: p.description, category: p.category }));
     
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-1.5-flash-latest",
       contents: `User Query: "${query}"
       Available Products: ${JSON.stringify(productList)}`,
       config: {
@@ -72,6 +72,36 @@ export async function getSmartRecommendations(query: string, products: any[]): P
     return [];
   }
 }
+
+export const generateImageWithGemini = async (prompt: string, aspectRatio: string = "1:1") => {
+  if (!ai) throw new Error("AI service not initialized. Missing API Key.");
+  
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash-image",
+      contents: {
+        parts: [{ text: prompt }],
+      },
+      config: {
+        imageConfig: {
+          aspectRatio: aspectRatio as any,
+        }
+      }
+    });
+
+    if (response.candidates?.[0]?.content?.parts) {
+      for (const part of response.candidates[0].content.parts) {
+        if (part.inlineData) {
+          return `data:image/png;base64,${part.inlineData.data}`;
+        }
+      }
+    }
+    throw new Error("No image data found in response");
+  } catch (error) {
+    console.error("Gemini Image Generation Error:", error);
+    throw error;
+  }
+};
 
 export async function chatWithBot(
   userMessage: string, 
@@ -197,10 +227,13 @@ export async function runFactoryMachine(machineId: string, input: string, imageU
   let contents: any = input;
 
   if (imageUrl) {
-    contents = [
-      { text: input },
-      { text: `Image URL: ${imageUrl}` }
-    ];
+    contents = {
+      role: 'user',
+      parts: [
+        { text: input },
+        { text: `Image URL: ${imageUrl}` }
+      ]
+    };
   }
 
   if (machineId === 'strategy') {
@@ -308,6 +341,37 @@ export async function runFactoryMachine(machineId: string, input: string, imageU
       },
       required: ["htmlContent"]
     };
+  } else if (machineId === 'bananaGenerator') {
+    systemInstruction = `You are the 'Chief Banana Officer' for 'Moonlight 🌕'. ${personaInstruction} ${brandContext} 
+    Your goal is to generate 'Crazy', 'Wild', and 'Unconventional' marketing ideas and hooks in Arabic, AND a high-end visual design prompt in English. 
+    Be extremely creative, funny, and bold. Break the rules of traditional marketing.
+    
+    For each idea, provide:
+    1. 'type': The type of idea.
+    2. 'content': The detailed marketing idea in Arabic.
+    3. 'crazyLevel': A number from 1-10.
+    4. 'bananaHook': A catchy, unconventional hook in Arabic.
+    5. 'designPrompt': A detailed, high-end English prompt for an AI image generator (Flux) that visualizes this idea in a professional, luxury, and creative graphic design layout.`;
+    responseSchema = {
+      type: Type.OBJECT,
+      properties: {
+        ideas: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              type: { type: Type.STRING },
+              content: { type: Type.STRING },
+              crazyLevel: { type: Type.NUMBER },
+              bananaHook: { type: Type.STRING },
+              designPrompt: { type: Type.STRING, description: "Detailed English prompt for image generation" }
+            },
+            required: ["type", "content", "crazyLevel", "bananaHook", "designPrompt"]
+          }
+        }
+      },
+      required: ["ideas"]
+    };
   } else {
     systemInstruction = `You are a creative content director for 'Moonlight 🌕'. ${personaInstruction} ${brandContext} Provide 3-4 creative content ideas (video scripts, social media posts) based on the user's input in Arabic.`;
     responseSchema = {
@@ -342,7 +406,7 @@ export async function runFactoryMachine(machineId: string, input: string, imageU
 
     return JSON.parse(response.text);
   } catch (error) {
-    console.error("Factory Machine Error:", error);
+    console.error("Factory Machine Error (Full):", JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
     throw error;
   }
 }

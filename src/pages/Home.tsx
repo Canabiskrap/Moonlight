@@ -92,7 +92,12 @@ export default function Home() {
   ];
 
   return (
-    <div className="space-y-24 pb-20 relative">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="space-y-24 pb-20 relative"
+    >
       <div className="cosmic-bg" />
       
       {/* Hero Section */}
@@ -445,6 +450,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-    </div>
+    </motion.div>
   );
 }

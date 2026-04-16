@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { User } from 'firebase/auth';
-import { LogIn, User as UserIcon, LogOut, LayoutDashboard, ShoppingBag, Globe } from 'lucide-react';
+import { LogIn, User as UserIcon, LogOut, LayoutDashboard, ShoppingBag, Globe, Brain } from 'lucide-react';
 import { auth, db } from '../lib/firebase';
 import { motion, AnimatePresence } from 'motion/react';
 import { useState, useEffect } from 'react';
@@ -106,13 +106,22 @@ export default function Navbar({ user, isAdmin }: NavbarProps) {
           {user ? (
             <div className="flex items-center gap-4">
               {isAdmin && (
-                <Link 
-                  to="/dashboard" 
-                  className="flex items-center gap-2 bg-gold/10 text-gold px-4 py-2 rounded-xl text-sm font-bold border border-gold/20 hover:bg-gold/20 transition-all"
-                >
-                  <LayoutDashboard size={18} />
-                  <span className="hidden sm:inline">{t('nav.dashboard')}</span>
-                </Link>
+                <div className="flex items-center gap-2">
+                  <Link 
+                    to="/factory" 
+                    className="flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-xl text-sm font-bold border border-primary/20 hover:bg-primary/20 transition-all"
+                  >
+                    <Brain size={18} />
+                    <span className="hidden sm:inline">المصنع</span>
+                  </Link>
+                  <Link 
+                    to="/dashboard" 
+                    className="flex items-center gap-2 bg-gold/10 text-gold px-4 py-2 rounded-xl text-sm font-bold border border-gold/20 hover:bg-gold/20 transition-all"
+                  >
+                    <LayoutDashboard size={18} />
+                    <span className="hidden sm:inline">{t('nav.dashboard')}</span>
+                  </Link>
+                </div>
               )}
               
               <div className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-xl border border-white/10">

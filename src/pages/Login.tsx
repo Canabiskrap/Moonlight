@@ -46,7 +46,12 @@ export default function Login({ user }: LoginProps) {
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-4 relative overflow-hidden">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="min-h-[80vh] flex items-center justify-center px-4 relative overflow-hidden"
+    >
       {/* Thematic Background Elements */}
       <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-primary/5 rounded-full blur-[100px] -z-10" />
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gold/5 rounded-full blur-[120px] -z-10" />
@@ -103,6 +108,6 @@ export default function Login({ user }: LoginProps) {
           <Link to="/" className="text-[10px] text-gray-600 hover:text-primary transition-colors font-black uppercase tracking-widest">{t('auth.backToHome')}</Link>
         </div>
       </motion.div>
-    </div>
+    </motion.div>
   );
 }

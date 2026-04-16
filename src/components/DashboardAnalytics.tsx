@@ -237,20 +237,24 @@ export default function DashboardAnalytics({
 
             {/* Link Doctor Results */}
             {linkResults.length > 0 && (
-              <div className="space-y-2 mt-4">
-                <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">نتائج فحص الروابط</p>
-                <div className="space-y-2 max-h-40 overflow-auto pr-2 scrollbar-hide">
+              <div className="space-y-3 mt-6 p-4 bg-blue-500/5 rounded-3xl border border-blue-500/10">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">نتائج فحص الروابط الذكي</p>
+                  <span className="text-[10px] font-bold text-gray-500">{linkResults.length} رابط</span>
+                </div>
+                <div className="space-y-2 max-h-60 overflow-auto pr-2 scrollbar-hide">
                   {linkResults.map((res, i) => (
-                    <div key={i} className="p-3 bg-dark/50 rounded-xl border border-white/5 flex items-center justify-between gap-3">
+                    <div key={i} className="p-3 bg-dark/50 rounded-2xl border border-white/5 flex items-center justify-between gap-3 group hover:border-white/10 transition-colors">
                       <div className="flex-1 min-w-0">
-                        <p className="text-[10px] text-gray-400 truncate">{res.url}</p>
+                        <p className="text-[10px] text-gray-400 truncate group-hover:text-gray-300 transition-colors">{res.url}</p>
+                        {res.message && <p className="text-[8px] text-red-400/60 mt-0.5">{res.message}</p>}
                       </div>
-                      <div className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase ${
-                        res.status === 'ok' ? 'bg-green-500/20 text-green-400' :
-                        res.status === 'private' ? 'bg-yellow-500/20 text-yellow-400' :
-                        'bg-red-500/20 text-red-400'
+                      <div className={`px-3 py-1 rounded-full text-[8px] font-black uppercase shadow-sm ${
+                        res.status === 'ok' ? 'bg-green-500/20 text-green-400 border border-green-500/20' :
+                        res.status === 'private' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/20' :
+                        'bg-red-500/20 text-red-400 border border-red-500/20'
                       }`}>
-                        {res.status === 'ok' ? 'سليم' : res.status === 'private' ? 'خاص' : 'معطل'}
+                        {res.status === 'ok' ? 'سليم ✅' : res.status === 'private' ? 'خاص 🔒' : 'معطل ❌'}
                       </div>
                     </div>
                   ))}
