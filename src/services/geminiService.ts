@@ -351,7 +351,9 @@ export async function runFactoryMachine(machineId: string, input: string, imageU
     2. 'content': The detailed marketing idea in Arabic.
     3. 'crazyLevel': A number from 1-10.
     4. 'bananaHook': A catchy, unconventional hook in Arabic.
-    5. 'designPrompt': A detailed, high-end English prompt for an AI image generator (Flux) that visualizes this idea in a professional, luxury, and creative graphic design layout.`;
+    5. 'designPrompt': A formulaic, professional prompt for AI (Flux): 
+       "Ultra-high-definition professional product concept design, [Subject describing the idea], [Style: e.g. Minimalist/Futuristic/Luxury/Surreal], [Lighting: e.g. Cinematic/Studio Lighting], [Composition: Focused/Isometric View/Close-up], [Color Palette: e.g. Vibrant/Muted Elegance], 8k, highly detailed, photorealistic, commercial advertising quality."`;
+    
     responseSchema = {
       type: Type.OBJECT,
       properties: {
@@ -364,7 +366,7 @@ export async function runFactoryMachine(machineId: string, input: string, imageU
               content: { type: Type.STRING },
               crazyLevel: { type: Type.NUMBER },
               bananaHook: { type: Type.STRING },
-              designPrompt: { type: Type.STRING, description: "Detailed English prompt for image generation" }
+              designPrompt: { type: Type.STRING, description: "Detailed, formulaic English prompt for high-end image generation." }
             },
             required: ["type", "content", "crazyLevel", "bananaHook", "designPrompt"]
           }

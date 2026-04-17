@@ -149,61 +149,66 @@ app.post('/api/verify-order', async (req, res) => {
 
 // 3. Smart Link Doctor - Check URL Accessibility
 app.post('/api/check-links', async (req, res) => {
-  const { urls } = req.body;
-  if (!urls || !Array.isArray(urls)) {
-    return res.status(400).json({ error: 'URLs array is required' });
-  }
-
-  const results = await Promise.all(urls.map(async (encryptedUrl) => {
-    let url = encryptedUrl;
-    try {
-      url = decrypt(encryptedUrl);
-      
-      // Ensure URL has a protocol
-      if (url && typeof url === 'string' && !url.startsWith('http://') && !url.startsWith('https://')) {
-        url = 'https://' + url;
-      }
-
-      if (!url || typeof url !== 'string' || !url.includes('.')) {
-        return { url, status: 'broken', message: 'Invalid URL format' };
-      }
-      
-      // We use a timeout to prevent hanging
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-      const response = await fetch(url, { 
-        method: 'GET',
-        signal: controller.signal,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.9,ar;q=0.8'
-        }
-      });
-      
-      clearTimeout(timeoutId);
-
-      // For Google Drive, if it redirects to a login page, it's private
-      const finalUrl = response.url;
-      const isPrivate = finalUrl.includes('accounts.google.com/ServiceLogin') || response.status === 403;
-      const isBroken = response.status >= 400 && response.status !== 403;
-
-      return {
-        url,
-        status: isBroken ? 'broken' : (isPrivate ? 'private' : 'ok'),
-        statusCode: response.status
-      };
-    } catch (error: any) {
-      return {
-        url,
-        status: 'error',
-        message: error.name === 'AbortError' ? 'Timeout' : error.message
-      };
+  try {
+    const { urls } = req.body;
+    if (!urls || !Array.isArray(urls)) {
+      return res.status(400).json({ error: 'URLs array is required' });
     }
-  }));
 
-  res.json({ results });
+    const results = await Promise.all(urls.map(async (encryptedUrl) => {
+      let url = encryptedUrl;
+      try {
+        url = decrypt(encryptedUrl);
+        
+        // Ensure URL has a protocol
+        if (url && typeof url === 'string' && !url.startsWith('http://') && !url.startsWith('https://')) {
+          url = 'https://' + url;
+        }
+
+        if (!url || typeof url !== 'string' || !url.includes('.')) {
+          return { url, status: 'broken', message: 'Invalid URL format' };
+        }
+        
+        // We use a timeout to prevent hanging
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+        const response = await fetch(url, { 
+          method: 'GET',
+          signal: controller.signal,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9,ar;q=0.8'
+          }
+        });
+        
+        clearTimeout(timeoutId);
+
+        // For Google Drive, if it redirects to a login page, it's private
+        const finalUrl = response.url;
+        const isPrivate = finalUrl.includes('accounts.google.com/ServiceLogin') || response.status === 403;
+        const isBroken = response.status >= 400 && response.status !== 403;
+
+        return {
+          url,
+          status: isBroken ? 'broken' : (isPrivate ? 'private' : 'ok'),
+          statusCode: response.status
+        };
+      } catch (error: any) {
+        return {
+          url,
+          status: 'error',
+          message: error.name === 'AbortError' ? 'Timeout' : error.message
+        };
+      }
+    }));
+
+    res.json({ results });
+  } catch (error: any) {
+    console.error("Check Links Global Error:", error);
+    res.status(500).json({ error: 'Failed to process links' });
+  }
 });
 
 // Vite Middleware for Development / Static Serving for Production

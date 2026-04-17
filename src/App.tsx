@@ -35,8 +35,8 @@ import FactoryPortal from './pages/FactoryPortal';
 const ADMIN_EMAILS = [
   'canabiskrap07@gmail.com',
   'canabiskrap007@gmail.com',
-  'Esraa0badr@gmail.com',
-  'Samemlywk@gmail.com',
+  'esraa0badr@gmail.com',
+  'samemlywk@gmail.com',
   'karmabiskrap@gmail.com',
 ];
 

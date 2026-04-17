@@ -11,12 +11,12 @@
   --font-sans: "Montserrat", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Montserrat", sans-serif;
 
-  --color-primary: #00D2FF;
-  --color-primary-dark: #0088FF;
-  --color-gold: #B2FF05;
-  --color-gold-light: #D4FF59;
-  --color-dark: #0B0C1A;
-  --color-dark-surface: #15162C;
+  --color-primary: #38BDF8;
+  --color-primary-dark: #0EA5E9;
+  --color-gold: #A855F7;
+  --color-gold-light: #C084FC;
+  --color-dark: #0B0B1E;
+  --color-dark-surface: #15152F;
 
   --shadow-premium: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
 }

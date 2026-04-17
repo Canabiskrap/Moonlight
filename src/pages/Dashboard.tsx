@@ -761,6 +761,11 @@ export default function Dashboard() {
         body: JSON.stringify({ urls: allLinks })
       });
 
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Server error: ${response.status} ${errorText}`);
+      }
+
       const data = await response.json();
       setLinkResults(data.results || []);
       

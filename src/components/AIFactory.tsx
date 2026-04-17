@@ -65,11 +65,34 @@ export default function AIFactory({
 }: FactoryProps & { initialMachine?: string | null }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [activeMachine, setActiveMachine] = useState<string | null>(initialMachine);
+  // Initialize state from localStorage
+  const [activeMachine, setActiveMachine] = useState<string | null>(() => localStorage.getItem('moonlight_activeMachine') || initialMachine);
   const [input, setInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isRefining, setIsRefining] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<any>(() => {
+    const saved = localStorage.getItem('moonlight_factoryResult');
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  // Persist state to localStorage
+  React.useEffect(() => {
+    if (activeMachine) localStorage.setItem('moonlight_activeMachine', activeMachine);
+    else localStorage.removeItem('moonlight_activeMachine');
+  }, [activeMachine]);
+
+  React.useEffect(() => {
+    if (result) localStorage.setItem('moonlight_factoryResult', JSON.stringify(result));
+    else localStorage.removeItem('moonlight_factoryResult');
+  }, [result]);
+
+  const resetFactory = () => {
+    setActiveMachine(null);
+    setResult(null);
+    setInput('');
+    localStorage.removeItem('moonlight_activeMachine');
+    localStorage.removeItem('moonlight_factoryResult');
+  };
   const [editorContent, setEditorContent] = useState('');
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -755,8 +778,8 @@ export default function AIFactory({
                     animate={{ opacity: 1, y: 0 }}
                     className="space-y-6"
                   >
-                    {/* Global Image Preview for all machines except visual, visualGenerator, and textStudio (which have their own outputs) */}
-                    {activeMachine !== 'visual' && activeMachine !== 'visualGenerator' && activeMachine !== 'textStudio' && (
+                    {/* Global Image Preview for all machines except visual and visualGenerator (which have their own outputs) */}
+                    {activeMachine !== 'visual' && activeMachine !== 'visualGenerator' && (
                       <div className="aspect-video w-full rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl relative group mb-6">
                         <img 
                           src={`https://image.pollinations.ai/prompt/${encodeURIComponent(getImagePrompt(activeMachine, result))}?width=1280&height=720&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000)}`}
@@ -1090,24 +1113,37 @@ export default function AIFactory({
                                     <p className="text-[10px] font-black text-yellow-400 uppercase tracking-widest mb-1">خطاف الموز (Banana Hook):</p>
                                     <p className="text-xs text-white font-bold italic">"{idea.bananaHook}"</p>
                                   </div>
-                                  <div className="aspect-video w-full rounded-xl overflow-hidden border border-white/5 bg-dark/50">
+                                  <div className="aspect-[4/3] w-full rounded-2xl overflow-hidden border border-white/10 bg-black/50 shadow-inner group">
                                     <img 
-                                      src={`https://image.pollinations.ai/prompt/${encodeURIComponent(idea.designPrompt + ", cinematic lighting, premium digital product aesthetic, minimalist luxury, commercial photography, 8k resolution, highly detailed, trending on behance, flux model")}?width=800&height=450&nologo=true&model=flux&seed=${i}`}
-                                      alt={idea.type}
-                                      className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity"
+                                      key={`${i}-${idea.designPrompt.substring(0, 10)}`}
+                                      src={`https://image.pollinations.ai/prompt/${encodeURIComponent(idea.designPrompt)}?width=1280&height=960&nologo=true&model=flux&seed=${i}`}
+                                      alt={`${idea.type}-${i}`}
+                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                                       referrerPolicy="no-referrer"
+                                      onError={(e) => {
+                                        e.currentTarget.src = 'https://picsum.photos/seed/error/1280/960';
+                                      }}
                                     />
                                   </div>
                                 </CardContent>
                                 <div className="p-4 bg-white/[0.02] border-t border-white/5 flex gap-2">
                                   <button 
-                                    onClick={() => {
-                                      const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(idea.designPrompt + ", cinematic lighting, premium digital product aesthetic, minimalist luxury, commercial photography, 8k resolution, highly detailed, trending on behance, flux model")}?width=1280&height=720&nologo=true&model=flux&seed=${i}`;
-                                      handleDownloadImage(imageUrl, `moonlight-banana-${i}.jpg`);
+                                    onClick={async () => {
+                                      const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(idea.designPrompt)}?width=2048&height=2048&nologo=true&model=flux&seed=${i}`;
+                                      addLog?.("📥 جاري التحميل، يرجى الانتظار...");
+                                      try {
+                                        const response = await fetch(imageUrl);
+                                        if (!response.ok) throw new Error('فشل تحميل الصورة');
+                                        const blob = await response.blob();
+                                        handleDownloadImage(blob, `moonlight-banana-pro-${i}.jpg`);
+                                      } catch (error: any) {
+                                        addLog?.("❌ " + error.message);
+                                      }
                                     }}
-                                    className="flex-1 py-2 bg-yellow-400/10 hover:bg-yellow-400 text-yellow-400 hover:text-black rounded-xl text-[10px] font-black transition-all"
+                                    className="flex-[2] py-3 bg-yellow-400 text-black rounded-xl text-xs font-black hover:bg-yellow-300 transition-all flex items-center justify-center gap-2"
                                   >
-                                    تحميل التصميم
+                                    <Zap size={14} />
+                                    تحميل بدقة فائقة
                                   </button>
                                   <button 
                                     onClick={() => onSaveToGallery?.({
@@ -1115,11 +1151,11 @@ export default function AIFactory({
                                       content: idea.content,
                                       type: 'فكرة موزية',
                                       machineId: 'bananaGenerator',
-                                      imageUrl: `https://image.pollinations.ai/prompt/${encodeURIComponent(idea.designPrompt)}?width=800&height=450&nologo=true`
+                                      imageUrl: `https://image.pollinations.ai/prompt/${encodeURIComponent(idea.designPrompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${i}`
                                     })}
-                                    className="flex-1 py-2 bg-white/5 hover:bg-white/10 text-white rounded-xl text-[10px] font-black transition-all"
+                                    className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl text-xs font-black transition-all flex items-center justify-center"
                                   >
-                                    حفظ في الرواق
+                                    حفظ
                                   </button>
                                 </div>
                               </Card>
