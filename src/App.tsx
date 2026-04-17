@@ -115,7 +115,6 @@ export default function App() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      console.log("Auth state changed:", currentUser?.email || "No user");
       setUser(currentUser);
       if (currentUser) {
         let isUserAdmin = false;

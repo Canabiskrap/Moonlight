@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { 
-  getFirestore, 
+  initializeFirestore,
   collection, 
   doc, 
   getDoc, 
@@ -17,23 +17,34 @@ import {
   Timestamp,
   getDocFromServer
 } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
+import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import firebaseConfig from '../../firebase-applet-config.json';
 
-// Use environment variables if available (prefixed with VITE_ for client-side)
-// Fallback to the values in firebase-applet-config.json
-const config = {
+/**
+ * Firebase Configuration
+ * Pulls from Vite environment variables (VITE_*) with fallback to the local config file.
+ */
+const firebaseConfigValues = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || firebaseConfig.apiKey,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || firebaseConfig.authDomain,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || firebaseConfig.projectId,
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || firebaseConfig.storageBucket,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseConfig.messagingSenderId,
   appId: import.meta.env.VITE_FIREBASE_APP_ID || firebaseConfig.appId,
-  firestoreDatabaseId: import.meta.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID || (firebaseConfig as any).firestoreDatabaseId
 };
 
-const app = initializeApp(config);
-export const db = getFirestore(app, config.firestoreDatabaseId);
+const app = initializeApp(firebaseConfigValues);
+
+/**
+ * Firestore Initialization
+ * Using experimentalForceLongPolling: true to ensure stability in restricted network environments 
+ * or where WebSockets might be blocked by proxy/firewalls (fixes 'Firebase Client Offline' errors).
+ */
+const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+});
+
+export { db };
 export const auth = getAuth(app);
 
 export { 
@@ -52,33 +63,36 @@ export {
   Timestamp 
 };
 
-// Set persistence to local to ensure session survives redirects and refreshes
-setPersistence(auth, browserLocalPersistence).catch(err => console.error("Persistence Error:", err));
+// Ensure session persistence for a smooth user experience
+setPersistence(auth, browserLocalPersistence).catch(err => {
+  // Only log critical auth errors
+  if (import.meta.env.DEV) console.error("Firebase Persistence Error:", err);
+});
 
 export const storage = getStorage(app, (firebaseConfig as any).storageBucket);
-console.log("Firebase Storage initialized with bucket:", (firebaseConfig as any).storageBucket);
 export const googleProvider = new GoogleAuthProvider();
-// Force select account to avoid silent failures
+
+// Prevent silent failures by allowing account selection
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
-// Helper for Google Login
+/**
+ * Google Authentication Helper
+ */
 export const loginWithGoogle = async () => {
-  console.log("Attempting Google Login...");
   try {
-    console.log("Attempting signInWithPopup...");
     const result = await signInWithPopup(auth, googleProvider);
-    console.log("Login success:", result.user.email);
     return result.user;
   } catch (error: any) {
-    console.error("General Login Error:", error);
+    if (import.meta.env.DEV) console.error("Google Login Error:", error);
     throw error;
   }
 };
 
-// Helper for Logout
 export const logout = () => signOut(auth);
 
-// Helper for File Upload
+/**
+ * Cloud Storage File Upload Helper
+ */
 export const uploadFile = async (
   file: File, 
   path: string, 
@@ -98,21 +112,20 @@ export const uploadFile = async (
   return getDownloadURL(storageRef);
 };
 
-// Helper for File Deletion
+/**
+ * Cloud Storage File Deletion Helper
+ */
 export const deleteFile = async (url: string) => {
   try {
-    // Only attempt to delete if it's a Firebase Storage URL
     if (url.includes('firebasestorage.googleapis.com')) {
       const storageRef = ref(storage, url);
       await deleteObject(storageRef);
     }
   } catch (error) {
-    console.error("Error deleting file:", error);
-    // We don't throw here to prevent blocking document deletion if file is already gone
+    if (import.meta.env.DEV) console.error("Error deleting file:", error);
   }
 };
 
-// Error handling for Firestore
 export enum OperationType {
   CREATE = 'create',
   UPDATE = 'update',
@@ -136,6 +149,10 @@ export interface FirestoreErrorInfo {
   }
 }
 
+/**
+ * Centralized Firestore Error Handler
+ * Standardizes security and connectivity error responses.
+ */
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
@@ -155,18 +172,27 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     operationType,
     path
   };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  
+  if (import.meta.env.DEV) console.error('Firestore Error Detailed Info:', JSON.stringify(errInfo));
   throw new Error(JSON.stringify(errInfo));
 }
 
-// Validate Connection to Firestore as per requirements
+/**
+ * Backend Connectivity Diagnostic
+ * Runs on initialization to verify if Firestore is reachable.
+ */
 async function testConnection() {
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
-  } catch (error) {
-    if(error instanceof Error && error.message.includes('the client is offline')) {
-      console.error("Please check your Firebase configuration. The client is offline.");
+  } catch (error: any) {
+    const errorMsg = error?.message?.toLowerCase() || "";
+    if (errorMsg.includes('offline')) {
+      console.error("❌ Firebase Connectivity Alert: The client is currently offline. Please verify network settings or ad-blocker configurations.");
     }
   }
 }
-testConnection();
+
+// Perform initial connection test in non-production builds
+if (import.meta.env.DEV) {
+  testConnection();
+}

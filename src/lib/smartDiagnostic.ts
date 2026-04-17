@@ -114,7 +114,7 @@ export class SmartDiagnosticService {
    * Runs a full diagnostic suite and attempts auto-fixes for the current session
    */
   static async runFullDiagnostic() {
-    console.log('--- بدء الفحص الذكي للنظام ---');
+    if (import.meta.env.DEV) console.log('--- بدء الفحص الذكي للنظام ---');
     const firestore = await this.checkFirestore();
     const storage = await this.checkStorage();
     
@@ -127,7 +127,7 @@ export class SmartDiagnosticService {
       }
     };
 
-    console.table(results);
+    if (import.meta.env.DEV) console.table(results);
     return results;
   }
 }

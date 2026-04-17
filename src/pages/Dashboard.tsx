@@ -145,7 +145,7 @@ export default function Dashboard() {
   };
 
   const addLog = (msg: string) => {
-    console.log(`[Dashboard] ${msg}`);
+    if (import.meta.env.DEV) console.log(`[Dashboard] ${msg}`);
     const time = new Date().toLocaleTimeString();
     setDebugLogs(prev => [`[${time}] ${msg}`, ...prev].slice(0, 10));
   };
@@ -615,15 +615,15 @@ export default function Dashboard() {
   );
 
   const handleDelete = async (id: string, imageUrl: string, downloadUrl: string) => {
-    console.log("Attempting to delete product:", id);
+    if (import.meta.env.DEV) console.log("Attempting to delete product:", id);
     try {
       setDeletingId(id);
       
       // 1. Delete from Firestore first - this is the most important part
-      console.log("Deleting Firestore document...");
+      if (import.meta.env.DEV) console.log("Deleting Firestore document...");
       try {
         await deleteDoc(doc(db, 'products', id));
-        console.log("Firestore document deleted successfully");
+        if (import.meta.env.DEV) console.log("Firestore document deleted successfully");
       } catch (firestoreErr) {
         console.error("Firestore Delete Error:", firestoreErr);
         handleFirestoreError(firestoreErr, OperationType.DELETE, `products/${id}`);
@@ -631,20 +631,20 @@ export default function Dashboard() {
       
       // 2. Delete files (don't let file deletion failure block the process)
       if (imageUrl && imageUrl.includes('cloudinary')) {
-        console.log("Image is on Cloudinary, skipping storage delete...");
+        if (import.meta.env.DEV) console.log("Image is on Cloudinary, skipping storage delete...");
       } else if (imageUrl) {
-        console.log("Deleting image from Storage...");
+        if (import.meta.env.DEV) console.log("Deleting image from Storage...");
         await deleteFile(imageUrl).catch(e => console.warn("Image delete failed:", e));
       }
 
       if (downloadUrl) {
-        console.log("Deleting product file from Storage...");
+        if (import.meta.env.DEV) console.log("Deleting product file from Storage...");
         await deleteFile(downloadUrl).catch(e => console.warn("File delete failed:", e));
       }
       
       setDeletingId(null);
       setErrorMessage('');
-      console.log("Delete process finished");
+      if (import.meta.env.DEV) console.log("Delete process finished");
     } catch (err: any) {
       console.error("Overall Delete Error:", err);
       setDeletingId(null);

@@ -1,10 +1,10 @@
 {
-  "projectId": "monnlight-store",
-  "appId": "1:1069132651620:web:1608b1d3264ca750f01371",
-  "apiKey": "AIzaSyDhlzA_YrixUXD6deyLX-_u0ksLS_97DgM",
-  "authDomain": "monnlight-store.firebaseapp.com",
-  "firestoreDatabaseId": "(default)",
-  "storageBucket": "monnlight-store.firebasestorage.app",
-  "messagingSenderId": "1069132651620",
-  "measurementId": "G-PYQZRV8603"
+  "projectId": "gen-lang-client-0425550931",
+  "appId": "1:69143696011:web:8b112b9cf008dd3564fa8e",
+  "apiKey": "AIzaSyCBp4ix0k5x45GR033rnVH5VoqDkf1Ypz8",
+  "authDomain": "gen-lang-client-0425550931.firebaseapp.com",
+  "firestoreDatabaseId": "ai-studio-4ef2965d-41a5-493c-b750-2361d6800545",
+  "storageBucket": "gen-lang-client-0425550931.firebasestorage.app",
+  "messagingSenderId": "69143696011",
+  "measurementId": ""
 }

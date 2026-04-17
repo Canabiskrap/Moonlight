@@ -25,12 +25,14 @@ import {
   ChevronDown,
   Type,
   Layout,
+  AlertTriangle,
   Image as ImageIcon
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { runFactoryMachine, chatWithBot, generateImageWithGemini } from '../services/geminiService';
 import { db } from '../lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
+import { MachineErrorBoundary } from './MachineErrorBoundary';
 
 interface MachineProps {
   id: string;
@@ -288,6 +290,16 @@ export default function AIFactory({
         // Pass imageUrl and settings to the machine
         const data = await runFactoryMachine(activeMachine, input, imageUrl, settings);
         
+        // Ensure imageUrl is constructed for ALL machines to prevent broken icons
+        if (!data.imageUrl) {
+          data.imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(getImagePrompt(activeMachine, data))}?width=1280&height=720&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000)}`;
+          
+          // Adjust dimensions for visualGenerator if needed
+          if (activeMachine === 'visualGenerator' || activeMachine === 'visual') {
+            data.imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(getImagePrompt(activeMachine, data))}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000)}`;
+          }
+        }
+        
         if (activeMachine === 'visualGenerator' && useUltraQuality) {
           addLog?.("🚀 جاري توليد التصميم فائق الدقة باستخدام Gemini 2.5...");
           try {
@@ -412,6 +424,7 @@ export default function AIFactory({
     >
       <div className="flex flex-col gap-2">
         <h2 className="text-3xl font-black text-white flex items-center gap-3">
+          {/* Tool Icon Container */}
           <div className="p-2 bg-purple-500/20 rounded-xl text-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.4)]">
             <Brain size={32} className="animate-pulse" />
           </div>
@@ -584,8 +597,9 @@ export default function AIFactory({
           ))}
         </div>
       ) : (
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
+        <MachineErrorBoundary machineName={machines.find(m => m.id === activeMachine)?.title}>
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           className="space-y-6"
         >
@@ -780,12 +794,25 @@ export default function AIFactory({
                   >
                     {/* Global Image Preview for all machines except visual and visualGenerator (which have their own outputs) */}
                     {activeMachine !== 'visual' && activeMachine !== 'visualGenerator' && (
-                      <div className="aspect-video w-full rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl relative group mb-6">
+                      <div className="aspect-video w-full rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl relative group mb-6 bg-black/40">
+                        {/* Loading Placeholder */}
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm z-0">
+                           <motion.div 
+                             animate={{ rotate: 360 }}
+                             transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                             className="w-8 h-8 border-2 border-purple-500/30 border-t-purple-500 rounded-full"
+                           />
+                        </div>
+
                         <img 
-                          src={`https://image.pollinations.ai/prompt/${encodeURIComponent(getImagePrompt(activeMachine, result))}?width=1280&height=720&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000)}`}
+                          src={result.imageUrl || `https://image.pollinations.ai/prompt/${encodeURIComponent(getImagePrompt(activeMachine, result))}?width=1280&height=720&nologo=true&model=flux&seed=0`}
                           alt="Machine Visual"
-                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 relative z-10"
                           referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            console.error("Global Image load failed");
+                            e.currentTarget.src = `https://picsum.photos/seed/${Math.random()}/1280/720?blur=4`;
+                          }}
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-8">
                           <div className="flex items-center gap-2 mb-2">
@@ -976,8 +1003,9 @@ export default function AIFactory({
                                 </button>
                                 <button
                                   onClick={() => {
-                                    const downloadUrl = result.imageUrl || `https://image.pollinations.ai/prompt/${encodeURIComponent(getImagePrompt(activeMachine, result))}?width=1280&height=720&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000)}`;
-                                    handleDownloadImage(downloadUrl, `moonlight-${activeMachine}.jpg`);
+                                    if (result.imageUrl) {
+                                      handleDownloadImage(result.imageUrl, `moonlight-${activeMachine}.jpg`);
+                                    }
                                   }}
                                   className="w-full text-right px-4 py-3 text-xs font-bold text-white hover:bg-white/5 flex items-center gap-2 transition-colors border-t border-white/5"
                                 >
@@ -1015,15 +1043,31 @@ export default function AIFactory({
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="p-8 space-y-6">
-                          <div className={`w-full max-w-md mx-auto relative group rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl ${aspectRatio === '9:16' ? 'aspect-[9/16]' : 'aspect-square'}`}>
+                          <div className={`w-full max-w-md mx-auto relative group rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl ${aspectRatio === '9:16' ? 'aspect-[9/16]' : 'aspect-square'} bg-black/40`}>
+                            {/* Loading Placeholder */}
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm z-0">
+                               <motion.div 
+                                 animate={{ rotate: 360 }}
+                                 transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                                 className="w-8 h-8 border-2 border-purple-500/30 border-t-purple-500 rounded-full"
+                               />
+                            </div>
+
                             <img 
-                              src={result.imageUrl || `https://image.pollinations.ai/prompt/${encodeURIComponent(getImagePrompt(activeMachine, result))}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000)}`}
+                              src={result.imageUrl || `https://image.pollinations.ai/prompt/${encodeURIComponent(getImagePrompt(activeMachine, result))}?width=1024&height=1024&nologo=true&model=flux&seed=0`}
                               alt="Generated Visual"
-                              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 relative z-10"
                               referrerPolicy="no-referrer"
-                              onLoad={() => addLog?.("🎨 تم توليد التصميم الاحترافي بنجاح!")}
+                              onLoad={() => {
+                                addLog?.("🎨 تم توليد التصميم الاحترافي بنجاح!");
+                              }}
+                              onError={(e) => {
+                                console.error("Image load failed for visualGenerator");
+                                addLog?.("⚠️ فشل تحميل الصورة، جاري المحاولة ببديل...");
+                                e.currentTarget.src = `https://picsum.photos/seed/${Math.random()}/1024/1024?blur=2`;
+                              }}
                             />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-6">
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-6 z-20">
                               <p className="text-[10px] text-blue-400/80 font-medium italic">تم التوليد بواسطة Moonlight AI (Flux Engine)</p>
                             </div>
                           </div>
@@ -1031,8 +1075,9 @@ export default function AIFactory({
                             <div className="flex gap-4">
                               <button 
                                 onClick={() => {
-                                  const imageUrl = result.imageUrl || `https://image.pollinations.ai/prompt/${encodeURIComponent(getImagePrompt(activeMachine, result))}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000)}`;
-                                  handleDownloadImage(imageUrl, `moonlight-design.jpg`);
+                                  if (result.imageUrl) {
+                                    handleDownloadImage(result.imageUrl, `moonlight-design.jpg`);
+                                  }
                                 }}
                               className="flex-1 py-4 bg-purple-500 text-white rounded-2xl font-black text-sm hover:bg-purple-600 transition-all shadow-2xl shadow-purple-500/20 flex items-center justify-center gap-2"
                             >
@@ -1041,13 +1086,12 @@ export default function AIFactory({
                             </button>
                             <button 
                               onClick={() => {
-                                const finalImageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(getImagePrompt(activeMachine, result))}?width=1280&height=720&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000)}`;
                                 onSaveToGallery?.({
                                   title: (result.arabicCaption || result.title || 'تصميم إبداعي').substring(0, 50),
                                   content: editorContent || result.arabicCaption || result.description || JSON.stringify(result),
                                   type: activeMachine === 'visualGenerator' ? 'تصميم مرئي' : activeMachine,
                                   machineId: activeMachine,
-                                  imageUrl: finalImageUrl,
+                                  imageUrl: result.imageUrl,
                                   timestamp: new Date().toISOString()
                                 });
                               }}
@@ -1132,10 +1176,7 @@ export default function AIFactory({
                                       const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(idea.designPrompt)}?width=2048&height=2048&nologo=true&model=flux&seed=${i}`;
                                       addLog?.("📥 جاري التحميل، يرجى الانتظار...");
                                       try {
-                                        const response = await fetch(imageUrl);
-                                        if (!response.ok) throw new Error('فشل تحميل الصورة');
-                                        const blob = await response.blob();
-                                        handleDownloadImage(blob, `moonlight-banana-pro-${i}.jpg`);
+                                        await handleDownloadImage(imageUrl, `moonlight-banana-pro-${i}.jpg`);
                                       } catch (error: any) {
                                         addLog?.("❌ " + error.message);
                                       }
@@ -1187,6 +1228,7 @@ export default function AIFactory({
             </div>
           </div>
         </motion.div>
+        </MachineErrorBoundary>
       )}
     </motion.div>
   );
