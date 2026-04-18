@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import StarBackground from '../components/StarBackground';
 import { collection, onSnapshot, query, orderBy, doc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { convertDriveLink, convertDriveVideoLink } from '../lib/utils';
@@ -92,13 +93,14 @@ export default function Home() {
   ];
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="space-y-24 pb-20 relative"
-    >
-      <div className="cosmic-bg" />
+    <div className="space-y-24 pb-20 relative min-h-screen">
+      <StarBackground />
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        className="space-y-24"
+      >
       
       {/* Hero Section */}
       <section className="relative pt-10 pb-20 overflow-hidden">
@@ -115,14 +117,24 @@ export default function Home() {
               {t('hero.subtitle')}
             </div>
             
-            <h1 className="text-5xl md:text-7xl xl:text-8xl font-black leading-[1.1] tracking-tighter">
+            <motion.h1 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="text-5xl md:text-7xl xl:text-8xl font-black leading-[1.1] tracking-tighter"
+            >
               {t('hero.title')} <br />
               <span className="text-gold text-glow">{t('hero.titleAccent')}</span>
-            </h1>
+            </motion.h1>
             
-            <p className="text-gray-400 text-lg md:text-xl leading-relaxed max-w-xl mr-auto font-medium">
+            <motion.p 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="text-gray-400 text-lg md:text-xl leading-relaxed max-w-xl mr-auto font-medium"
+            >
               {t('hero.description')}
-            </p>
+            </motion.p>
 
             <div className="flex flex-wrap gap-4 justify-end">
               <a href="#products" className="btn-gradient px-10 py-4 rounded-2xl text-sm border border-white/10">
@@ -164,7 +176,13 @@ export default function Home() {
       </section>
 
       {/* Services Section */}
-      <section id="services" className="space-y-12">
+      <motion.section 
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.8 }}
+        id="services" className="space-y-12"
+      >
         <div className="text-center space-y-2">
           <h2 className="text-3xl font-black">{t('services.title')}</h2>
           <p className="text-gray-500 text-sm font-bold">{t('services.description')}</p>
@@ -230,10 +248,16 @@ export default function Home() {
             </div>
           )}
         </div>
-      </section>
+      </motion.section>
 
       {/* Products Grid */}
-      <section id="products" className="space-y-12">
+      <motion.section 
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.8 }}
+        id="products" className="space-y-12"
+      >
         <div className="flex flex-col md:flex-row justify-between items-end gap-8">
           <div className="text-right space-y-2">
             <h2 className="text-4xl font-black">{t('products.title')}</h2>
@@ -394,7 +418,7 @@ export default function Home() {
             ))}
           </div>
         )}
-      </section>
+      </motion.section>
 
       {/* Buyer Protection Highlight */}
       <section className="py-10">
@@ -436,7 +460,13 @@ export default function Home() {
       </section>
 
       {/* Contact Section */}
-      <section className="py-20">
+      <motion.section 
+        initial={{ opacity: 0, scale: 0.95 }}
+        whileInView={{ opacity: 1, scale: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.8 }}
+        className="py-20"
+      >
         <div className="glass-card p-12 rounded-[3rem] text-center space-y-8 relative overflow-hidden">
           <div className="absolute inset-0 bg-primary/5 blur-[100px] rounded-full" />
           <h2 className="text-4xl font-black relative z-10">{t('footer.contact')}</h2>
@@ -444,12 +474,13 @@ export default function Home() {
             {t('footer.contactDesc')}
           </p>
           <div className="flex justify-center gap-4 relative z-10">
-            <a href="https://wa.me/96569929627" target="_blank" rel="noopener noreferrer" className="btn-gradient px-10 py-4 rounded-2xl text-sm">
+            <a href="https://www.instagram.com/moonlight_eb.kw?igsh=czYzc2thY3p5NGs2" target="_blank" rel="noopener noreferrer" className="btn-gradient px-10 py-4 rounded-2xl text-sm">
               {t('services.contactWhatsapp')}
             </a>
           </div>
         </div>
-      </section>
-    </motion.div>
+      </motion.section>
+      </motion.div>
+    </div>
   );
 }

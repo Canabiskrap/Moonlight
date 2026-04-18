@@ -33,6 +33,7 @@ import { runFactoryMachine, chatWithBot, generateImageWithGemini } from '../serv
 import { db } from '../lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { MachineErrorBoundary } from './MachineErrorBoundary';
+import { ProcessTracker } from './ui/ProcessTracker';
 
 interface MachineProps {
   id: string;
@@ -71,7 +72,22 @@ export default function AIFactory({
   const [activeMachine, setActiveMachine] = useState<string | null>(() => localStorage.getItem('moonlight_activeMachine') || initialMachine);
   const [input, setInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
   const [isRefining, setIsRefining] = useState(false);
+  
+  // Progress tracker logic
+  React.useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isProcessing) {
+      setCurrentStep(0);
+      interval = setInterval(() => {
+        setCurrentStep(prev => (prev < 2 ? prev + 1 : prev));
+      }, 1500);
+    } else {
+      setCurrentStep(0);
+    }
+    return () => clearInterval(interval);
+  }, [isProcessing]);
   const [result, setResult] = useState<any>(() => {
     const saved = localStorage.getItem('moonlight_factoryResult');
     return saved ? JSON.parse(saved) : null;
@@ -101,7 +117,16 @@ export default function AIFactory({
   const [settings, setSettings] = useState<any>(null);
   const [useUltraQuality, setUseUltraQuality] = useState(false);
   const [aspectRatio, setAspectRatio] = useState('1:1');
-  const contentRef = useRef<HTMLDivElement>(null);
+  
+  // Project Context State
+  const [projectContext, setProjectContext] = useState(() => {
+    const saved = localStorage.getItem('moonlight_projectContext');
+    return saved ? JSON.parse(saved) : { brandName: 'Moonlight 🌕', brandIdentity: '', targetAudience: '' };
+  });
+
+  React.useEffect(() => {
+    localStorage.setItem('moonlight_projectContext', JSON.stringify(projectContext));
+  }, [projectContext]);
 
   React.useEffect(() => {
     if (initialMachine) {
@@ -235,6 +260,17 @@ export default function AIFactory({
       ]
     },
     {
+      id: 'bananaGenerator',
+      title: 'مولد الموز (Banana)',
+      description: 'مكنة إبداعية غير تقليدية لتوليد أفكار مجنونة.',
+      icon: Sparkles,
+      color: 'text-yellow-400',
+      subTools: [
+        { id: 'crazyIdea', title: 'فكرة مجنونة', icon: Brain },
+        { id: 'crazyHook', title: 'خطاف مجنون', icon: Zap }
+      ]
+    },
+    {
       id: 'templateMaker',
       title: 'صانع القوالب',
       description: 'أنشئ قوالب جاهزة (فواتير، خطابات، خطط) بلمسة فنية.',
@@ -243,28 +279,6 @@ export default function AIFactory({
       subTools: [
         { id: 'invoice', title: 'فاتورة', icon: FileText },
         { id: 'letter', title: 'خطاب رسمي', icon: Type }
-      ]
-    },
-    {
-      id: 'visualGenerator',
-      title: 'المصمم الآلي',
-      description: 'ولد تصاميم سوشيال ميديا احترافية لهويتك البصرية.',
-      icon: Sparkles,
-      color: 'text-blue-400',
-      subTools: [
-        { id: 'flux', title: 'محرك Flux', icon: Zap },
-        { id: 'art', title: 'لمسة فنية', icon: Palette }
-      ]
-    },
-    {
-      id: 'bananaGenerator',
-      title: 'مولد الموز (Banana)',
-      description: 'محرك إبداعي لتوليد أفكار تسويقية "مجنونة" وغير تقليدية لكسر الملل.',
-      icon: Zap,
-      color: 'text-yellow-400',
-      subTools: [
-        { id: 'crazy', title: 'أفكار مجنونة', icon: Sparkles },
-        { id: 'hooks', title: 'خطافات موزية', icon: Zap }
       ]
     }
   ];
@@ -288,19 +302,19 @@ export default function AIFactory({
 
       if (activeMachine) {
         // Pass imageUrl and settings to the machine
-        const data = await runFactoryMachine(activeMachine, input, imageUrl, settings);
+        const data = await runFactoryMachine(activeMachine, input, imageUrl, settings, projectContext);
         
         // Ensure imageUrl is constructed for ALL machines to prevent broken icons
         if (!data.imageUrl) {
           data.imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(getImagePrompt(activeMachine, data))}?width=1280&height=720&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000)}`;
           
-          // Adjust dimensions for visualGenerator if needed
-          if (activeMachine === 'visualGenerator' || activeMachine === 'visual') {
+          // Adjust dimensions for visual if needed
+          if (activeMachine === 'visual') {
             data.imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(getImagePrompt(activeMachine, data))}?width=1024&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 1000)}`;
           }
         }
         
-        if (activeMachine === 'visualGenerator' && useUltraQuality) {
+        if (activeMachine === 'visual' && useUltraQuality) {
           addLog?.("🚀 جاري توليد التصميم فائق الدقة باستخدام Gemini 2.5...");
           try {
             const geminiImageUrl = await generateImageWithGemini(data.designPrompt || input, aspectRatio);
@@ -313,7 +327,7 @@ export default function AIFactory({
         }
 
         setResult(data);
-        if ((activeMachine === 'contentMaker' || activeMachine === 'brandGuidelines' || activeMachine === 'brandBook' || activeMachine === 'visualGenerator' || activeMachine === 'cvMaker' || activeMachine === 'templateMaker') && data.htmlContent) {
+        if ((activeMachine === 'contentMaker' || activeMachine === 'brandGuidelines' || activeMachine === 'brandBook' || activeMachine === 'visual' || activeMachine === 'cvMaker' || activeMachine === 'templateMaker') && data.htmlContent) {
           setEditorContent(data.htmlContent);
         }
       }
@@ -400,22 +414,32 @@ export default function AIFactory({
 
   const getImagePrompt = (machineId: string | null, res: any) => {
     if (!machineId || !res) return "abstract digital art, luxury aesthetic, cinematic lighting";
-    const base = ", professional graphic design, high resolution, 8k, masterpiece, commercial advertising layout, cinematic studio lighting, soft lunar glow, brushed magnesium, sapphire glass, dark velvet, ultra-sharp focus, luxury branding, flux model";
     
-    if (machineId === 'visualGenerator') {
-      return `A sophisticated asymmetrical bento-grid layout for luxury branding. A premium MacBook Pro and iPhone 15 Pro displaying ${res.designPrompt || 'graphic templates'}. The background is a textured matte black charcoal with minimalist borders and abstract architectural shapes. High-end soft-shadow effect, complemented by clean modern sans-serif micro-copy. ${base}`;
+    // If the machine already provided a specific design prompt, use it as the primary source
+    const rawPrompt = res.designPrompt || res.title || input;
+    
+    // Core instruction: LITERAL COMPLIANCE BEFORE AESTHETICS. 
+    // Always enforce that the core subject requested by the user is the primary focus.
+    const literalInstruction = "SUBJECT PROMPT: " + rawPrompt + ". CORE SUBJECT MUST BE THE ABSOLUTE FOCUS OF THE IMAGE. DO NOT HALLUCINATE BACKGROUNDS. ";
+    
+    const base = ", professional photography, hyper-realistic, 8k resolution, cinematic studio lighting, luxury branding aesthetic, text 'Moonlight' engraved or applied as a decal on the main object where appropriate, ultra-sharp focus, masterpiece";
+    
+    if (machineId === 'visual') {
+      return `${literalInstruction} ${base}`;
     }
     
+    // Default fallback for other machines
     if (machineId === 'strategy') return `business strategy concept, SWOT analysis, professional dashboard, ${res.persona?.name || ''}, elegant data visualization` + base;
     if (machineId === 'product') return `digital product showcase, ${res.title}, professional marketing, premium tech aesthetic` + base;
     if (machineId === 'cvMaker') return `professional modern resume layout, elegant typography, career success, minimalist aesthetic` + base;
     if (machineId === 'templateMaker') return `professional document template, structured layout, clean design, premium paper texture` + base;
     if (machineId === 'brandGuidelines' || machineId === 'brandBook') return `brand identity guidelines, color palette, logo design showcase, professional brand book layout` + base;
     
-    return (res.title || "creative digital asset") + base;
+    return literalInstruction + base;
   };
 
   return (
+    <>
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -423,19 +447,51 @@ export default function AIFactory({
       className="space-y-8"
     >
       <div className="flex flex-col gap-2">
-        <h2 className="text-3xl font-black text-white flex items-center gap-3">
+        <h2 className="text-4xl font-black text-white flex items-center gap-3 animate-heartbeat-glow" style={{ '--glow-color': '#FFFFFF' } as React.CSSProperties}>
           {/* Tool Icon Container */}
-          <div className="p-2 bg-purple-500/20 rounded-xl text-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.4)]">
-            <Brain size={32} className="animate-pulse" />
+          <div className="p-2 bg-purple-500/20 rounded-xl text-purple-500 shadow-[0_0_15px_rgba(139,92,246,0.5)] animate-soft-pulse">
+            <Brain size={36} />
           </div>
-          <span className="text-purple-500 drop-shadow-[0_0_8px_rgba(168,85,247,0.6)]">
+          <span className="text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">
             {t('dashboard.factory.title')}
           </span>
         </h2>
-        <p className="text-blue-400 font-bold uppercase tracking-widest text-xs mr-14">
+        <p className="text-[#C4B5FD] font-bold uppercase tracking-widest text-sm mr-16">
           {t('dashboard.factory.subtitle')}
         </p>
       </div>
+
+      <Card className="bg-dark-light/30 border-white/5 backdrop-blur-xl rounded-[2rem] p-6 shadow-2xl">
+        <div className="flex items-center gap-4 mb-4">
+          <div className="p-3 bg-[#8B5CF6]/10 text-[#8B5CF6] rounded-xl shadow-[0_0_10px_rgba(139,92,246,0.3)]">
+            <Brain size={24} />
+          </div>
+          <h3 className="text-xl font-black text-white animate-heartbeat-glow" style={{ '--glow-color': 'var(--glow-gold)' } as React.CSSProperties}>إعدادات المشروع الحالية</h3>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <input 
+            type="text" 
+            placeholder="اسم البراند (مثلاً: Moonlight)"
+            value={projectContext.brandName}
+            onChange={(e) => setProjectContext({...projectContext, brandName: e.target.value})}
+            className="bg-black/40 border border-white/10 rounded-2xl p-4 text-white text-md font-bold placeholder:text-[#E9D5FF] outline-none focus:border-[#8B5CF6] focus:shadow-[0_0_15px_rgba(139,92,246,0.3)] transition-all"
+          />
+          <input 
+            type="text" 
+            placeholder="الهوية (مثلاً: فاخرة، تقنية)"
+            value={projectContext.brandIdentity}
+            onChange={(e) => setProjectContext({...projectContext, brandIdentity: e.target.value})}
+            className="bg-black/40 border border-white/10 rounded-2xl p-4 text-white text-md font-bold placeholder:text-[#E9D5FF] outline-none focus:border-[#8B5CF6] focus:shadow-[0_0_15px_rgba(139,92,246,0.3)] transition-all"
+          />
+          <input 
+            type="text" 
+            placeholder="الجمهور (مثلاً: رواد الأعمال)"
+            value={projectContext.targetAudience}
+            onChange={(e) => setProjectContext({...projectContext, targetAudience: e.target.value})}
+            className="bg-black/40 border border-white/10 rounded-2xl p-4 text-white text-md font-bold placeholder:text-[#E9D5FF] outline-none focus:border-[#8B5CF6] focus:shadow-[0_0_15px_rgba(139,92,246,0.3)] transition-all"
+          />
+        </div>
+      </Card>
 
       {/* Moonlight Oracle Section */}
       {!activeMachine && (
@@ -455,7 +511,7 @@ export default function AIFactory({
                   <div className="bg-purple-500/20 p-2 rounded-xl text-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.2)]">
                     <Brain size={24} />
                   </div>
-                  <h3 className="text-2xl font-black text-purple-500 drop-shadow-[0_0_5px_rgba(168,85,247,0.4)]">عراف Moonlight (AI Oracle)</h3>
+                  <h3 className="text-2xl font-black text-purple-500 drop-shadow-[0_0_5px_rgba(168,85,247,0.4)] animate-heartbeat-glow" style={{'--glow-color': 'var(--glow-gold)'} as React.CSSProperties}>عراف Moonlight (AI Oracle)</h3>
                 </div>
                 <p className="text-blue-400 font-medium leading-relaxed">
                   "دع الذكاء الاصطناعي يقرأ مستقبل متجرك. العراف يحلل هويتك ويقترح عليك منتجات رقمية مبتكرة لتوسيع إمبراطوريتك."
@@ -471,6 +527,27 @@ export default function AIFactory({
               </div>
 
               <div className="flex-1 w-full grid grid-cols-1 gap-4">
+                {/* Quick Starters */}
+                <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6 space-y-4 mb-4">
+                  <h4 className="text-sm font-bold text-gray-400 animate-heartbeat-glow" style={{ '--glow-color': 'var(--glow-gold)' } as React.CSSProperties}>قوالب البدء السريع:</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {[
+                      { title: 'خطة تسويق لمنتج جديد', prompt: 'أنشئ خطة تسويق متكاملة لمنتج جديد في قطاع ', icon: Rocket },
+                      { title: 'مقال مدونة تخصصي', prompt: 'اكتب مقال مدونة احترافي ومقنع حول ', icon: FileText },
+                      { title: 'تحليل المنافسين', prompt: 'قم بإجراء تحليل SWOT لمنافس في مجال ', icon: BarChart3 },
+                      { title: 'نص إعلاني (Social Media)', prompt: 'اكتب نص إعلاني جذاب لـ ', icon: Sparkles }
+                    ].map((item, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => { setInput(item.prompt); setActiveMachine('contentMaker'); }}
+                        className="flex items-center gap-3 p-3 bg-black/20 hover:bg-primary/20 border border-white/5 hover:border-primary/50 rounded-xl text-xs font-bold text-white transition-all text-right"
+                      >
+                        <item.icon size={16} className="text-primary" />
+                        {item.title}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 {oracleIdeas.length > 0 ? (
                   oracleIdeas.map((idea, i) => (
                     <motion.div
@@ -518,7 +595,7 @@ export default function AIFactory({
                 <div className="bg-purple-500/20 p-2 rounded-xl text-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.3)]">
                   <Palette size={24} />
                 </div>
-                <h3 className="text-2xl font-black text-purple-500 drop-shadow-[0_0_5px_rgba(168,85,247,0.4)]">رواق الإبداع (Gallery)</h3>
+                <h3 className="text-2xl font-black text-purple-500 drop-shadow-[0_0_5px_rgba(168,85,247,0.4)] animate-heartbeat-glow" style={{'--glow-color': 'var(--glow-gold)'} as React.CSSProperties}>رواق الإبداع (Gallery)</h3>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -567,20 +644,20 @@ export default function AIFactory({
 
       {!activeMachine ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {machines.map((machine) => (
-            <motion.div
-              key={machine.id}
-              whileHover={{ y: -10, scale: 1.02 }}
-              onClick={() => navigate(`/factory/${machine.id}`)}
-              className="cursor-pointer"
-            >
+              {machines.map((machine) => (
+                <motion.div
+                  key={machine.id}
+                  whileHover={{ y: -10, scale: 1.02 }}
+                  onClick={() => setActiveMachine(machine.id)}
+                  className="cursor-pointer"
+                >
               <Card className="bg-dark-light/30 border-white/10 backdrop-blur-xl rounded-[2.5rem] h-full hover:border-purple-500/50 transition-all duration-500 overflow-hidden group relative">
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 <CardContent className="p-8 flex flex-col items-center text-center space-y-4 relative z-10">
                   <div className={`p-5 rounded-3xl bg-dark/50 ${machine.color} group-hover:scale-110 group-hover:text-purple-500 transition-all duration-500 shadow-2xl group-hover:shadow-purple-500/20`}>
                     <machine.icon size={40} />
                   </div>
-                  <h3 className="text-xl font-black text-white group-hover:text-purple-500 transition-colors duration-300 drop-shadow-[0_0_5px_rgba(168,85,247,0)] group-hover:drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]">
+                  <h3 className="text-xl font-black text-white group-hover:text-purple-500 transition-colors duration-300 drop-shadow-[0_0_5px_rgba(168,85,247,0)] group-hover:drop-shadow-[0_0_8px_rgba(168,85,247,0.5)] animate-heartbeat-glow" style={{ '--glow-color': 'var(--glow-gold)' } as React.CSSProperties}>
                     {machine.title}
                   </h3>
                   <p className="text-sm text-blue-400/60 group-hover:text-blue-400 leading-relaxed font-medium transition-colors duration-300">
@@ -688,7 +765,7 @@ export default function AIFactory({
                       </button>
                     )}
 
-                    {activeMachine === 'visualGenerator' && (
+                    {activeMachine === 'visual' && (
                       <div className="space-y-4 p-4 bg-white/5 rounded-2xl border border-white/10">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
@@ -774,7 +851,7 @@ export default function AIFactory({
                   <Lightbulb size={24} />
                 </div>
                 <div>
-                  <h4 className="text-purple-500 font-black text-sm mb-1">{t('dashboard.factory.adviceTitle')}</h4>
+                  <h4 className="text-purple-500 font-black text-sm mb-1 animate-heartbeat-glow" style={{ '--glow-color': 'var(--glow-gold)' } as React.CSSProperties}>{t('dashboard.factory.adviceTitle')}</h4>
                   <p className="text-xs text-blue-400/80 leading-relaxed font-bold">
                     {t('dashboard.factory.adviceDetailed')}
                   </p>
@@ -785,15 +862,34 @@ export default function AIFactory({
             {/* Right Side: Large Results Display */}
             <div className="flex-1 min-w-0 space-y-6">
               <AnimatePresence mode="wait">
-                {result ? (
+                {isProcessing ? (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="flex items-center justify-center h-[500px]"
+                  >
+                    <div className="text-center space-y-6">
+                      <ProcessTracker 
+                        steps={[
+                          { id: 1, label: 'فهم الطلب' },
+                          { id: 2, label: 'توليد المحتوى' },
+                          { id: 3, label: 'الصقل والتحسين' }
+                        ]} 
+                        currentStep={currentStep} 
+                      />
+                      <p className="text-purple-400 font-black text-lg animate-pulse">جاري العمل في المصنع...</p>
+                    </div>
+                  </motion.div>
+                ) : result ? (
                   <motion.div
                     key={activeMachine || 'result'}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="space-y-6"
                   >
-                    {/* Global Image Preview for all machines except visual and visualGenerator (which have their own outputs) */}
-                    {activeMachine !== 'visual' && activeMachine !== 'visualGenerator' && (
+                    {/* Global Image Preview for all machines except visual (which have their own outputs) */}
+                    {activeMachine !== 'visual' && (
                       <div className="aspect-video w-full rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl relative group mb-6 bg-black/40">
                         {/* Loading Placeholder */}
                         <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm z-0">
@@ -819,7 +915,7 @@ export default function AIFactory({
                             <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
                             <p className="text-[10px] text-white font-black uppercase tracking-widest">تصور ذكاء Moonlight الاصطناعي</p>
                           </div>
-                          <h3 className="text-lg font-black text-white line-clamp-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <h3 className="text-lg font-black text-white line-clamp-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 animate-heartbeat-glow" style={{ '--glow-color': 'var(--glow-gold)' } as React.CSSProperties}>
                             {result.title || result.persona?.name || 'إبداع جديد من المصنع'}
                           </h3>
                         </div>
@@ -893,7 +989,7 @@ export default function AIFactory({
                         <CardContent className="p-8 space-y-6">
                           <div>
                             <p className="text-[10px] font-black text-blue-400/60 uppercase tracking-widest mb-2">{t('dashboard.factory.machines.product.productTitle')}</p>
-                            <h3 className="text-xl font-black text-white">{result.title}</h3>
+                            <h3 className="text-xl font-black text-white animate-heartbeat-glow" style={{ '--glow-color': 'var(--glow-gold)' } as React.CSSProperties}>{result.title}</h3>
                           </div>
                           <div>
                             <p className="text-[10px] font-black text-blue-400/60 uppercase tracking-widest mb-2">{t('dashboard.factory.machines.product.productDesc')}</p>
@@ -1034,7 +1130,7 @@ export default function AIFactory({
                       </Card>
                     )}
 
-                    {activeMachine === 'visualGenerator' && (
+                    {activeMachine === 'visual' && (
                       <Card className="bg-dark-light/30 border-white/10 backdrop-blur-xl rounded-[2.5rem] overflow-hidden">
                         <CardHeader className="border-b border-white/5">
                           <CardTitle className="text-lg font-black text-purple-500 drop-shadow-[0_0_5px_rgba(168,85,247,0.4)] flex items-center gap-2">
@@ -1089,7 +1185,7 @@ export default function AIFactory({
                                 onSaveToGallery?.({
                                   title: (result.arabicCaption || result.title || 'تصميم إبداعي').substring(0, 50),
                                   content: editorContent || result.arabicCaption || result.description || JSON.stringify(result),
-                                  type: activeMachine === 'visualGenerator' ? 'تصميم مرئي' : activeMachine,
+                                  type: activeMachine === 'visual' ? 'تصميم مرئي' : activeMachine,
                                   machineId: activeMachine,
                                   imageUrl: result.imageUrl,
                                   timestamp: new Date().toISOString()
@@ -1116,95 +1212,7 @@ export default function AIFactory({
                       </Card>
                     )}
 
-                    {activeMachine === 'bananaGenerator' && result?.ideas && (
-                      <div className="space-y-6">
-                        <div className="flex items-center gap-3 mb-4">
-                          <div className="bg-yellow-400/20 p-2 rounded-xl text-yellow-400">
-                            <Zap size={24} />
-                          </div>
-                          <h3 className="text-2xl font-black text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.4)]">أفكار الموز المجنونة 🍌</h3>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          {result.ideas.map((idea: any, i: number) => (
-                            <motion.div
-                              key={i}
-                              initial={{ opacity: 0, scale: 0.9 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              transition={{ delay: i * 0.1 }}
-                            >
-                              <Card className="bg-dark-light/30 border-yellow-400/10 backdrop-blur-xl rounded-[2rem] overflow-hidden group hover:border-yellow-400/50 transition-all duration-500 h-full flex flex-col">
-                                <CardHeader className="border-b border-white/5 bg-yellow-400/5">
-                                  <div className="flex justify-between items-center">
-                                    <CardTitle className="text-sm font-black text-yellow-400 flex items-center gap-2 uppercase tracking-widest">
-                                      <Sparkles size={16} />
-                                      {idea.type}
-                                    </CardTitle>
-                                    <div className="flex items-center gap-1">
-                                      <span className="text-[10px] font-black text-gray-500">CRAZY:</span>
-                                      <div className="flex gap-0.5">
-                                        {[...Array(10)].map((_, idx) => (
-                                          <div key={idx} className={`w-1.5 h-3 rounded-full ${idx < idea.crazyLevel ? 'bg-yellow-400' : 'bg-white/5'}`} />
-                                        ))}
-                                      </div>
-                                    </div>
-                                  </div>
-                                </CardHeader>
-                                <CardContent className="p-6 space-y-4 flex-1">
-                                  <p className="text-sm text-blue-400 font-medium leading-relaxed">
-                                    {idea.content}
-                                  </p>
-                                  <div className="p-4 bg-yellow-400/10 rounded-2xl border border-yellow-400/20">
-                                    <p className="text-[10px] font-black text-yellow-400 uppercase tracking-widest mb-1">خطاف الموز (Banana Hook):</p>
-                                    <p className="text-xs text-white font-bold italic">"{idea.bananaHook}"</p>
-                                  </div>
-                                  <div className="aspect-[4/3] w-full rounded-2xl overflow-hidden border border-white/10 bg-black/50 shadow-inner group">
-                                    <img 
-                                      key={`${i}-${idea.designPrompt.substring(0, 10)}`}
-                                      src={`https://image.pollinations.ai/prompt/${encodeURIComponent(idea.designPrompt)}?width=1280&height=960&nologo=true&model=flux&seed=${i}`}
-                                      alt={`${idea.type}-${i}`}
-                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                                      referrerPolicy="no-referrer"
-                                      onError={(e) => {
-                                        e.currentTarget.src = 'https://picsum.photos/seed/error/1280/960';
-                                      }}
-                                    />
-                                  </div>
-                                </CardContent>
-                                <div className="p-4 bg-white/[0.02] border-t border-white/5 flex gap-2">
-                                  <button 
-                                    onClick={async () => {
-                                      const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(idea.designPrompt)}?width=2048&height=2048&nologo=true&model=flux&seed=${i}`;
-                                      addLog?.("📥 جاري التحميل، يرجى الانتظار...");
-                                      try {
-                                        await handleDownloadImage(imageUrl, `moonlight-banana-pro-${i}.jpg`);
-                                      } catch (error: any) {
-                                        addLog?.("❌ " + error.message);
-                                      }
-                                    }}
-                                    className="flex-[2] py-3 bg-yellow-400 text-black rounded-xl text-xs font-black hover:bg-yellow-300 transition-all flex items-center justify-center gap-2"
-                                  >
-                                    <Zap size={14} />
-                                    تحميل بدقة فائقة
-                                  </button>
-                                  <button 
-                                    onClick={() => onSaveToGallery?.({
-                                      title: idea.type,
-                                      content: idea.content,
-                                      type: 'فكرة موزية',
-                                      machineId: 'bananaGenerator',
-                                      imageUrl: `https://image.pollinations.ai/prompt/${encodeURIComponent(idea.designPrompt)}?width=1024&height=1024&nologo=true&model=flux&seed=${i}`
-                                    })}
-                                    className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl text-xs font-black transition-all flex items-center justify-center"
-                                  >
-                                    حفظ
-                                  </button>
-                                </div>
-                              </Card>
-                            </motion.div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+
 
                   </motion.div>
                 ) : (
@@ -1218,7 +1226,7 @@ export default function AIFactory({
                     <div className="w-20 h-20 bg-purple-500/10 rounded-full flex items-center justify-center text-purple-500 mb-6 shadow-[0_0_20px_rgba(168,85,247,0.2)]">
                       <Brain size={40} className={isProcessing ? 'animate-pulse' : ''} />
                     </div>
-                    <h3 className="text-lg font-black text-purple-500 drop-shadow-[0_0_5px_rgba(168,85,247,0.4)]">{t('dashboard.factory.waitingTitle')}</h3>
+                    <h3 className="text-lg font-black text-purple-500 drop-shadow-[0_0_5px_rgba(168,85,247,0.4)] animate-heartbeat-glow" style={{ '--glow-color': 'var(--glow-gold)' } as React.CSSProperties}>{t('dashboard.factory.waitingTitle')}</h3>
                     <p className="text-xs text-blue-400 mt-2 max-w-[200px] leading-relaxed">
                       {t('dashboard.factory.waitingDesc')}
                     </p>
@@ -1231,5 +1239,9 @@ export default function AIFactory({
         </MachineErrorBoundary>
       )}
     </motion.div>
+
+    <AnimatePresence>
+    </AnimatePresence>
+    </>
   );
 }

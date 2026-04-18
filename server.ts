@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
+import twilio from 'twilio';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import multer from 'multer';
@@ -136,6 +137,21 @@ app.post('/api/verify-order', async (req, res) => {
     // 3. Check if payment is completed
     if (orderData.status === 'COMPLETED') {
       const decryptedUrl = decrypt(encryptedUrl);
+      
+      // Trigger WhatsApp notification if enabled
+      if (req.body.whatsappEnabled && req.body.whatsappNumber) {
+        try {
+          const client = twilio(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!);
+          await client.messages.create({
+            body: `طلب جديد تم دفعه: ${orderId}`,
+            from: process.env.TWILIO_WHATSAPP_FROM_NUMBER!,
+            to: `whatsapp:${req.body.whatsappNumber}`
+          });
+        } catch (e) {
+          console.error("WhatsApp notification failed:", e);
+        }
+      }
+
       return res.json({ downloadUrl: decryptedUrl });
     } else {
       return res.status(400).json({ error: 'Payment not completed' });
@@ -208,6 +224,35 @@ app.post('/api/check-links', async (req, res) => {
   } catch (error: any) {
     console.error("Check Links Global Error:", error);
     res.status(500).json({ error: 'Failed to process links' });
+  }
+});
+
+// 3. Send WhatsApp Notification
+app.post('/api/send-whatsapp-notification', async (req, res) => {
+  const { whatsappNumber, orderDetails } = req.body;
+  if (!whatsappNumber || !orderDetails) {
+    return res.status(400).json({ error: 'Missing whatsappNumber or orderDetails' });
+  }
+
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const fromNumber = process.env.TWILIO_WHATSAPP_FROM_NUMBER;
+
+  if (!accountSid || !authToken || !fromNumber) {
+    return res.status(500).json({ error: 'Twilio not configured' });
+  }
+
+  try {
+    const client = twilio(accountSid, authToken);
+    await client.messages.create({
+      body: `طلب جديد: ${orderDetails}`,
+      from: fromNumber,
+      to: `whatsapp:${whatsappNumber}`
+    });
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error("Twilio Error:", error);
+    res.status(500).json({ error: 'Failed to send WhatsApp notification' });
   }
 });
 

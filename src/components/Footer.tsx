@@ -132,11 +132,20 @@ export default function Footer() {
             <ul className="space-y-4">
               <li className="flex items-center gap-3 text-gray-400 font-bold">
                 <Mail size={18} className="text-primary" />
-                <span>esraa0badr@gmail.com</span>
+                <span>Samemlywk@gmail.com</span>
               </li>
-              <li className="flex items-center gap-3 text-gray-400 font-bold">
-                <Phone size={18} className="text-primary" />
-                <span>+965 69929627</span>
+              <li>
+                <a 
+                  href="https://www.instagram.com/moonlight_eb.kw?igsh=czYzc2thY3p5NGs2" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 text-gray-400 font-bold hover:text-primary transition-colors"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center animate-pulse shadow-[0_0_15px_rgba(225,48,108,0.5)] border border-pink-500/30">
+                    <Instagram size={18} className="text-pink-500" />
+                  </div>
+                  <span>تواصل معنا على إنستغرام</span>
+                </a>
               </li>
             </ul>
           </div>

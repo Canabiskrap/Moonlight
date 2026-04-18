@@ -57,12 +57,17 @@ import {
   UserCheck,
   Lightbulb,
   Palette,
-  Rocket
+  Rocket,
+  ShoppingCart,
+  ShoppingBasket,
+  Save
 } from 'lucide-react';
 
 import { getProductInsights, chatWithBot } from '../services/geminiService';
 import DashboardAnalytics from '../components/DashboardAnalytics';
 import SmartAIAssistant from '../components/SmartAIAssistant';
+import AIFactory from '../components/AIFactory';
+import StarBackground from '../components/StarBackground';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 
@@ -102,6 +107,7 @@ export default function Dashboard() {
   const [customBucket, setCustomBucket] = useState('');
   const [isZenMode, setIsZenMode] = useState(false);
   const [inspirationNotes, setInspirationNotes] = useState<any[]>([]);
+  const [galleryItems, setGalleryItems] = useState<any[]>([]);
   const [newNote, setNewNote] = useState('');
   const navigate = useNavigate();
 
@@ -234,11 +240,21 @@ export default function Dashboard() {
       }
     );
 
+    const unsubGallery = onSnapshot(qGallery, 
+      (snapshot) => {
+        setGalleryItems(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      },
+      (error) => {
+        console.error("Gallery Snapshot Error:", error);
+      }
+    );
+
     return () => {
       unsubProds();
       unsubServices();
       unsubOrders();
       unsubInspiration();
+      unsubGallery();
     };
   }, []);
 
@@ -729,6 +745,28 @@ export default function Dashboard() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleSaveToGallery = async (item: any) => {
+    try {
+      await addDoc(collection(db, 'creative_gallery'), {
+        ...item,
+        timestamp: new Date().toLocaleString('ar-SA'),
+        createdAt: Timestamp.now()
+      });
+      addLog("✅ تم الحفظ في الرواق!");
+    } catch (err: any) {
+      addLog("❌ فشل الحفظ في الرواق: " + err.message);
+    }
+  };
+
+  const handleDeleteFromGallery = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'creative_gallery', id));
+      addLog("🗑️ تم الحذف من الرواق");
+    } catch (err: any) {
+      addLog("❌ فشل الحذف: " + err.message);
+    }
+  };
+
   const checkProductLinks = async () => {
     setIsCheckingLinks(true);
     addLog("🩺 طبيب الروابط يبدأ الفحص الشامل...");
@@ -839,52 +877,27 @@ export default function Dashboard() {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="space-y-10 pb-64"
-    >
-      {/* Store Health Pulse Background */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <motion.div
-          animate={{
-            opacity: [0.05, 0.15, 0.05],
-            scale: [1, 1.1, 1],
-          }}
-          transition={{
-            duration: status === 'uploading' ? 1 : 4,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-          className="absolute -top-[20%] -right-[10%] w-[60%] h-[60%] bg-primary/20 blur-[120px] rounded-full"
-        />
-        <motion.div
-          animate={{
-            opacity: [0.03, 0.1, 0.03],
-            scale: [1, 1.2, 1],
-          }}
-          transition={{
-            duration: status === 'uploading' ? 1.5 : 6,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 1
-          }}
-          className="absolute -bottom-[20%] -left-[10%] w-[50%] h-[50%] bg-gold/10 blur-[120px] rounded-full"
-        />
-      </div>
+    <div className="space-y-10 pb-64 relative min-h-screen">
+      <StarBackground />
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        className="space-y-10"
+      >
+      
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
         <div className="flex flex-col">
           <div className="flex items-center gap-4">
-            <h1 className="text-4xl font-black text-white tracking-tight">{t('dashboard.title')}</h1>
+            <h1 className="text-4xl font-black text-white tracking-tight animate-heartbeat-glow" style={{ '--glow-color': '#FFFFFF' } as React.CSSProperties}>{t('dashboard.title')}</h1>
           </div>
           <div className="flex items-center gap-2 mt-2">
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-            <span className="text-[10px] text-gray-500 uppercase tracking-[0.2em] font-bold">🌕 {t('dashboard.managementSystem')}</span>
+            <span className="text-[10px] text-[#E9D5FF] uppercase tracking-[0.2em] font-bold">🌕 {t('dashboard.managementSystem')}</span>
           </div>
         </div>
         
-        <div className="flex flex-wrap gap-3 bg-dark-light/30 p-2 rounded-[2.5rem] border border-white/5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-3 bg-white/5 p-3 rounded-[2.5rem] border border-white/10 w-full overflow-hidden">
           {[
             { id: 'analytics', label: t('dashboard.tabs.analytics'), icon: Activity, color: 'primary' },
             { id: 'ai', label: t('dashboard.tabs.ai'), icon: Brain, color: 'gold' },
@@ -898,16 +911,24 @@ export default function Dashboard() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`px-6 py-3.5 rounded-2xl text-sm font-black transition-all flex items-center gap-2 ${
+              className={`px-4 py-4 rounded-2xl text-[11px] sm:text-xs font-black transition-all flex flex-col sm:flex-row items-center justify-center gap-2 group relative overflow-hidden ${
                 activeTab === tab.id 
                   ? tab.color === 'gold' 
-                    ? 'bg-gold text-black shadow-lg shadow-gold/20' 
-                    : 'bg-primary text-white shadow-lg shadow-primary/20' 
-                  : 'text-gray-500 hover:text-white hover:bg-white/5'
+                    ? 'bg-gold text-black shadow-[0_0_30px_rgba(212,175,55,0.4)] scale-105 active:scale-95' 
+                    : 'bg-primary text-white shadow-[0_0_30px_rgba(56,189,248,0.4)] scale-105 active:scale-95' 
+                  : 'text-gray-400 hover:text-white hover:bg-white/10 border border-transparent hover:border-white/5 active:scale-95'
               }`}
             >
-              <tab.icon size={18} />
-              {tab.label}
+              {activeTab === tab.id && (
+                <motion.div 
+                  layoutId="vibrant-bg"
+                  className="absolute inset-0 bg-white/10 pointer-events-none"
+                  initial={false}
+                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                />
+              )}
+              <tab.icon size={activeTab === tab.id ? 20 : 16} className={`transition-transform duration-300 ${activeTab === tab.id ? 'scale-110 animate-soft-pulse' : 'group-hover:scale-110'}`} />
+              <span className="text-center relative z-10">{tab.label}</span>
             </button>
           ))}
         </div>
@@ -920,19 +941,19 @@ export default function Dashboard() {
               
               <div className="relative z-10 space-y-8">
                 <div className="flex items-center gap-4 mb-2">
-                  <div className="w-14 h-14 bg-primary/20 rounded-2xl flex items-center justify-center text-primary">
+                  <div className="w-14 h-14 bg-[#8B5CF6]/20 rounded-2xl flex items-center justify-center text-[#8B5CF6] shadow-[0_0_15px_rgba(139,92,246,0.5)] animate-soft-pulse">
                     <Settings size={28} />
                   </div>
                   <div>
-                    <h2 className="text-3xl font-black text-white">مظهر المتجر</h2>
-                    <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">تخصيص الهوية البصرية والروابط</p>
+                  <h2 className="text-3xl font-black text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] animate-heartbeat-glow" style={{ '--glow-color': 'var(--glow-gold)' } as React.CSSProperties}>مظهر المتجر</h2>
+                    <p className="text-xs text-[#C4B5FD] font-bold uppercase tracking-widest mt-1">تخصيص الهوية البصرية والروابط</p>
                   </div>
                 </div>
 
                 <div className="p-8 bg-white/5 rounded-[2rem] border border-white/5 space-y-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-lg font-black text-white mb-1">شعار المتجر (Logo)</h3>
+                      <h3 className="text-lg font-black text-white mb-1 animate-heartbeat-glow" style={{ '--glow-color': 'var(--glow-gold)' } as React.CSSProperties}>شعار المتجر (Logo)</h3>
                       <p className="text-xs text-gray-500 font-bold">يفضل أن يكون بخلفية شفافة PNG</p>
                     </div>
                     <div className="w-20 h-20 bg-dark rounded-2xl border border-white/10 flex items-center justify-center overflow-hidden">
@@ -989,7 +1010,7 @@ export default function Dashboard() {
                       <Instagram size={24} />
                     </div>
                     <div>
-                      <h3 className="text-xl font-black text-white">روابط التواصل الاجتماعي</h3>
+                      <h3 className="text-xl font-black text-white animate-heartbeat-glow" style={{ '--glow-color': 'var(--glow-gold)' } as React.CSSProperties}>روابط التواصل الاجتماعي</h3>
                       <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">اربط حساباتك لتظهر في أسفل الموقع</p>
                     </div>
                   </div>
@@ -1081,7 +1102,7 @@ export default function Dashboard() {
                             <Zap size={24} />
                           </div>
                           <div>
-                            <h3 className="text-xl font-black text-white">فيديو الواجهة (Hero)</h3>
+                            <h3 className="text-xl font-black text-white animate-heartbeat-glow" style={{ '--glow-color': 'var(--glow-gold)' } as React.CSSProperties}>فيديو الواجهة (Hero)</h3>
                             <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">تغيير الفيديو المتحرك في الصفحة الرئيسية</p>
                           </div>
                         </div>
@@ -1177,7 +1198,7 @@ export default function Dashboard() {
                       <Brain size={24} />
                     </div>
                     <div>
-                      <h3 className="text-xl font-black text-white">شخصية الذكاء الاصطناعي</h3>
+                      <h3 className="text-xl font-black text-white animate-heartbeat-glow" style={{ '--glow-color': 'var(--glow-gold)' } as React.CSSProperties}>شخصية الذكاء الاصطناعي</h3>
                       <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">اختر كيف يتحدث معك المصنع والمساعد</p>
                     </div>
                   </div>
@@ -1211,7 +1232,7 @@ export default function Dashboard() {
                         <Zap size={24} />
                       </div>
                       <div>
-                        <h3 className="text-xl font-black text-white">مزامنة دورة القمر</h3>
+                        <h3 className="text-xl font-black text-white animate-heartbeat-glow" style={{ '--glow-color': 'var(--glow-gold)' } as React.CSSProperties}>مزامنة دورة القمر</h3>
                         <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">تغيير ثيم الموقع حسب حالة القمر الحقيقية</p>
                       </div>
                     </div>
@@ -1231,8 +1252,8 @@ export default function Dashboard() {
                       <Send size={24} />
                     </div>
                     <div>
-                      <h3 className="text-xl font-black text-white">مركز الإشعارات</h3>
-                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">إشعارات الواتساب والتقارير</p>
+                      <h3 className="text-xl font-black text-white animate-heartbeat-glow" style={{ '--glow-color': 'var(--glow-gold)' } as React.CSSProperties}>مركز الإشعارات</h3>
+                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">إشعارات وتقارير المنصة</p>
                     </div>
                   </div>
                   <div className="space-y-4">
@@ -1279,7 +1300,7 @@ export default function Dashboard() {
                       <Sparkles size={24} />
                     </div>
                     <div>
-                      <h3 className="text-xl font-black text-white">خزنة الهوية (Brand Vault)</h3>
+                      <h3 className="text-xl font-black text-white animate-heartbeat-glow" style={{ '--glow-color': 'var(--glow-gold)' } as React.CSSProperties}>خزنة الهوية (Brand Vault)</h3>
                       <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">تخزين أصول علامتك التجارية للذكاء الاصطناعي</p>
                     </div>
                   </div>
@@ -1321,36 +1342,24 @@ export default function Dashboard() {
         {activeTab !== 'settings' && (
           <div className={`grid grid-cols-1 lg:grid-cols-3 gap-10 transition-all duration-700 ${isZenMode ? 'blur-sm opacity-20 pointer-events-none scale-95' : ''}`}>
             {/* Add/Edit Product Form */}
-            <div className={`lg:col-span-1 space-y-8 ${activeTab === 'orders' ? 'hidden lg:block opacity-30 pointer-events-none' : ''}`}>
-          <div className="bg-dark-light/30 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-white/10 shadow-2xl relative overflow-hidden">
+            <div className={`lg:col-span-1 space-y-8 ${activeTab === 'orders' ? 'opacity-30 pointer-events-none' : ''}`}>
+          <div className="backdrop-blur-3xl bg-white/5 border border-white/10 transition-all duration-500 hover:bg-white/10 hover:border-white/20 hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)] hover:scale-[1.02] p-8 rounded-[2.5rem] relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16" />
             
             <div className="flex justify-between items-center mb-8 relative z-10">
-              <h2 className="text-2xl font-black flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${editingId || editingServiceId ? 'bg-gold/20 text-gold' : 'bg-primary/20 text-primary'}`}>
-                  {editingId || editingServiceId ? <CheckCircle2 size={20} /> : <Plus size={20} />}
+              <h2 className="text-2xl font-black flex items-center gap-3 animate-heartbeat-glow" style={{ '--glow-color': 'var(--glow-gold)' } as React.CSSProperties}>
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg transition-all duration-300 ${editingId || editingServiceId ? 'bg-gold shadow-gold/30 text-black scale-110' : 'bg-primary shadow-primary/30 text-white animate-soft-pulse'}`}>
+                  {editingId || editingServiceId ? <CheckCircle2 size={24} /> : activeTab === 'services' ? <Sparkles size={24} /> : <ShoppingBasket size={24} />}
                 </div>
-                {editingId ? 'تعديل المنتج' : editingServiceId ? 'تعديل الخدمة' : activeTab === 'services' ? 'إضافة خدمة' : 'إضافة منتج'}
+                <div>
+                  <span className="block">{editingId ? 'تعديل المنتج' : editingServiceId ? 'تعديل الخدمة' : activeTab === 'services' ? 'إضافة خدمة' : 'إضافة منتج'}</span>
+                  <span className="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Moonlight Management</span>
+                </div>
               </h2>
               {(editingId || editingServiceId) && (
                 <button 
                   onClick={resetForm}
                   className="text-xs font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1"
-                >
-                  إلغاء التعديل
-                </button>
-              )}
-            </div>
-
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-black flex items-center gap-2">
-                {editingId || editingServiceId ? <CheckCircle2 className="text-gold" /> : <Plus className="text-primary" />}
-                {editingId ? 'تعديل المنتج الحالي' : editingServiceId ? 'تعديل الخدمة الحالية' : activeTab === 'services' ? 'إضافة خدمة جديدة' : 'إضافة منتج جديد'}
-              </h2>
-              {(editingId || editingServiceId) && (
-                <button 
-                  onClick={resetForm}
-                  className="text-xs font-bold text-gray-500 hover:text-white underline"
                 >
                   إلغاء التعديل
                 </button>
@@ -1479,21 +1488,22 @@ export default function Dashboard() {
               </div>
 
               <div className="space-y-4">
-                <div className="p-1 bg-white/5 rounded-2xl border border-white/5 flex">
+                <div className="p-1.5 bg-white/5 rounded-[2rem] border border-white/5 flex gap-1 relative overflow-hidden">
                       <button 
                         type="button"
                         onClick={() => setUploadMethod('direct')}
-                        className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${uploadMethod === 'direct' ? 'bg-primary text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}
+                        className={`flex-1 py-3.5 rounded-2xl text-[11px] font-black transition-all relative z-10 ${uploadMethod === 'direct' ? 'bg-primary text-white shadow-[0_0_20px_rgba(56,189,248,0.3)] scale-[1.02]' : 'text-gray-500 hover:text-white'}`}
                       >
                         {t('dashboard.form.uploadMethodFiles')}
                       </button>
                       <button 
                         type="button"
                         onClick={() => setUploadMethod('link')}
-                        className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${uploadMethod === 'link' ? 'bg-primary text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}
+                        className={`flex-1 py-3.5 rounded-2xl text-[11px] font-black transition-all relative z-10 ${uploadMethod === 'link' ? 'bg-primary text-white shadow-[0_0_20px_rgba(56,189,248,0.3)] scale-[1.02]' : 'text-gray-500 hover:text-white'}`}
                       >
                         {t('dashboard.form.uploadMethodLinks')}
                       </button>
+                      {/* Vibrant slide effect could be added here if using motion layoutId, but simplicity is fine for now */}
                   </div>
 
                   {uploadMethod === 'direct' ? (
@@ -1575,14 +1585,14 @@ export default function Dashboard() {
                               <button 
                                 type="button"
                                 onClick={() => setImageUploadType('file')}
-                                className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${imageUploadType === 'file' ? 'bg-primary text-white' : 'text-gray-500'}`}
+                                className={`px-4 py-1.5 rounded-lg text-[10px] font-black transition-all transform active:scale-95 ${imageUploadType === 'file' ? 'bg-primary text-white shadow-[0_0_15px_rgba(56,189,248,0.3)]' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
                               >
                                 {t('dashboard.form.uploadFile')}
                               </button>
                               <button 
                                 type="button"
                                 onClick={() => setImageUploadType('link')}
-                                className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${imageUploadType === 'link' ? 'bg-primary text-white' : 'text-gray-500'}`}
+                                className={`px-4 py-1.5 rounded-lg text-[10px] font-black transition-all transform active:scale-95 ${imageUploadType === 'link' ? 'bg-primary text-white shadow-[0_0_15px_rgba(56,189,248,0.3)]' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
                               >
                                 {t('dashboard.form.externalLink')}
                               </button>
@@ -1755,56 +1765,48 @@ export default function Dashboard() {
                   </div>
                 )}
                 
-                <button 
+                <motion.button 
+                  whileHover={{ scale: 1.02, boxShadow: status === 'success' ? "0 0 30px rgba(34,197,94,0.4)" : "0 0 30px rgba(56,189,248,0.4)" }}
+                  whileTap={{ scale: 0.98 }}
                   type="submit" 
                   disabled={status === 'uploading' || status === 'success'}
-                  className={`w-full py-5 rounded-2xl font-black text-sm transition-all shadow-2xl relative overflow-hidden group ${
+                  className={`w-full py-6 rounded-[2.5rem] font-black text-sm transition-all shadow-2xl relative overflow-hidden group ${
                     status === 'success' ? 'bg-green-500 text-white' :
                     status === 'error' ? 'bg-red-500 text-white hover:bg-red-600' :
-                    'bg-primary text-white hover:bg-primary-dark disabled:opacity-50'
-                  }`}
+                    'bg-primary text-white hover:bg-primary-dark shadow-primary/30'
+                  } disabled:opacity-50`}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
                   {status === 'uploading' ? (
                     <div className="relative z-10 flex flex-col items-center gap-2">
                       <div className="flex items-center justify-center gap-3">
-                        <RefreshCw size={18} className="animate-spin" />
-                        {uploadProgress > 0 
-                          ? `${t('dashboard.form.saving')} ${Math.round(uploadProgress)}%` 
-                          : t('dashboard.form.preparing')}
+                        <RefreshCw size={20} className="animate-spin text-white" />
+                        <span className="animate-pulse">
+                          {uploadProgress > 0 
+                            ? `${t('dashboard.form.saving')} ${Math.round(uploadProgress)}%` 
+                            : t('dashboard.form.preparing')}
+                        </span>
                       </div>
                       <div 
                         role="button"
-                        tabIndex={0}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleCancelUpload();
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleCancelUpload();
-                          }
-                        }}
                         className="text-[10px] text-white/60 hover:text-white underline font-bold mt-1 transition-colors cursor-pointer"
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleCancelUpload(); }}
                       >
                         {t('dashboard.form.cancelEdit')}
                       </div>
                     </div>
                   ) : status === 'success' ? (
-                    <span className="relative z-10 flex items-center justify-center gap-2">
-                      <CheckCircle2 className="w-5 h-5" />
-                      {t('dashboard.form.saveSuccess')}
+                    <span className="relative z-10 flex items-center justify-center gap-3">
+                      <CheckCircle2 className="w-6 h-6 animate-bounce" />
+                      <span className="text-lg">{t('dashboard.form.saveSuccess')}</span>
                     </span>
                   ) : (
-                    <span className="relative z-10 flex items-center justify-center gap-2">
-                      {editingId || editingServiceId ? <CheckCircle2 size={18} /> : <Plus size={18} />}
-                      {editingId || editingServiceId ? t('dashboard.form.updateChanges') : activeTab === 'services' ? t('dashboard.form.publishService') : t('dashboard.form.publishProduct')}
+                    <span className="relative z-10 flex items-center justify-center gap-3 group-hover:gap-5 transition-all">
+                      {editingId || editingServiceId ? <Save size={22} className="group-hover:rotate-12 transition-transform" /> : <Rocket size={22} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />}
+                      <span className="text-base tracking-tight">{editingId || editingServiceId ? t('dashboard.form.updateChanges') : activeTab === 'services' ? t('dashboard.form.publishService') : t('dashboard.form.publishProduct')}</span>
                     </span>
                   )}
-                </button>
+                </motion.button>
               </div>
             </form>
           </div>
@@ -1831,50 +1833,13 @@ export default function Dashboard() {
           )}
 
           {activeTab === 'factory' && (
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-dark-light/30 backdrop-blur-2xl p-12 rounded-[3rem] border border-white/10 shadow-2xl relative overflow-hidden text-center"
-            >
-              <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-[100px] -mr-48 -mt-48 animate-pulse" />
-              <div className="absolute bottom-0 left-0 w-96 h-96 bg-gold/5 rounded-full blur-[100px] -ml-48 -mb-48 animate-pulse" />
-              
-              <div className="relative z-10 space-y-8 max-w-2xl mx-auto">
-                <div className="w-24 h-24 bg-gradient-to-br from-primary to-purple-600 rounded-[2rem] flex items-center justify-center text-white mx-auto shadow-2xl shadow-primary/30 rotate-3 hover:rotate-0 transition-transform duration-500">
-                  <Brain size={48} />
-                </div>
-                
-                <div className="space-y-4">
-                  <h2 className="text-4xl font-black text-white tracking-tight">AI Factory Portal</h2>
-                  <p className="text-gray-400 leading-relaxed">
-                    مرحباً بك في واجهة المصنع الموحدة. هنا يمكنك الوصول إلى جميع أدوات الذكاء الاصطناعي، توليد المحتوى، وتصميم الصور في بيئة عمل غامرة واحترافية.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 py-8">
-                  <div className="p-6 bg-white/5 rounded-3xl border border-white/10">
-                    <Zap className="text-primary mx-auto mb-3" size={24} />
-                    <h3 className="text-xs font-black uppercase tracking-widest">سرعة فائقة</h3>
-                  </div>
-                  <div className="p-6 bg-white/5 rounded-3xl border border-white/10">
-                    <Palette className="text-gold mx-auto mb-3" size={24} />
-                    <h3 className="text-xs font-black uppercase tracking-widest">تصميم احترافي</h3>
-                  </div>
-                  <div className="p-6 bg-white/5 rounded-3xl border border-white/10">
-                    <Sparkles className="text-primary mx-auto mb-3" size={24} />
-                    <h3 className="text-xs font-black uppercase tracking-widest">ذكاء متطور</h3>
-                  </div>
-                </div>
-
-                <button 
-                  onClick={() => navigate('/factory')}
-                  className="w-full py-6 bg-primary text-white rounded-[2rem] font-black text-xl hover:bg-primary-dark transition-all shadow-xl shadow-primary/20 flex items-center justify-center gap-4 group"
-                >
-                  <span>دخول المصنع الذكي</span>
-                  <ArrowRight className="group-hover:translate-x-2 transition-transform" />
-                </button>
-              </div>
-            </motion.div>
+            <AIFactory 
+              addLog={addLog}
+              galleryItems={galleryItems}
+              onSaveToGallery={handleSaveToGallery}
+              onDeleteFromGallery={handleDeleteFromGallery}
+              onInstantPublish={handleInstantPublish}
+            />
           )}
 
           {activeTab === 'ai' && (
@@ -1889,7 +1854,7 @@ export default function Dashboard() {
                     <Sparkles size={28} />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-black text-white">{t('dashboard.list.availableServices')}</h2>
+                    <h2 className="text-2xl font-black text-white animate-heartbeat-glow" style={{ '--glow-color': 'var(--glow-gold)' } as React.CSSProperties}>{t('dashboard.list.availableServices')}</h2>
                     <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">{t('dashboard.list.manageServices')} ({services.length})</p>
                   </div>
                 </div>
@@ -1919,7 +1884,7 @@ export default function Dashboard() {
                       </div>
                       
                       <div>
-                        <h3 className="text-xl font-black text-white mb-2 group-hover:text-gold transition-colors">{s.title}</h3>
+                        <h3 className="text-xl font-black text-white mb-2 group-hover:text-gold transition-colors animate-heartbeat-glow" style={{ '--glow-color': 'var(--glow-gold)' } as React.CSSProperties}>{s.title}</h3>
                         <p className="text-xs text-gray-400 leading-relaxed line-clamp-3">{s.description}</p>
                       </div>
                     </div>
@@ -1980,7 +1945,7 @@ export default function Dashboard() {
                     <Package size={24} />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-black text-white">{t('dashboard.list.products')}</h2>
+                    <h2 className="text-2xl font-black text-white animate-heartbeat-glow" style={{ '--glow-color': 'var(--glow-gold)' } as React.CSSProperties}>{t('dashboard.list.products')}</h2>
                     <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">{t('dashboard.list.manageInventory')} ({products.length})</p>
                   </div>
                 </div>
@@ -2107,7 +2072,7 @@ export default function Dashboard() {
                     <DollarSign size={24} />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-black text-white">{t('dashboard.orders.title')}</h2>
+                    <h2 className="text-2xl font-black text-white animate-heartbeat-glow" style={{ '--glow-color': 'var(--glow-gold)' } as React.CSSProperties}>{t('dashboard.orders.title')}</h2>
                     <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">{t('dashboard.orders.salesLog')} ({orders.length})</p>
                   </div>
                 </div>
@@ -2216,7 +2181,7 @@ export default function Dashboard() {
                     <Lightbulb size={28} />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-black text-white">لوحة الإلهام المشتركة</h2>
+                    <h2 className="text-2xl font-black text-white animate-heartbeat-glow" style={{ '--glow-color': 'var(--glow-gold)' } as React.CSSProperties}>لوحة الإلهام المشتركة</h2>
                     <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">مساحة خاصة لك ولزوجتك لتبادل الأفكار</p>
                   </div>
                 </div>
@@ -2398,7 +2363,7 @@ export default function Dashboard() {
               <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto border border-primary/20 text-primary">
                 <Clock size={40} className="animate-pulse" />
               </div>
-              <h2 className="text-4xl font-black text-white tracking-tighter">وضع الهدوء (Zen Mode)</h2>
+              <h2 className="text-4xl font-black text-white tracking-tighter animate-heartbeat-glow" style={{ '--glow-color': 'var(--glow-gold)' } as React.CSSProperties}>وضع الهدوء (Zen Mode)</h2>
               <p className="text-xl text-gray-400 font-medium leading-relaxed">
                 "الإبداع يزدهر في الصمت. ركز على فكرتك القادمة، وسنتولى نحن الباقي."
               </p>
@@ -2431,6 +2396,7 @@ export default function Dashboard() {
       >
         <Activity size={24} className={isZenMode ? 'animate-spin' : 'group-hover:rotate-12 transition-transform'} />
       </button>
-    </motion.div>
+      </motion.div>
+    </div>
   );
 }

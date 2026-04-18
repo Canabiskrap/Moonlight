@@ -148,6 +148,26 @@ const resources = {
             visual: {
               title: 'ماكينة المحتوى المرئي',
               description: 'توليد أفكار للتصاميم، الفيديوهات، والسيناريوهات الإبداعية.'
+            },
+            brandBook: {
+              title: 'مهندس دليل الهوية',
+              description: 'أنشئ دليل هوية بصرية متكامل لعلامتك التجارية بضغطة زر.'
+            },
+            cvMaker: {
+              title: 'صانع السيرة الذاتية',
+              description: 'صمم CV احترافي وعصري يبرز مهاراتك وخبراتك.'
+            },
+            templateMaker: {
+              title: 'صانع القوالب',
+              description: 'أنشئ قوالب جاهزة (فواتير، خطابات، خطط) بلمسة فنية.'
+            },
+            visualGenerator: {
+              title: 'المصمم الآلي',
+              description: 'ولد تصاميم سوشيال ميديا احترافية لهويتك البصرية.'
+            },
+            bananaGenerator: {
+              title: 'مولد الموز (Banana)',
+              description: 'محرك إبداعي لتوليد أفكار تسويقية "مجنونة" وغير تقليدية لكسر الملل.'
             }
           }
         },
@@ -273,7 +293,7 @@ const resources = {
           },
           {
             title: "الدعم الفني المباشر",
-            desc: "فريقنا متواجد لخدمتك عبر أيقونة WhatsApp الموجودة أسفل الموقع.",
+            desc: "فريقنا متواجد لخدمتك عبر أيقونة إنستغرام الموجودة أسفل الموقع.",
             details: [
               "لا تضطر أبداً للدفع مرتين؛ فبمجرد التحقق من رقم العملية في لوحة التحكم لدينا، يتم تزويدك بالرابط يدوياً فوراً."
             ]
@@ -326,7 +346,7 @@ const resources = {
         orderReceived: 'تم استلام الطلب!',
         thanks: 'شكراً لثقتك. سنتواصل معك عبر بريدك الإلكتروني قريباً جداً.',
         downloadAttached: 'تحميل الملفات المرفقة',
-        contactWhatsapp: 'تواصل معنا عبر واتساب',
+        contactWhatsapp: 'تواصل معنا عبر إنستغرام',
         backToHome: 'العودة للرئيسية',
         serviceType: 'نوع الخدمة',
         professional: 'احترافية',
@@ -375,7 +395,7 @@ const resources = {
         instruction3: 'اتبع الدليل المرفق مع الملفات للحصول على أفضل النتائج.',
         instruction4: 'في حال واجهت أي مشكلة، لا تتردد في مراسلتنا مباشرة.',
         contactMoonlight: 'تواصل مع Moonlight',
-        haveQuestion: 'هل لديك استفسار أو تعديل؟ نحن هنا على مدار الساعة عبر الواتساب',
+        haveQuestion: 'هل لديك استفسار أو تعديل؟ نحن هنا على مدار الساعة عبر إنستغرام',
         madeBy: 'صنع بـ ✦ بواسطة',
         allRights: 'الهوية الرقمية الاحترافية · جميع الحقوق محفوظة 2024'
       },
@@ -459,7 +479,7 @@ const resources = {
         poweredByAi: 'مدعوم بالذكاء الاصطناعي',
         thinking: 'يفكر...',
         placeholder: 'اسألني أي شيء...',
-        whatsappLabel: 'تواصل معنا عبر واتساب',
+        whatsappLabel: 'تواصل معنا عبر إنستغرام',
         chatLabel: 'المساعد الذكي',
         name: 'مساعد Moonlight',
         status: 'متصل الآن',
@@ -471,7 +491,7 @@ const resources = {
         assistantTitle: 'مساعد Moonlight الذكي',
         assistantDesc: 'اسألني عن أي شيء يخص إدارة المتجر',
         startChat: 'ابدأ المحادثة الآن للحصول على مساعدة فورية',
-        errorTechnical: 'عذراً، حدث خطأ تقني. يمكنك التواصل معنا عبر الواتساب مباشرة.',
+        errorTechnical: 'عذراً، حدث خطأ تقني. يمكنك التواصل معنا عبر إنستغرام مباشرة.',
         errorPermission: 'خطأ: ليس لديك صلاحية للوصول إلى الذكاء الاصطناعي. يرجى التأكد من صحة مفتاح API وتفعيل Generative Language API.',
         errorInvalidKey: 'خطأ: مفتاح API الخاص بالذكاء الاصطناعي غير صالح أو مفقود.',
         errorQuota: 'عذراً، تم تجاوز حصة الاستخدام اليومية للذكاء الاصطناعي.',
@@ -624,6 +644,26 @@ const resources = {
             visual: {
               title: 'Visual Content Machine',
               description: 'Generate ideas for designs, videos, and creative scripts.'
+            },
+            brandBook: {
+              title: 'Brand Book Architect',
+              description: 'Create a complete visual identity manual for your brand with one click.'
+            },
+            cvMaker: {
+              title: 'CV Maker',
+              description: 'Design professional and modern resumes that highlight your skills.'
+            },
+            templateMaker: {
+              title: 'Template Maker',
+              description: 'Create ready-to-use templates (invoices, letters, plans) with a creative touch.'
+            },
+            visualGenerator: {
+              title: 'Visual Designer (V2)',
+              description: 'Generate professional social media designs for your brand identity.'
+            },
+            bananaGenerator: {
+              title: 'Banana Generator (Crazy Mode)',
+              description: 'Creative engine for generating "crazy" and unconventional marketing ideas to break the boredom.'
             }
           }
         },
@@ -774,7 +814,7 @@ const resources = {
           },
           {
             title: 'Direct Technical Support',
-            desc: 'Our team is available to serve you via the WhatsApp icon at the bottom of the site.',
+            desc: 'Our team is available to serve you via the Instagram icon at the bottom of the site.',
             details: [
               'Never have to pay twice; once the transaction number is verified in our dashboard, you will be provided with the link manually immediately.'
             ]
@@ -827,7 +867,7 @@ const resources = {
         orderReceived: 'Order received!',
         thanks: 'Thanks for your trust. We will contact you via your email very soon.',
         downloadAttached: 'Download Attached Files',
-        contactWhatsapp: 'Contact us via WhatsApp',
+        contactWhatsapp: 'Contact us via Instagram',
         backToHome: 'Back to Home',
         serviceType: 'Service Type',
         professional: 'Professional',
@@ -876,7 +916,7 @@ const resources = {
         instruction3: 'Follow the guide attached with the files for the best results.',
         instruction4: 'In case you encounter any problem, do not hesitate to contact us directly.',
         contactMoonlight: 'Contact Moonlight',
-        haveQuestion: 'Do you have a question or modification? We are here around the clock via WhatsApp',
+        haveQuestion: 'Do you have a question or modification? We are here around the clock via Instagram',
         madeBy: 'Made with ✦ by',
         allRights: 'Professional Digital Identity · All Rights Reserved 2024'
       },
@@ -964,8 +1004,8 @@ const resources = {
         poweredByAi: 'Powered by AI',
         thinking: 'Thinking...',
         placeholder: 'Ask me anything...',
-        whatsappLabel: 'Contact us via WhatsApp',
-        errorTechnical: 'Sorry, a technical error occurred. You can contact us via WhatsApp directly.',
+        whatsappLabel: 'Contact us via Instagram',
+        errorTechnical: 'Sorry, a technical error occurred. You can contact us via Instagram directly.',
         errorPermission: 'Error: You do not have permission to access AI. Please ensure the API key is correct and Generative Language API is enabled.',
         errorInvalidKey: 'Error: The AI API key is invalid or missing.',
         errorQuota: 'Sorry, the daily AI usage quota has been exceeded.',

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Check, ChevronRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const generateHistory = (degradedDays: number[] = []) => {
   return Array.from({ length: 30 }, (_, i) => {
@@ -135,26 +136,31 @@ const incidents = [
 ];
 
 export default function Status() {
+  const { t, i18n } = useTranslation();
+  const isAr = i18n.language === 'ar';
+
   return (
-    <div className="min-h-screen bg-black text-white font-sans selection:bg-blue-500/30" dir="ltr">
+    <div className={`min-h-screen bg-black text-white font-sans selection:bg-primary/30 ${isAr ? 'font-arabic' : ''}`} dir={isAr ? 'rtl' : 'ltr'}>
       {/* Header */}
       <header className="flex justify-between items-center p-6 border-b border-white/10">
-        <div className="flex items-center gap-2">
-          {/* Triangle logo */}
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 2L22 20H2L12 2Z" fill="white"/>
-          </svg>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center border border-primary/30">
+            <span className="text-xl">🌕</span>
+          </div>
+          <span className="text-xl font-black tracking-tighter uppercase">Moonlight Status</span>
         </div>
-        <button className="px-4 py-2 text-sm font-medium border border-white/20 rounded-md hover:bg-white/10 transition-colors">
-          Subscribe
+        <button className="px-4 py-2 text-sm font-bold bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors">
+          {isAr ? 'اشترك في التنبيهات' : 'Subscribe to Updates'}
         </button>
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-12">
         {/* Banner */}
-        <div className="bg-[#0070f3] rounded-md p-4 flex items-center gap-3 mb-12">
-          <Check className="text-white" size={20} />
-          <span className="font-medium text-lg">All Systems Operational</span>
+        <div className="bg-primary/20 border border-primary/30 rounded-2xl p-6 flex items-center gap-4 mb-12 shadow-2xl shadow-primary/10">
+          <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center border border-white/20 animate-pulse">
+            <Check className="text-white" size={20} />
+          </div>
+          <span className="font-black text-xl">{isAr ? 'جميع الأنظمة تعمل بكفاءة' : 'All Systems Operational'}</span>
         </div>
 
         {/* Services */}
@@ -166,7 +172,7 @@ export default function Status() {
                   {service.isGroup && <ChevronRight size={16} className="text-gray-400" />}
                   <span className="font-medium text-lg">{service.name}</span>
                 </div>
-                <span className="text-[#0070f3] text-sm font-medium">{service.status}</span>
+                <span className="text-primary text-sm font-black uppercase tracking-widest">{isAr ? 'يعمل' : service.status}</span>
               </div>
               
               {/* Bars */}
@@ -174,15 +180,15 @@ export default function Status() {
                 {service.history.map((day, i) => (
                   <div 
                     key={i} 
-                    className={`flex-1 rounded-sm transition-all hover:opacity-80 cursor-pointer ${day.status === 'operational' ? 'bg-[#0070f3] h-full' : 'bg-[#f5a623] h-3/4'}`}
-                    title={`${day.date}\n${day.status === 'operational' ? 'No downtime recorded on this day.' : 'Incident recorded on this day.'}`}
+                    className={`flex-1 rounded-sm transition-all hover:opacity-80 cursor-pointer ${day.status === 'operational' ? 'bg-primary h-full shadow-[0_0_10px_rgba(var(--primary-rgb),0.3)]' : 'bg-gold h-3/4'}`}
+                    title={`${day.date}\n${day.status === 'operational' ? (isAr ? 'لم يتم تسجيل أي تعطل في هذا اليوم.' : 'No downtime recorded on this day.') : (isAr ? 'تم تسجيل حادثة في هذا اليوم.' : 'Incident recorded on this day.')}`}
                   />
                 ))}
               </div>
               
-              <div className="flex justify-between text-xs text-gray-500">
-                <span>30 days ago</span>
-                <span>Today</span>
+              <div className="flex justify-between text-[10px] text-gray-600 font-black uppercase tracking-widest">
+                <span>{isAr ? 'قبل 30 يوماً' : '30 days ago'}</span>
+                <span>{isAr ? 'اليوم' : 'Today'}</span>
               </div>
             </div>
           ))}
@@ -190,25 +196,26 @@ export default function Status() {
 
         {/* Past Incidents */}
         <div>
-          <h2 className="text-2xl font-bold mb-8">Past Incidents</h2>
-          <div className="space-y-10">
+          <h2 className="text-3xl font-black mb-10 tracking-tighter">{isAr ? 'الحوادث السابقة' : 'Past Incidents'}</h2>
+          <div className="space-y-12">
             {incidents.map(day => (
-              <div key={day.date} className="border-b border-white/10 pb-8 last:border-0">
-                <h3 className="text-xl font-bold mb-4">{day.date}</h3>
+              <div key={day.date} className="border-b border-white/10 pb-10 last:border-0 relative">
+                <div className="absolute -left-6 top-1.5 w-2 h-2 rounded-full bg-white/10" />
+                <h3 className="text-xl font-bold mb-6 text-gray-400">{day.date}</h3>
                 {day.incidents.length === 0 ? (
-                  <p className="text-gray-400 text-sm">No incidents reported{day.date === 'Apr 11, 2026' ? ' today.' : '.'}</p>
+                  <p className="text-gray-600 font-bold uppercase tracking-widest text-[10px]">{isAr ? 'لم يتم الإبلاغ عن أي حوادث.' : 'No incidents reported.'}</p>
                 ) : (
-                  <div className="space-y-8">
+                  <div className="space-y-10">
                     {day.incidents.map((incident, i) => (
-                      <div key={i}>
-                        <h4 className="text-[#f5a623] font-medium text-lg mb-4">{incident.title}</h4>
-                        <div className="space-y-4">
+                      <div key={i} className="bg-white/[0.02] border border-white/5 p-6 rounded-2xl">
+                        <h4 className="text-gold font-black text-lg mb-4">{incident.title}</h4>
+                        <div className="space-y-6">
                           {incident.updates.map((update, j) => (
-                            <div key={j} className="text-sm">
-                              <p className="text-gray-300 mb-1">
-                                <strong className="text-white">{update.status}</strong> - {update.message}
+                            <div key={j} className="text-sm border-r-2 border-white/10 pr-4">
+                              <p className="text-gray-300 mb-2">
+                                <strong className="text-white uppercase text-xs tracking-widest">{update.status}</strong> - {update.message}
                               </p>
-                              <p className="text-gray-500 text-xs">{update.time}</p>
+                              <p className="text-gray-500 text-[10px] font-bold">{update.time}</p>
                             </div>
                           ))}
                         </div>

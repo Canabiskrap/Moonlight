@@ -22,6 +22,7 @@ import MyOrders from './pages/MyOrders';
 import RecoverOrder from './pages/RecoverOrder';
 import BuyerProtection from './pages/BuyerProtection';
 import FloatingActions from './components/FloatingActions';
+// import TawkChat from './components/TawkChat';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { motion, AnimatePresence } from 'motion/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';

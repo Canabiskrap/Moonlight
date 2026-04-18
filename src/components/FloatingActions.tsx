@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { MessageCircle, Bot, X, Send, Loader2, RefreshCw } from 'lucide-react';
+import { Bot, X, Send, Loader2, RefreshCw, Instagram } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { chatWithBot } from '../services/geminiService';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -13,10 +13,8 @@ export default function FloatingActions() {
   const [messages, setMessages] = useState<{role: 'bot' | 'user', text: string}[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [instagramUrl, setInstagramUrl] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
-
-  const whatsappNumber = "96569929627"; 
-  const whatsappUrl = `https://wa.me/${whatsappNumber}`;
 
   useEffect(() => {
     setMessages([{ role: 'bot', text: t('bot.welcome') }]);
@@ -26,6 +24,7 @@ export default function FloatingActions() {
     const unsub = onSnapshot(doc(db, 'settings', 'appearance'), (doc) => {
       if (doc.exists()) {
         setLogoUrl(doc.data().logoUrl);
+        setInstagramUrl(doc.data().instagramUrl || '');
       }
     });
     return () => unsub();
@@ -75,23 +74,24 @@ export default function FloatingActions() {
   };
 
   return (
-    <div className="fixed bottom-8 right-8 z-[100] flex flex-col gap-4">
-      {/* WhatsApp Button */}
-      <motion.a
-        href={whatsappUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-        className="bg-[#25D366] text-white p-4 rounded-full shadow-2xl shadow-[#25D366]/30 flex items-center justify-center group relative"
-      >
-        <MessageCircle size={28} />
-        <span className="absolute right-full mr-4 bg-white text-dark px-3 py-1 rounded-lg text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl">
-          {t('bot.whatsappLabel')}
-        </span>
-      </motion.a>
-
+    <div className="fixed bottom-24 right-8 z-[100] flex flex-col gap-4">
       {/* Smart Bot Button */}
+      
+      {instagramUrl && (
+        <motion.a
+          href={instagramUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          animate={{ scale: [1, 1.05, 1] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          className="bg-gradient-to-tr from-purple-500 via-pink-500 to-yellow-500 text-white w-14 h-14 rounded-full shadow-lg shadow-purple-500/20 flex items-center justify-center"
+        >
+          <Instagram size={28} />
+        </motion.a>
+      )}
+
       <motion.button
         onClick={() => setShowBot(!showBot)}
         whileHover={{ scale: 1.1 }}

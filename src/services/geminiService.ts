@@ -14,7 +14,7 @@ export async function getProductInsights(product: any): Promise<ProductInsight> 
   if (!ai) throw new Error("AI service not initialized. Missing API Key.");
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.0-flash",
       contents: `Analyze this product and provide creative insights in Arabic.
       Product Name: ${product.name}
       Description: ${product.description}
@@ -53,7 +53,7 @@ export async function getSmartRecommendations(query: string, products: any[]): P
     const productList = products.map(p => ({ id: p.id, name: p.name, description: p.description, category: p.category }));
     
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash-latest",
+      model: "gemini-2.0-flash",
       contents: `User Query: "${query}"
       Available Products: ${JSON.stringify(productList)}`,
       config: {
@@ -78,7 +78,7 @@ export const generateImageWithGemini = async (prompt: string, aspectRatio: strin
   
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-image",
+      model: "imagen-3",
       contents: {
         parts: [{ text: prompt }],
       },
@@ -138,7 +138,7 @@ export async function chatWithBot(
           قواعدك الذهبية:
           1. الهوية: اسمك "مساعد Moonlight 🌕 الذكي".
           2. الخبرة الفنية (إصلاحات المتجر):
-             - إذا واجه العميل مشكلة في التحميل: أخبره أن يتأكد من استقرار الإنترنت، أو يراسلنا عبر واتساب لإرسال الملف يدوياً فوراً.
+             - إذا واجه العميل مشكلة في التحميل: أخبره أن يتأكد من استقرار الإنترنت، أو يراسلنا عبر إنستغرام لإرسال الملف يدوياً فوراً.
              - إذا سأل عن الدفع: أكد له أن PayPal وسيلة آمنة عالمياً، وبمجرد الدفع سيظهر زر "تحميل" تلقائياً.
              - إذا لم تظهر الصور: اطلب منه تحديث الصفحة (Refresh).
           3. خبرة المبيعات:
@@ -147,7 +147,7 @@ export async function chatWithBot(
           4. التواصل:
              - كن ودوداً جداً واحترافياً.
              - لغتك هي العربية بلهجة مهذبة.
-             - دائماً ذكّره بوجود أيقونة الواتساب الخضراء للتحدث مع الإدارة مباشرة لأي طلبات خاصة.
+             - دائماً ذكّره بوجود أيقونة الإنستغرام للتحدث مع الإدارة مباشرة لأي طلبات خاصة.
           
           معلومات المتجر:
           - نحن نقدم: تصميم شعارات، هوية بصرية، بوستات ريلز، مواقع ويب، تطبيقات أندرويد و iOS، ومعارض أعمال.
@@ -168,7 +168,7 @@ export async function chatWithBot(
           5. الحلول العملية: أعطِ خطوات قابلة للتنفيذ (Actionable Steps) بدلاً من التنظير.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.0-flash",
       contents: [
         ...history.map(h => ({ role: h.role, parts: h.parts })),
         { role: 'user', parts: [{ text: userMessage }] }
@@ -191,7 +191,7 @@ export async function generateFixSuggestion(prompt: string): Promise<string> {
   if (!ai) throw new Error("AI service not initialized. Missing API Key.");
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.0-flash",
       contents: prompt,
       config: {
         systemInstruction: "You are an expert developer. Provide concise, production-ready code fixes.",
@@ -204,7 +204,7 @@ export async function generateFixSuggestion(prompt: string): Promise<string> {
   }
 }
 
-export async function runFactoryMachine(machineId: string, input: string, imageUrl?: string, settings?: any): Promise<any> {
+export async function runFactoryMachine(machineId: string, input: string, imageUrl?: string, settings?: any, projectContext?: any): Promise<any> {
   if (!ai) throw new Error("AI service not initialized. Missing API Key.");
   
   const persona = settings?.aiPersona || 'ceo';
@@ -221,6 +221,19 @@ export async function runFactoryMachine(machineId: string, input: string, imageU
   }
 
   const brandContext = brandDesc ? `معلومات عن العلامة التجارية: ${brandDesc}. الألوان المعتمدة: ${brandColors}.` : "";
+  const projContextStr = projectContext ? `سياق المشروع: الاسم: ${projectContext.brandName}, الهوية: ${projectContext.brandIdentity}, الجمهور: ${projectContext.targetAudience}.` : "";
+  const finalBrandContext = `${brandContext} ${projContextStr}`;
+
+  // Rollback Directive: Direct Mode & Literal Compliance
+  const literalDirective = `
+    CORE DIRECTIVE: LITERAL COMPLIANCE & ACCURACY.
+    1. NO AGENTIC DRIFT: Execute the user's request exactly as written. Do not add "creative twists" unless explicitly asked for.
+    2. IMAGE DIRECT MODE: If generating an image description or prompt, the SUBJECT requested MUST be the central focus.
+       - If the user asks for a "Golden Boat with Moonlight text", the prompt MUST center on a boat.
+       - DO NOT hallucinate backgrounds like "at a desk" or "in a room" unless requested.
+    3. LANGUAGE: All output must be in Arabic (Persuasive, Professional, Moonlight-branded).
+    4. ACCURACY: If the user provides an image or data, use it as the PRIMARY source of truth.
+  `;
 
   let systemInstruction = "";
   let responseSchema: any = {};
@@ -237,7 +250,7 @@ export async function runFactoryMachine(machineId: string, input: string, imageU
   }
 
   if (machineId === 'strategy') {
-    systemInstruction = `You are a world-class marketing strategist for 'Moonlight 🌕'. ${personaInstruction} ${brandContext} Analyze the user's business idea and provide a SWOT analysis and a Buyer Persona in Arabic.`;
+    systemInstruction = `${literalDirective} You are a world-class marketing strategist for 'Moonlight 🌕'. ${personaInstruction} ${finalBrandContext} Analyze the user's business idea and provide a SWOT analysis and a Buyer Persona in Arabic.`;
     responseSchema = {
       type: Type.OBJECT,
       properties: {
@@ -264,7 +277,7 @@ export async function runFactoryMachine(machineId: string, input: string, imageU
       required: ["swot", "persona"]
     };
   } else if (machineId === 'product') {
-    systemInstruction = `You are a digital product creator for 'Moonlight 🌕'. ${personaInstruction} ${brandContext} Convert a simple idea into a full product proposal in Arabic, including a catchy title, persuasive description, marketing plan, and price suggestion.`;
+    systemInstruction = `${literalDirective} You are a digital product creator for 'Moonlight 🌕'. ${personaInstruction} ${finalBrandContext} Convert a simple idea into a full product proposal in Arabic, including a catchy title, persuasive description, marketing plan, and price suggestion.`;
     responseSchema = {
       type: Type.OBJECT,
       properties: {
@@ -276,7 +289,7 @@ export async function runFactoryMachine(machineId: string, input: string, imageU
       required: ["title", "description", "marketingPlan", "priceSuggestion"]
     };
   } else if (machineId === 'contentMaker') {
-    systemInstruction = `You are an expert digital product creator and author for 'Moonlight 🌕'. ${personaInstruction} ${brandContext} The user wants to create a complete digital product (like an e-book, guide, article, or code snippet) based on their idea. Write the FULL content for this product in Arabic. Format the output ENTIRELY in clean HTML (using <h1>, <h2>, <p>, <ul>, <li>, <strong>, etc.). Do not use markdown, only HTML. Make it comprehensive, engaging, and ready to be sold or published.`;
+    systemInstruction = `${literalDirective} You are an expert digital product creator and author for 'Moonlight 🌕'. ${personaInstruction} ${finalBrandContext} The user wants to create a complete digital product (like an e-book, guide, article, or code snippet) based on their idea. Write the FULL content for this product in Arabic. Format the output ENTIRELY in clean HTML (using <h1>, <h2>, <p>, <ul>, <li>, <strong>, etc.). Do not use markdown, only HTML. Make it comprehensive, engaging, and ready to be sold or published.`;
     responseSchema = {
       type: Type.OBJECT,
       properties: {
@@ -285,7 +298,7 @@ export async function runFactoryMachine(machineId: string, input: string, imageU
       required: ["htmlContent"]
     };
   } else if (machineId === 'brandGuidelines') {
-    systemInstruction = `You are an expert Brand Identity Designer and Strategist for 'Moonlight 🌕'. ${personaInstruction} ${brandContext} The user will provide a brand name, industry, and personality. Generate a comprehensive 'Brand Guidelines' (دليل الهوية البصرية) document in Arabic. Include: Brand Story & Vision, Logo Usage rules, Color Palette (with HEX/RGB codes), Typography recommendations, and Tone of Voice. Format the output ENTIRELY in clean HTML (using <h1>, <h2>, <p>, <ul>, <li>, <strong>, and inline styles for color swatches if possible). Do not use markdown, only HTML.`;
+    systemInstruction = `${literalDirective} You are an expert Brand Identity Designer and Strategist for 'Moonlight 🌕'. ${personaInstruction} ${finalBrandContext} The user will provide a brand name, industry, and personality. Generate a comprehensive 'Brand Guidelines' (دليل الهوية البصرية) document in Arabic. Include: Brand Story & Vision, Logo Usage rules, Color Palette (with HEX/RGB codes), Typography recommendations, and Tone of Voice. Format the output ENTIRELY in clean HTML (using <h1>, <h2>, <p>, <ul>, <li>, <strong>, and inline styles for color swatches if possible). Do not use markdown, only HTML.`;
     responseSchema = {
       type: Type.OBJECT,
       properties: {
@@ -294,7 +307,7 @@ export async function runFactoryMachine(machineId: string, input: string, imageU
       required: ["htmlContent"]
     };
   } else if (machineId === 'brandBook') {
-    systemInstruction = `You are the 'Brand Book Architect' for 'Moonlight 🌕'. ${personaInstruction} ${brandContext} The user will provide a brand name, industry, description, and optionally links to their logo or existing assets. Your task is to analyze these inputs and generate a comprehensive, professional 'Brand Book' (دليل الهوية البصرية) document in Arabic. Include: Brand Story & Vision, Logo Usage rules, Color Palette (with HEX/RGB codes), Typography recommendations, and Tone of Voice. Format the output ENTIRELY in clean HTML (using <h1>, <h2>, <p>, <ul>, <li>, <strong>, and inline styles for color swatches). Do not use markdown, only HTML.`;
+    systemInstruction = `${literalDirective} You are the 'Brand Book Architect' for 'Moonlight 🌕'. ${personaInstruction} ${brandContext} The user will provide a brand name, industry, description, and optionally links to their logo or existing assets. Your task is to analyze these inputs and generate a comprehensive, professional 'Brand Book' (دليل الهوية البصرية) document in Arabic. Include: Brand Story & Vision, Logo Usage rules, Color Palette (with HEX/RGB codes), Typography recommendations, and Tone of Voice. Format the output ENTIRELY in clean HTML (using <h1>, <h2>, <p>, <ul>, <li>, <strong>, and inline styles for color swatches). Do not use markdown, only HTML.`;
     responseSchema = {
       type: Type.OBJECT,
       properties: {
@@ -303,7 +316,7 @@ export async function runFactoryMachine(machineId: string, input: string, imageU
       required: ["htmlContent"]
     };
   } else if (machineId === 'visualGenerator') {
-    systemInstruction = `You are the 'Senior Graphic Designer & Art Director' for 'Moonlight 🌕'. ${personaInstruction} ${brandContext} 
+    systemInstruction = `${literalDirective} You are the 'Senior Graphic Designer & Art Director' for 'Moonlight 🌕'. ${personaInstruction} ${brandContext} 
     Your task is to generate a MASTERPIECE design prompt in English for a high-end social media advertisement. 
     The prompt MUST describe a complete graphic design layout, not just a photo. 
     Include: 
@@ -342,7 +355,7 @@ export async function runFactoryMachine(machineId: string, input: string, imageU
       required: ["htmlContent"]
     };
   } else if (machineId === 'bananaGenerator') {
-    systemInstruction = `You are the 'Chief Banana Officer' for 'Moonlight 🌕'. ${personaInstruction} ${brandContext} 
+    systemInstruction = `${literalDirective} You are the 'Chief Banana Officer' for 'Moonlight 🌕'. ${personaInstruction} ${brandContext} 
     Your goal is to generate 'Crazy', 'Wild', and 'Unconventional' marketing ideas and hooks in Arabic, AND a high-end visual design prompt in English. 
     Be extremely creative, funny, and bold. Break the rules of traditional marketing.
     
@@ -375,7 +388,7 @@ export async function runFactoryMachine(machineId: string, input: string, imageU
       required: ["ideas"]
     };
   } else {
-    systemInstruction = `You are a creative content director for 'Moonlight 🌕'. ${personaInstruction} ${brandContext} Provide 3-4 creative content ideas (video scripts, social media posts) based on the user's input in Arabic.`;
+    systemInstruction = `${literalDirective} You are a creative content director for 'Moonlight 🌕'. ${personaInstruction} ${brandContext} Provide 3-4 creative content ideas (video scripts, social media posts) based on the user's input in Arabic.`;
     responseSchema = {
       type: Type.OBJECT,
       properties: {
@@ -397,7 +410,7 @@ export async function runFactoryMachine(machineId: string, input: string, imageU
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.0-flash",
       contents: contents,
       config: {
         systemInstruction,

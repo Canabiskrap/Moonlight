@@ -186,11 +186,11 @@ export default function ServiceDetails() {
                 </div>
                 <div className="flex flex-col gap-3">
                   <button 
-                    onClick={() => window.open('https://wa.me/96569929627', '_blank')}
+                    onClick={() => window.open('https://www.instagram.com/moonlight_eb.kw?igsh=czYzc2thY3p5NGs2', '_blank')}
                     className="btn-premium flex items-center justify-center gap-3 bg-green-500 text-white py-5 rounded-2xl font-black text-lg shadow-2xl shadow-green-500/10"
                   >
                     <MessageSquare size={20} />
-                    تواصل معنا عبر واتساب
+                    تواصل معنا عبر إنستغرام
                   </button>
                   <Link 
                     to="/"

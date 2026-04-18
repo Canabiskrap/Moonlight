@@ -40,7 +40,7 @@ export default function RecoverOrder() {
       const snapshot = await getDocs(q);
       
       if (snapshot.empty) {
-        setError(t('recovery.emailNotFound'));
+        setError(t('recovery.notFound'));
       } else {
         // Find the specific order by ID (either full ID or last 8 chars of PayPal ID)
         const foundOrder = snapshot.docs.find(doc => {
@@ -54,12 +54,12 @@ export default function RecoverOrder() {
         if (foundOrder) {
           setResult({ id: foundOrder.id, ...foundOrder.data() });
         } else {
-          setError(t('recovery.orderNotFound'));
+          setError(t('recovery.wrongData'));
         }
       }
     } catch (err) {
       console.error("Recovery error:", err);
-      setError(t('recovery.errorSearching'));
+      setError(t('recovery.error'));
     } finally {
       setLoading(false);
     }
@@ -71,7 +71,7 @@ export default function RecoverOrder() {
         <div className="bg-primary/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border border-primary/20">
           <ShieldCheck className="text-primary" size={40} />
         </div>
-        <h1 className="text-4xl font-black text-white tracking-tighter">{t('recovery.title').split(' ')[0]} <span className="text-gold">{t('recovery.title').split(' ').slice(1).join(' ')}</span></h1>
+        <h1 className="text-4xl font-black text-white tracking-tighter">{t('recovery.recoverAccess')}</h1>
         <p className="text-gray-500 font-medium">{t('recovery.description')}</p>
       </header>
 
@@ -153,7 +153,7 @@ export default function RecoverOrder() {
                   <ShieldCheck size={24} />
                 </div>
                 <div>
-                  <h3 className="font-black text-white">{t('recovery.orderFound')}</h3>
+                  <h3 className="font-black text-white">{t('recovery.found')}</h3>
                   <p className="text-xs text-green-400/70 font-bold uppercase tracking-widest">#{result.id.slice(-8)} · {result.productName || result.serviceTitle}</p>
                 </div>
               </div>
@@ -173,7 +173,7 @@ export default function RecoverOrder() {
       <div className="mt-12 text-center">
         <Link to="/" className="inline-flex items-center gap-2 text-gray-500 hover:text-primary transition-colors font-bold">
           <ArrowLeft size={18} className={i18n.language === 'ar' ? 'rotate-180' : ''} />
-          {t('recovery.backToStore')}
+          {t('common.back')}
         </Link>
       </div>
     </div>

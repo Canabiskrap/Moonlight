@@ -59,6 +59,8 @@ export default function OrderPortal() {
   const [logoUrl, setLogoUrl] = useState('');
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [whatsappEnabled, setWhatsappEnabled] = useState(false);
+  const [whatsappNumber, setWhatsappNumber] = useState('');
   const prevStatus = useRef<string | null>(null);
 
   const fallbackLogo = "https://i.ibb.co/6cJ5wS0h/nf9gthbcbxrmw0cxg8993rpk28-result-0.png";
@@ -72,7 +74,9 @@ export default function OrderPortal() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           orderId: order.paypalOrderId, 
-          encryptedUrl: order.encryptedUrl 
+          encryptedUrl: order.encryptedUrl,
+          whatsappEnabled: whatsappEnabled,
+          whatsappNumber: whatsappNumber
         })
       });
       const data = await res.json();
@@ -96,7 +100,10 @@ export default function OrderPortal() {
       try {
         const settingsDoc = await getDoc(doc(db, 'settings', 'appearance'));
         if (settingsDoc.exists()) {
-          setLogoUrl(settingsDoc.data().logoUrl || '');
+          const data = settingsDoc.data();
+          setLogoUrl(data.logoUrl || '');
+          setWhatsappEnabled(data.whatsappNotificationsEnabled || false);
+          setWhatsappNumber(data.whatsappNumber || '');
         }
       } catch (err) {
         console.error("Error fetching settings:", err);
@@ -261,15 +268,25 @@ export default function OrderPortal() {
         {/* Hero */}
         <div className="py-10 space-y-4">
           <span className="text-gold text-xs font-black uppercase tracking-[0.3em] block">{t('orderPortal.customerPortal')}</span>
-          <h1 className="text-5xl md:text-6xl font-black leading-tight tracking-tighter">
+          <motion.h1 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="text-5xl md:text-6xl font-black leading-tight tracking-tighter"
+          >
             {t('orderPortal.welcome')}<br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-green-400">
               {order.customerName || order.customerEmail?.split('@')[0] || t('orderPortal.friend')} 👋
             </span>
-          </h1>
-          <p className="text-white/70 text-lg font-medium max-w-lg leading-relaxed">
+          </motion.h1>
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="text-white/70 text-lg font-medium max-w-lg leading-relaxed"
+          >
             {t('orderPortal.welcomeDesc')}
-          </p>
+          </motion.p>
         </div>
 
         <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent my-10" />
@@ -512,7 +529,7 @@ export default function OrderPortal() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          onClick={() => window.open('https://wa.me/96569929627', '_blank')}
+          onClick={() => window.open('https://www.instagram.com/moonlight_eb.kw?igsh=czYzc2thY3p5NGs2', '_blank')}
           className="mt-8 w-full bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30 rounded-[2.5rem] p-8 flex items-center gap-6 hover:border-primary/60 transition-all group text-right shadow-[0_20px_40px_rgba(var(--primary-rgb),0.1)]"
         >
           <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center text-white group-hover:scale-110 transition-transform border border-white/10 shadow-lg shadow-primary/20">

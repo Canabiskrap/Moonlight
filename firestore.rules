@@ -1,8 +1,61 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if true;
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         request.auth.token.email == "canabiskrap07@gmail.com");
+    }
+
+    // Products: Publicly readable, admin writable
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Orders: Owner or admin readable, admin writable
+    match /orders/{orderId} {
+      allow read: if isAuthenticated() && (request.auth.uid == resource.data.userId || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // Users: Owner or admin readable, owner or admin writable
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow write: if isAuthenticated() && (isOwner(userId) || isAdmin());
+    }
+
+    // Services: Publicly readable, admin writable
+    match /services/{serviceId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Settings: Publicly readable, admin writable
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Inspiration Notes: Authenticated readable, owner writable
+    match /inspiration_notes/{noteId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    // Creative Gallery: Owner readable/writable
+    match /creative_gallery/{itemId} {
+      allow read, write: if isAuthenticated() && (request.auth.uid == resource.data.uid || request.auth.uid == request.resource.data.uid);
     }
   }
 }

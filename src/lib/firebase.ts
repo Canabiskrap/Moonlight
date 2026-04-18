@@ -1,4 +1,4 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { 
   initializeFirestore,
@@ -20,10 +20,6 @@ import {
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import firebaseConfig from '../../firebase-applet-config.json';
 
-/**
- * Firebase Configuration
- * Pulls from Vite environment variables (VITE_*) with fallback to the local config file.
- */
 const firebaseConfigValues = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || firebaseConfig.apiKey,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || firebaseConfig.authDomain,
@@ -33,19 +29,21 @@ const firebaseConfigValues = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID || firebaseConfig.appId,
 };
 
-const app = initializeApp(firebaseConfigValues);
+// Singleton pattern for Firebase App
+const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfigValues);
 
-/**
- * Firestore Initialization
- * Using experimentalForceLongPolling: true to ensure stability in restricted network environments 
- * or where WebSockets might be blocked by proxy/firewalls (fixes 'Firebase Client Offline' errors).
- */
-const db = initializeFirestore(app, {
+export const auth = getAuth(app);
+
+// Use initializeFirestore with long polling for stability
+export const db = initializeFirestore(app, {
   experimentalForceLongPolling: true,
 });
 
-export { db };
-export const auth = getAuth(app);
+export const storage = getStorage(app, firebaseConfig.storageBucket);
+
+/**
+ * Firebase Services are now imported correctly.
+ */
 
 export { 
   collection, 
@@ -69,7 +67,6 @@ setPersistence(auth, browserLocalPersistence).catch(err => {
   if (import.meta.env.DEV) console.error("Firebase Persistence Error:", err);
 });
 
-export const storage = getStorage(app, (firebaseConfig as any).storageBucket);
 export const googleProvider = new GoogleAuthProvider();
 
 // Prevent silent failures by allowing account selection
