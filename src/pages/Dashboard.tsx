@@ -793,21 +793,44 @@ export default function Dashboard() {
         return;
       }
 
-      const response = await fetch('/api/check-links', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ urls: allLinks })
-      });
+      // Chunk links to avoid Vercel Serverless Function 10s execution limits
+      const chunkSize = 15;
+      const allResults = [];
+      const totalChunks = Math.ceil(allLinks.length / chunkSize);
+      
+      for (let i = 0; i < allLinks.length; i += chunkSize) {
+        const chunk = allLinks.slice(i, i + chunkSize);
+        addLog(`جاري فحص الدفعة ${Math.floor(i / chunkSize) + 1} من ${totalChunks}...`);
+        
+        try {
+          const response = await fetch('/api/check-links', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ urls: chunk })
+          });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Server error: ${response.status} ${errorText}`);
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Server error: ${response.status} ${errorText}`);
+          }
+
+          const data = await response.json();
+          allResults.push(...(data.results || []));
+        } catch (chunkErr: any) {
+          addLog(`⚠️ تحذير: فشل فحص جزء من الروابط (${chunkErr.message})`);
+          // Mark this chunk as errored locally
+          const errorResults = chunk.map(url => ({
+             url,
+             status: 'error',
+             message: 'Server timeout or failure'
+          }));
+          allResults.push(...errorResults);
+        }
       }
 
-      const data = await response.json();
-      setLinkResults(data.results || []);
+      setLinkResults(allResults);
       
-      const issues = data.results.filter((r: any) => r.status !== 'ok');
+      const issues = allResults.filter((r: any) => r.status !== 'ok');
       if (issues.length > 0) {
         addLog(`⚠️ تم اكتشاف ${issues.length} مشكلة في الروابط!`);
       } else {

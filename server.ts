@@ -185,9 +185,9 @@ app.post('/api/check-links', async (req, res) => {
           return { url, status: 'broken', message: 'Invalid URL format' };
         }
         
-        // We use a timeout to prevent hanging
+        // We use a shorter timeout (5s) to prevent Vercel Function hanging (10s limit)
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
 
         const response = await fetch(url, { 
           method: 'GET',
@@ -215,7 +215,7 @@ app.post('/api/check-links', async (req, res) => {
         return {
           url,
           status: 'error',
-          message: error.name === 'AbortError' ? 'Timeout' : error.message
+          message: error?.name === 'AbortError' ? 'Timeout (>5s)' : (error?.message || 'Unknown network error')
         };
       }
     }));
