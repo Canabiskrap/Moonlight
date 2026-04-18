@@ -30,7 +30,7 @@ export default function Footer() {
   }, []);
 
   return (
-    <footer className="relative mt-20 pb-10">
+    <footer className="relative mt-20 pb-10 z-10">
       <div className="max-w-7xl mx-auto px-6">
         <div className="glass-card rounded-[3rem] p-12 grid grid-cols-1 md:grid-cols-4 gap-12 border-white/5">
           <div className="md:col-span-2 space-y-6">

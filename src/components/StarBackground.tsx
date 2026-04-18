@@ -15,7 +15,7 @@ export default function StarBackground() {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-[-1] pointer-events-none overflow-hidden bg-dark">
+    <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
       <div className="absolute inset-0 opacity-60">
         {stars.map((star) => (
           <motion.div

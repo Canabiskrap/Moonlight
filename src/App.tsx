@@ -10,6 +10,7 @@ import { auth, db } from './lib/firebase';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import StarBackground from './components/StarBackground';
 import Home from './pages/Home';
 import ProductDetails from './pages/ProductDetails';
 import ServiceDetails from './pages/ServiceDetails';
@@ -162,6 +163,7 @@ export default function App() {
     <ErrorBoundary>
       <Router>
         <div className={`min-h-screen bg-dark text-white font-sans flex flex-col ${i18n.language === 'ar' ? 'font-arabic' : 'font-sans'}`}>
+          <StarBackground />
           <Navbar user={user} isAdmin={isAdmin} />
           <main className="pt-32 pb-10 px-6 max-w-7xl mx-auto flex-1 w-full relative z-10">
             <AppRoutes user={user} isAdmin={isAdmin} />

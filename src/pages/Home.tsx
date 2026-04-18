@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import StarBackground from '../components/StarBackground';
 import { collection, onSnapshot, query, orderBy, doc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { convertDriveLink, convertDriveVideoLink } from '../lib/utils';
@@ -94,7 +93,6 @@ export default function Home() {
 
   return (
     <div className="space-y-24 pb-20 relative min-h-screen">
-      <StarBackground />
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

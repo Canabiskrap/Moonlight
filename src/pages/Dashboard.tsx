@@ -67,7 +67,6 @@ import { getProductInsights, chatWithBot } from '../services/geminiService';
 import DashboardAnalytics from '../components/DashboardAnalytics';
 import SmartAIAssistant from '../components/SmartAIAssistant';
 import AIFactory from '../components/AIFactory';
-import StarBackground from '../components/StarBackground';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 
@@ -901,7 +900,6 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-10 pb-64 relative min-h-screen">
-      <StarBackground />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
