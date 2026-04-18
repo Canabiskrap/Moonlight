@@ -143,11 +143,11 @@ export default function ServiceDetails() {
               <Sparkles size={12} />
               خدمة احترافية
             </div>
-            <h1 className="text-5xl md:text-6xl font-black leading-tight tracking-tighter text-glow">{service.title}</h1>
-            <p className="text-gray-400 text-xl leading-relaxed font-medium text-right">{service.description}</p>
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-black leading-tight tracking-tighter text-glow animate-heartbeat-glow" style={{ '--glow-color': 'var(--glow-gold)' } as React.CSSProperties}>{service.title}</h1>
+            <p className="text-gray-400 text-lg sm:text-xl leading-relaxed font-medium text-right sm:text-justify">{service.description}</p>
           </div>
 
-          <div className="glass-card p-10 rounded-[2.5rem] space-y-8 relative overflow-hidden">
+          <div className="glass-card p-6 sm:p-10 rounded-[2.5rem] space-y-8 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl rounded-full -mr-16 -mt-16" />
             
             <div className="flex items-center gap-4 text-green-400 bg-green-400/5 p-6 rounded-2xl border border-green-400/10">

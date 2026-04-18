@@ -310,8 +310,8 @@ export default function OrderPortal() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-6">
                 <div className="flex justify-between items-center border-b border-white/5 pb-4">
-                  <span className="text-sm text-white/80 font-medium">{t('orderPortal.productService')}</span>
-                  <span className="text-sm font-bold text-white">{order.productName || order.serviceTitle}</span>
+                  <span className="text-sm text-white/50 font-medium whitespace-nowrap">{t('orderPortal.productService')}</span>
+                  <span className="text-base sm:text-lg font-black text-white text-right animate-heartbeat-glow tracking-tight" style={{ '--glow-color': 'var(--glow-gold)' } as React.CSSProperties}>{order.productName || order.serviceTitle}</span>
                 </div>
                 <div className="flex justify-between items-center border-b border-white/5 pb-4">
                   <span className="text-sm text-white/80 font-medium">{t('orderPortal.orderDate')}</span>

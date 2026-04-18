@@ -211,8 +211,8 @@ export default function Home() {
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-dark/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 </div>
-                <div className="space-y-2">
-                  <h3 className="text-xl font-black group-hover:text-gold transition-colors">{service.title}</h3>
+                <div className="space-y-2 text-right">
+                  <h3 className="text-xl sm:text-2xl font-black group-hover:text-gold transition-colors animate-heartbeat-glow inline-block" style={{ '--glow-color': 'var(--glow-gold)' } as React.CSSProperties}>{service.title}</h3>
                   <p className="text-gray-500 text-sm font-medium line-clamp-2">{service.description}</p>
                 </div>
                 <div className="flex justify-between items-center pt-4 border-t border-white/5">
@@ -401,7 +401,7 @@ export default function Home() {
                           <Brain size={12} className="absolute left-1.5 top-1/2 -translate-y-1/2 text-gold pointer-events-none" />
                         </div>
                     </div>
-                    <h3 className="text-xl font-black group-hover:text-gold transition-colors text-right">{product.name}</h3>
+                    <h3 className="text-xl sm:text-2xl font-black transition-colors text-right animate-heartbeat-glow" style={{ '--glow-color': 'var(--glow-gold)' } as React.CSSProperties}>{product.name}</h3>
                   </div>
                   
                   <p className="text-gray-500 text-sm line-clamp-2 font-medium leading-relaxed text-right">{product.description}</p>
