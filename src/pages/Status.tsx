@@ -140,7 +140,7 @@ export default function Status() {
   const isAr = i18n.language === 'ar';
 
   return (
-    <div className={`min-h-screen bg-black text-white font-sans selection:bg-primary/30 ${isAr ? 'font-arabic' : ''}`} dir={isAr ? 'rtl' : 'ltr'}>
+    <div className={`min-h-screen text-white font-sans selection:bg-primary/30 ${isAr ? 'font-arabic' : ''}`} dir={isAr ? 'rtl' : 'ltr'}>
       {/* Header */}
       <header className="flex justify-between items-center p-6 border-b border-white/10">
         <div className="flex items-center gap-3">

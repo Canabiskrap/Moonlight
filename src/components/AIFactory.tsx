@@ -699,7 +699,7 @@ export default function AIFactory({
           <div className="flex flex-col xl:flex-row gap-10 h-full">
             {/* Left Sidebar: Smart Tools & Input */}
             <div className="w-full xl:w-[400px] space-y-6 shrink-0">
-              <Card className="bg-dark-light/30 border-white/10 backdrop-blur-xl rounded-[2.5rem] overflow-hidden shadow-2xl sticky top-28">
+              <Card className="bg-dark-light/30 border-white/10 backdrop-blur-xl rounded-[2.5rem] overflow-hidden shadow-2xl xl:sticky xl:top-28">
                 <CardHeader className="border-b border-white/5 bg-white/[0.02]">
                   <CardTitle className="text-xl font-black text-purple-500 drop-shadow-[0_0_5px_rgba(168,85,247,0.4)] flex items-center gap-3">
                     <div className={`p-2 rounded-xl bg-dark/50 ${machines.find(m => m.id === activeMachine)?.color} group-hover:text-purple-500 transition-colors`}>
@@ -843,20 +843,20 @@ export default function AIFactory({
                         </div>
                       </div>
                     )}
+
+                    <div className="mt-8 bg-purple-500/10 border border-purple-500/20 rounded-3xl p-6 flex gap-4 shadow-[0_0_15px_rgba(168,85,247,0.05)]">
+                      <div className="bg-purple-500/20 p-3 rounded-2xl text-purple-500 shrink-0 h-fit shadow-[0_0_10px_rgba(168,85,247,0.2)]">
+                        <Lightbulb size={24} />
+                      </div>
+                      <div>
+                        <h4 className="text-purple-500 font-black text-sm mb-1 animate-heartbeat-glow" style={{ '--glow-color': 'var(--glow-gold)' } as React.CSSProperties}>{t('dashboard.factory.adviceTitle')}</h4>
+                        <p className="text-xs text-blue-400/80 leading-relaxed font-bold">
+                          {t('dashboard.factory.adviceDetailed')}
+                        </p>
+                      </div>
+                    </div>
                 </CardContent>
               </Card>
-
-              <div className="bg-purple-500/10 border border-purple-500/20 rounded-3xl p-6 flex gap-4 shadow-[0_0_15px_rgba(168,85,247,0.05)]">
-                <div className="bg-purple-500/20 p-3 rounded-2xl text-purple-500 shrink-0 h-fit shadow-[0_0_10px_rgba(168,85,247,0.2)]">
-                  <Lightbulb size={24} />
-                </div>
-                <div>
-                  <h4 className="text-purple-500 font-black text-sm mb-1 animate-heartbeat-glow" style={{ '--glow-color': 'var(--glow-gold)' } as React.CSSProperties}>{t('dashboard.factory.adviceTitle')}</h4>
-                  <p className="text-xs text-blue-400/80 leading-relaxed font-bold">
-                    {t('dashboard.factory.adviceDetailed')}
-                  </p>
-                </div>
-              </div>
             </div>
 
             {/* Right Side: Large Results Display */}

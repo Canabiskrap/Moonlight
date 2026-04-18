@@ -91,7 +91,6 @@ export default function ServiceDetails() {
       exit={{ opacity: 0, y: -20 }}
       className="relative"
     >
-      <div className="cosmic-bg" />
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 py-12 relative z-10">
         {/* Image Side */}

@@ -109,10 +109,14 @@ export default function Navbar({ user, isAdmin }: NavbarProps) {
                 <div className="flex items-center gap-2">
                   <Link 
                     to="/factory" 
-                    className="flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-xl text-sm font-bold border border-primary/20 hover:bg-primary/20 transition-all"
+                    className="flex items-center gap-2 bg-purple-500/20 text-purple-400 px-4 py-2 rounded-xl text-sm font-black border border-purple-500/30 hover:bg-purple-500/30 transition-all group animate-heartbeat-glow"
+                    style={{ '--glow-color': '#A855F7' } as React.CSSProperties}
                   >
-                    <Brain size={18} />
-                    <span className="hidden sm:inline">المصنع</span>
+                    <div className="relative">
+                      <Brain size={18} className="group-hover:rotate-12 transition-transform duration-500" />
+                      <div className="absolute inset-0 bg-purple-400 blur-md opacity-50 animate-soft-pulse" />
+                    </div>
+                    <span className="hidden sm:inline tracking-tight">المصنع</span>
                   </Link>
                   <Link 
                     to="/dashboard" 

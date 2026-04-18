@@ -58,26 +58,29 @@ export default function Login({ user }: LoginProps) {
       
       <motion.div 
         initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="bg-dark-light/40 backdrop-blur-2xl p-8 md:p-12 rounded-[3rem] border border-white/10 w-full max-w-md text-center space-y-10 shadow-2xl relative"
+        whileInView={{ y: 0, opacity: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        className="magic-card p-10 md:p-14 rounded-[4rem] w-full max-w-md text-center space-y-12 relative overflow-hidden"
       >
-        <div className="relative mx-auto w-24 h-24">
-          <div className="absolute inset-0 bg-primary/20 rounded-[2rem] blur-xl animate-pulse" />
-          <div className="relative bg-gradient-to-br from-primary/20 to-primary/5 w-24 h-24 rounded-[2rem] flex items-center justify-center border border-primary/20 shadow-inner">
-            <LogIn className="text-primary" size={44} />
+        <div className="absolute top-0 left-0 w-32 h-32 bg-primary/10 blur-3xl -ml-16 -mt-16" />
+        
+        <div className="relative mx-auto w-32 h-32">
+          <div className="absolute inset-0 bg-primary/20 rounded-[2.5rem] blur-2xl animate-pulse" />
+          <div className="relative bg-gradient-to-br from-primary/20 to-primary/5 w-32 h-32 rounded-[2.5rem] flex items-center justify-center border border-primary/20 shadow-inner group transition-transform duration-700 hover:rotate-12">
+            <LogIn className="text-primary group-hover:scale-110 transition-transform" size={54} />
           </div>
         </div>
 
-        <div className="space-y-3">
-          <h1 className="text-4xl font-black tracking-tighter text-white">{t('auth.welcome')}</h1>
-          <p className="text-gray-500 text-sm font-medium leading-relaxed">{t('auth.loginDesc')}</p>
+        <div className="space-y-4">
+          <h1 className="text-5xl font-black tracking-tighter text-white animate-heartbeat-glow" style={{'--glow-color': 'var(--glow-blue)'} as React.CSSProperties}>{t('auth.welcome')}</h1>
+          <p className="text-white/40 text-lg font-medium leading-relaxed">{t('auth.loginDesc')}</p>
           
           {error && (
             <motion.div 
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl text-red-400 text-sm font-bold text-right"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="mt-6 bg-red-500/10 border border-red-500/20 p-6 rounded-[2rem] text-red-400 text-base font-black text-right shadow-2xl"
             >
               {error}
             </motion.div>
@@ -87,25 +90,25 @@ export default function Login({ user }: LoginProps) {
         <button 
           onClick={handleLogin}
           disabled={isLoading}
-          className="w-full group relative flex items-center justify-center gap-4 bg-white text-dark py-5 rounded-2xl font-black text-lg hover:bg-gray-100 transition-all shadow-2xl shadow-white/5 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
+          className="w-full group relative flex items-center justify-center gap-6 bg-white text-dark py-7 rounded-[2rem] font-black text-xl hover:scale-105 transition-all shadow-2xl shadow-white/10 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
           {isLoading ? (
-            <Loader2 className="animate-spin" size={24} />
+            <Loader2 className="animate-spin" size={32} />
           ) : (
             <>
-              <img src="https://www.google.com/favicon.ico" className="w-6 h-6" alt="Google" />
+              <img src="https://www.google.com/favicon.ico" className="w-8 h-8 group-hover:rotate-12 transition-transform" alt="Google" />
               {t('auth.googleLogin')}
             </>
           )}
         </button>
 
-        <div className="pt-8 border-t border-white/5 flex flex-col items-center gap-4">
-          <div className="flex items-center gap-2 text-gray-500 text-xs font-bold uppercase tracking-widest">
-            <ShieldCheck size={14} className="text-green-500" />
+        <div className="pt-10 border-t border-white/5 flex flex-col items-center gap-6">
+          <div className="flex items-center gap-3 text-white/40 text-xs font-black uppercase tracking-[0.3em]">
+            <ShieldCheck size={16} className="text-green-500" />
             {t('auth.secureLogin')}
           </div>
-          <Link to="/" className="text-[10px] text-gray-600 hover:text-primary transition-colors font-black uppercase tracking-widest">{t('auth.backToHome')}</Link>
+          <Link to="/" className="text-[10px] text-white/20 hover:text-primary transition-colors font-black uppercase tracking-[0.5em]">{t('auth.backToHome')}</Link>
         </div>
       </motion.div>
     </motion.div>

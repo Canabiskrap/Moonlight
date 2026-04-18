@@ -162,7 +162,8 @@ export default function App() {
   return (
     <ErrorBoundary>
       <Router>
-        <div className={`min-h-screen bg-dark text-white font-sans flex flex-col ${i18n.language === 'ar' ? 'font-arabic' : 'font-sans'}`}>
+        <div className={`min-h-screen text-white font-sans flex flex-col ${i18n.language === 'ar' ? 'font-arabic' : 'font-sans'} relative`}>
+          <div className="fixed inset-0 bg-[#0B0B1E] z-[-20]" />
           <StarBackground />
           <Navbar user={user} isAdmin={isAdmin} />
           <main className="pt-32 pb-10 px-6 max-w-7xl mx-auto flex-1 w-full relative z-10">

@@ -181,10 +181,10 @@ export default function Home() {
         transition={{ duration: 0.8 }}
         id="services" className="space-y-12"
       >
-        <div className="text-center space-y-2">
-          <h2 className="text-3xl font-black">{t('services.title')}</h2>
-          <p className="text-gray-500 text-sm font-bold">{t('services.description')}</p>
-        </div>
+          <div className="text-center space-y-2">
+            <h2 className="text-3xl font-black animate-heartbeat-glow" style={{ '--glow-color': 'var(--glow-gold)' } as React.CSSProperties}>{t('services.title')}</h2>
+            <p className="text-gray-500 text-sm font-bold">{t('services.description')}</p>
+          </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {services.length > 0 ? (
@@ -258,7 +258,7 @@ export default function Home() {
       >
         <div className="flex flex-col md:flex-row justify-between items-end gap-8">
           <div className="text-right space-y-2">
-            <h2 className="text-4xl font-black">{t('products.title')}</h2>
+            <h2 className="text-4xl font-black animate-heartbeat-glow" style={{ '--glow-color': 'var(--glow-gold)' } as React.CSSProperties}>{t('products.title')}</h2>
             <p className="text-gray-500 font-medium">{t('products.description')}</p>
           </div>
           

@@ -907,7 +907,7 @@ export default function Dashboard() {
         className="space-y-10"
       >
       
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10 relative z-10">
         <div className="flex flex-col">
           <div className="flex items-center gap-4">
             <h1 className="text-4xl font-black text-white tracking-tight animate-heartbeat-glow" style={{ '--glow-color': '#FFFFFF' } as React.CSSProperties}>{t('dashboard.title')}</h1>
@@ -1361,9 +1361,10 @@ export default function Dashboard() {
         )}
 
         {activeTab !== 'settings' && (
-          <div className={`grid grid-cols-1 lg:grid-cols-3 gap-10 transition-all duration-700 ${isZenMode ? 'blur-sm opacity-20 pointer-events-none scale-95' : ''}`}>
+          <div className={`grid grid-cols-1 ${['ai', 'factory', 'inspiration', 'analytics'].includes(activeTab) ? 'lg:grid-cols-1' : 'lg:grid-cols-3'} gap-10 transition-all duration-700 relative z-10 ${isZenMode ? 'blur-sm opacity-20 pointer-events-none scale-95' : ''}`}>
             {/* Add/Edit Product Form */}
-            <div className={`lg:col-span-1 space-y-8 ${activeTab === 'orders' ? 'opacity-30 pointer-events-none' : ''}`}>
+            {!['ai', 'factory', 'inspiration', 'analytics'].includes(activeTab) && (
+              <div className={`lg:col-span-1 space-y-8 ${activeTab === 'orders' ? 'opacity-30 pointer-events-none' : ''}`}>
           <div className="backdrop-blur-3xl bg-white/5 border border-white/10 transition-all duration-500 hover:bg-white/10 hover:border-white/20 hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)] hover:scale-[1.02] p-8 rounded-[2.5rem] relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16" />
             
@@ -1832,9 +1833,10 @@ export default function Dashboard() {
             </form>
           </div>
         </div>
+            )}
 
         {/* Products List & Orders */}
-        <div className="lg:col-span-2 space-y-10">
+        <div className={`${['ai', 'factory', 'inspiration', 'analytics'].includes(activeTab) ? 'lg:col-span-1 max-w-[1400px] mx-auto w-full' : 'lg:col-span-2'} space-y-10`}>
           {activeTab === 'analytics' && (
             <DashboardAnalytics 
               orders={orders} 
