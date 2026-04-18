@@ -893,30 +893,38 @@ export default function Dashboard() {
       }
 
       const orderData = {
-        productId: type === 'product' ? item.id : null,
-        serviceId: type === 'service' ? item.id : null,
-        productName: type === 'product' ? item.name : null,
-        serviceTitle: type === 'service' ? (item.title || item.name) : null,
-        amount: item.price,
+        productId: type === 'product' ? (item.id || null) : null,
+        serviceId: type === 'service' ? (item.id || null) : null,
+        productName: type === 'product' ? (item.name || 'منتج غير معروف') : null,
+        serviceTitle: type === 'service' ? (item.title || item.name || 'خدمة غير معروفة') : null,
+        amount: item.price !== undefined && item.price !== null && item.price !== '' ? String(item.price) : '0',
         customerEmail: auth.currentUser?.email || 'admin@test.com',
         customerName: 'المدير (تجربة)',
         paypalOrderId: `TEST-${Math.random().toString(36).toUpperCase().slice(2, 10)}`,
         status: type === 'product' ? 'completed' : 'pending',
         downloadUrl: item.downloadUrl || '',
-        encryptedUrl: encryptedUrl,
-        type: type,
+        encryptedUrl: encryptedUrl || '',
+        type: type || 'product',
         isTest: true,
         createdAt: Timestamp.now()
       };
+
+      // Strip any remaining undefined values just in case
+      Object.keys(orderData).forEach(key => {
+        if ((orderData as any)[key] === undefined) {
+          delete (orderData as any)[key];
+        }
+      });
 
       const docRef = await addDoc(collection(db, 'orders'), orderData);
       addLog("✅ تم إنشاء الطلب التجريبي بنجاح!");
       
       // Navigate to order-portal in the same tab to avoid window.open being blocked by iframe/popups
       navigate(`/order-portal/${docRef.id}`);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Test purchase failed:", err);
-      addLog("❌ فشل إنشاء الطلب التجريبي");
+      addLog(`❌ فشل إنشاء الطلب التجريبي: ${err.message || ''}`);
+      alert(`عذراً، حدث خطأ أثناء إنشاء الطلب التجريبي: ${err.message || 'خطأ غير معروف'}`);
     } finally {
       setIsTestPurchasing(null);
     }

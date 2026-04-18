@@ -56,11 +56,12 @@ export default function OrderPortal() {
 
       if (!res.ok) {
         let errMsg = "Server error";
+        const responseText = await res.text();
         try {
-          const errData = await res.json();
+          const errData = JSON.parse(responseText);
           errMsg = errData.error || errMsg;
         } catch (e) {
-          errMsg = await res.text() || errMsg;
+          errMsg = responseText || errMsg;
         }
         throw new Error(errMsg);
       }
