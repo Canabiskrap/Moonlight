@@ -53,6 +53,18 @@ export default function OrderPortal() {
           whatsappNumber: whatsappNumber
         })
       });
+
+      if (!res.ok) {
+        let errMsg = "Server error";
+        try {
+          const errData = await res.json();
+          errMsg = errData.error || errMsg;
+        } catch (e) {
+          errMsg = await res.text() || errMsg;
+        }
+        throw new Error(errMsg);
+      }
+
       const data = await res.json();
       if (data.downloadUrl) {
         setDownloadUrl(data.downloadUrl);
@@ -60,9 +72,11 @@ export default function OrderPortal() {
       } else {
         alert(t('orderPortal.verificationFailed') || "Verification failed. Please try again.");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Verification Error:", err);
-      alert(t('orderPortal.verificationError') || "Error verifying order.");
+      // Show descriptive error if possible
+      const baseMsg = t('orderPortal.verificationError');
+      alert(`${baseMsg}\n\nDetails: ${err.message || 'Unknown'}`);
     } finally {
       setIsVerifying(false);
     }

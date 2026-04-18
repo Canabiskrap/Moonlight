@@ -7,11 +7,16 @@ import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import multer from 'multer';
 import { put } from '@vercel/blob';
+import { GoogleGenAI, Type } from "@google/genai";
 
 dotenv.config();
 
 export const app = express();
 const PORT = 3000;
+
+// Gemini setup (Server-Side)
+const GEMINI_KEY = process.env.GEMINI_API_KEY;
+const genAI = GEMINI_KEY ? new GoogleGenAI({ apiKey: GEMINI_KEY }) : null;
 
 app.use(cors());
 app.use(express.json());
@@ -118,7 +123,9 @@ app.post('/api/verify-order', async (req, res) => {
     });
     
     if (!tokenRes.ok) {
-      throw new Error('Failed to get PayPal token');
+      const errorText = await tokenRes.text();
+      console.error(`PayPal Token Error: ${tokenRes.status} ${errorText}`);
+      throw new Error(`PayPal auth failed Check credentials.`);
     }
     
     const { access_token } = await tokenRes.json();
@@ -129,7 +136,9 @@ app.post('/api/verify-order', async (req, res) => {
     });
     
     if (!orderRes.ok) {
-      throw new Error('Failed to fetch order details');
+      const errorText = await orderRes.text();
+      console.error(`PayPal Order Fetch Error: ${orderRes.status} ${errorText}`);
+      throw new Error(`Failed to fetch order details from PayPal (Status: ${orderRes.status})`);
     }
 
     const orderData = await orderRes.json();
@@ -141,12 +150,20 @@ app.post('/api/verify-order', async (req, res) => {
       // Trigger WhatsApp notification if enabled
       if (req.body.whatsappEnabled && req.body.whatsappNumber) {
         try {
-          const client = twilio(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!);
-          await client.messages.create({
-            body: `طلب جديد تم دفعه: ${orderId}`,
-            from: process.env.TWILIO_WHATSAPP_FROM_NUMBER!,
-            to: `whatsapp:${req.body.whatsappNumber}`
-          });
+          const sid = process.env.TWILIO_ACCOUNT_SID;
+          const token = process.env.TWILIO_AUTH_TOKEN;
+          const from = process.env.TWILIO_WHATSAPP_FROM_NUMBER;
+          
+          if (sid && token && from) {
+            const client = twilio(sid, token);
+            await client.messages.create({
+              body: `تم الطلب بنجاح في Moonlight 🌑\nرقم الطلب: ${orderId}\nشكراً لثقتك بنا!`,
+              from: from.startsWith('whatsapp:') ? from : `whatsapp:${from}`,
+              to: `whatsapp:${req.body.whatsappNumber}`
+            });
+          } else {
+            console.warn("Twilio credentials missing. Skipping notification.");
+          }
         } catch (e) {
           console.error("WhatsApp notification failed:", e);
         }
@@ -185,37 +202,43 @@ app.post('/api/check-links', async (req, res) => {
           return { url, status: 'broken', message: 'Invalid URL format' };
         }
         
-        // We use a shorter timeout (5s) to prevent Vercel Function hanging (10s limit)
+        // We use a shorter timeout (3s per link) to prevent Vercel Function hanging
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
 
-        const response = await fetch(url, { 
-          method: 'GET',
-          signal: controller.signal,
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.9,ar;q=0.8'
-          }
-        });
-        
-        clearTimeout(timeoutId);
+        try {
+          const response = await fetch(url, { 
+            method: 'GET',
+            signal: controller.signal,
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Moonlight Link Bot)',
+              'Accept': '*/*',
+            }
+          });
+          
+          clearTimeout(timeoutId);
 
-        // For Google Drive, if it redirects to a login page, it's private
-        const finalUrl = response.url;
-        const isPrivate = finalUrl.includes('accounts.google.com/ServiceLogin') || response.status === 403;
-        const isBroken = response.status >= 400 && response.status !== 403;
+          const isPrivate = response.url.includes('accounts.google.com/ServiceLogin') || response.status === 403;
+          const isBroken = response.status >= 400 && response.status !== 403;
 
-        return {
-          url,
-          status: isBroken ? 'broken' : (isPrivate ? 'private' : 'ok'),
-          statusCode: response.status
-        };
+          return {
+            url,
+            status: isBroken ? 'broken' : (isPrivate ? 'private' : 'ok'),
+            statusCode: response.status
+          };
+        } catch (fetchErr: any) {
+          clearTimeout(timeoutId);
+          return {
+            url,
+            status: 'error',
+            message: fetchErr?.name === 'AbortError' ? 'Timeout (3s)' : 'Network Error'
+          };
+        }
       } catch (error: any) {
         return {
-          url,
+          url: encryptedUrl,
           status: 'error',
-          message: error?.name === 'AbortError' ? 'Timeout (>5s)' : (error?.message || 'Unknown network error')
+          message: 'Processing error'
         };
       }
     }));
@@ -223,7 +246,116 @@ app.post('/api/check-links', async (req, res) => {
     res.json({ results });
   } catch (error: any) {
     console.error("Check Links Global Error:", error);
-    res.status(500).json({ error: 'Failed to process links' });
+    res.status(500).json({ error: 'Failed to process links. ' + (error.message || '') });
+  }
+});
+
+// 4. AI Endpoints (Moving logic to server)
+app.post('/api/ai/insights', async (req, res) => {
+  if (!genAI) return res.status(500).json({ error: "AI service not initialized" });
+  try {
+    const { product } = req.body;
+    const response = await (genAI as any).models.generateContent({
+      model: "gemini-1.5-flash",
+      contents: `Analyze this product for 'Moonlight 🌕' brand in Arabic:
+        Name: ${product.name}
+        Description: ${product.description}
+        Category: ${product.category}`,
+      config: {
+        systemInstruction: "You are a marketing expert. Return JSON.",
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            creativeSummary: { type: Type.STRING },
+            targetAudience: { type: Type.STRING },
+            proTip: { type: Type.STRING },
+            suggestedUseCases: { type: Type.ARRAY, items: { type: Type.STRING } }
+          },
+          required: ["creativeSummary", "targetAudience", "proTip", "suggestedUseCases"]
+        }
+      }
+    });
+
+    res.json(JSON.parse(response.text));
+  } catch (error: any) {
+    console.error("AI Insights Error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/ai/chat', async (req, res) => {
+  if (!genAI) return res.status(500).json({ error: "AI service not initialized" });
+  try {
+    const { message, history, instruction } = req.body;
+    const response = await (genAI as any).models.generateContent({
+        model: "gemini-1.5-flash",
+        contents: [
+            ...history.map((h: any) => ({ role: h.role, parts: h.parts })),
+            { role: 'user', parts: [{ text: message }] }
+        ],
+        config: {
+            systemInstruction: instruction,
+            temperature: 0.7
+        }
+    });
+    res.json({ text: response.text });
+  } catch (error: any) {
+    console.error("AI Chat Error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/ai/factory', async (req, res) => {
+  if (!genAI) return res.status(500).json({ error: "AI service not initialized" });
+  try {
+    const { input, systemInstruction, responseSchema } = req.body;
+    const response = await (genAI as any).models.generateContent({
+      model: "gemini-1.5-flash",
+      contents: [{ role: 'user', parts: [{ text: input }] }],
+      config: {
+        systemInstruction: systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: responseSchema
+      }
+    });
+    
+    res.json(JSON.parse(response.text));
+  } catch (error: any) {
+    console.error("AI Factory Error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/ai/image', async (req, res) => {
+  if (!genAI) return res.status(500).json({ error: "AI service not initialized" });
+  try {
+    const { prompt } = req.body;
+    const response = await (genAI as any).models.generateContent({
+        model: "gemini-1.5-flash",
+        contents: [{ role: 'user', parts: [{ text: prompt }] }]
+    });
+    res.json({ text: response.text });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/ai/recommendations', async (req, res) => {
+  if (!genAI) return res.status(500).json({ error: "AI service not initialized" });
+  try {
+    const { query, products } = req.body;
+    const response = await (genAI as any).models.generateContent({
+        model: "gemini-1.5-flash",
+        contents: `User is asking for: "${query}". Products: ${JSON.stringify(products)}. Return IDs.`,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: { type: Type.ARRAY, items: { type: Type.STRING } }
+        }
+    });
+    res.json(JSON.parse(response.text));
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
   }
 });
 

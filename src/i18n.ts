@@ -397,7 +397,9 @@ const resources = {
         contactMoonlight: 'تواصل مع Moonlight',
         haveQuestion: 'هل لديك استفسار أو تعديل؟ نحن هنا على مدار الساعة عبر إنستغرام',
         madeBy: 'صنع بـ ✦ بواسطة',
-        allRights: 'الهوية الرقمية الاحترافية · جميع الحقوق محفوظة 2024'
+        allRights: 'الهوية الرقمية الاحترافية · جميع الحقوق محفوظة 2024',
+        verificationFailed: 'فشل التحقق من الطلب. يرجى المحاولة مرة أخرى.',
+        verificationError: 'حدث خطأ أثناء رغبتك بالتحميل. تأكد من إعدادات المتجر (Secrets) أو تواصل مع الدعم.'
       },
       myOrders: {
         personalAccount: 'حسابي الشخصي',
@@ -918,7 +920,9 @@ const resources = {
         contactMoonlight: 'Contact Moonlight',
         haveQuestion: 'Do you have a question or modification? We are here around the clock via Instagram',
         madeBy: 'Made with ✦ by',
-        allRights: 'Professional Digital Identity · All Rights Reserved 2024'
+        allRights: 'Professional Digital Identity · All Rights Reserved 2024',
+        verificationFailed: 'Order verification failed. Please try again.',
+        verificationError: 'An error occurred during verification. Check store secrets or contact support.'
       },
       myOrders: {
         personalAccount: 'My Personal Account',
