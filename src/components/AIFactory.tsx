@@ -643,7 +643,31 @@ export default function AIFactory({
       )}
 
       {!activeMachine ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="space-y-12">
+          {/* Main Advice / Welcome Tip */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-purple-500/10 border border-purple-500/30 rounded-[2.5rem] p-8 flex flex-col md:flex-row items-center gap-6 shadow-[0_0_20px_rgba(168,85,247,0.1)] group hover:border-purple-500/50 transition-all duration-500"
+          >
+            <div className="bg-purple-500/20 p-5 rounded-[2rem] text-purple-500 shadow-xl group-hover:scale-110 transition-transform">
+              <Lightbulb size={32} />
+            </div>
+            <div className="text-center md:text-right space-y-2">
+              <h4 className="text-xl font-black text-purple-500 animate-heartbeat-glow" style={{ '--glow-color': 'var(--glow-gold)' } as React.CSSProperties}>
+                {t('dashboard.factory.adviceTitle')}
+              </h4>
+              <p className="text-sm text-blue-400 font-bold leading-relaxed max-w-3xl">
+                {t('dashboard.factory.adviceDetailed')}
+              </p>
+            </div>
+            <div className="hidden md:block flex-1" />
+            <div className="bg-white/5 px-4 py-2 rounded-full border border-white/10 text-[10px] font-black text-gray-500 uppercase tracking-widest">
+               نصيحة اليوم
+            </div>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {machines.map((machine) => (
                 <motion.div
                   key={machine.id}
@@ -673,6 +697,7 @@ export default function AIFactory({
             </motion.div>
           ))}
         </div>
+      </div>
       ) : (
         <MachineErrorBoundary machineName={machines.find(m => m.id === activeMachine)?.title}>
           <motion.div
@@ -844,17 +869,7 @@ export default function AIFactory({
                       </div>
                     )}
 
-                    <div className="mt-8 bg-purple-500/10 border border-purple-500/20 rounded-3xl p-6 flex gap-4 shadow-[0_0_15px_rgba(168,85,247,0.05)]">
-                      <div className="bg-purple-500/20 p-3 rounded-2xl text-purple-500 shrink-0 h-fit shadow-[0_0_10px_rgba(168,85,247,0.2)]">
-                        <Lightbulb size={24} />
-                      </div>
-                      <div>
-                        <h4 className="text-purple-500 font-black text-sm mb-1 animate-heartbeat-glow" style={{ '--glow-color': 'var(--glow-gold)' } as React.CSSProperties}>{t('dashboard.factory.adviceTitle')}</h4>
-                        <p className="text-xs text-blue-400/80 leading-relaxed font-bold">
-                          {t('dashboard.factory.adviceDetailed')}
-                        </p>
-                      </div>
-                    </div>
+                    {/* Advice moved to main page */}
                 </CardContent>
               </Card>
             </div>

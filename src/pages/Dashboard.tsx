@@ -867,21 +867,43 @@ export default function Dashboard() {
     }
   };
 
+  const [isTestPurchasing, setIsTestPurchasing] = useState<string | null>(null);
+
   const handleTestPurchase = async (item: any, type: 'product' | 'service') => {
+    if (isTestPurchasing) return;
+    setIsTestPurchasing(item.id);
     try {
       addLog(`جاري إنشاء طلب تجريبي لـ ${type === 'product' ? 'منتج' : 'خدمة'}...`);
       
+      let encryptedUrl = '';
+      if (type === 'product' && item.downloadUrl) {
+        try {
+          const res = await fetch('/api/encrypt', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: item.downloadUrl })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            encryptedUrl = data.encryptedUrl;
+          }
+        } catch (e) {
+          console.error("Test encryption failed:", e);
+        }
+      }
+
       const orderData = {
         productId: type === 'product' ? item.id : null,
         serviceId: type === 'service' ? item.id : null,
         productName: type === 'product' ? item.name : null,
-        serviceTitle: type === 'service' ? item.title : null,
+        serviceTitle: type === 'service' ? (item.title || item.name) : null,
         amount: item.price,
         customerEmail: auth.currentUser?.email || 'admin@test.com',
         customerName: 'المدير (تجربة)',
         paypalOrderId: `TEST-${Math.random().toString(36).toUpperCase().slice(2, 10)}`,
         status: type === 'product' ? 'completed' : 'pending',
         downloadUrl: item.downloadUrl || '',
+        encryptedUrl: encryptedUrl,
         type: type,
         isTest: true,
         createdAt: Timestamp.now()
@@ -890,11 +912,13 @@ export default function Dashboard() {
       const docRef = await addDoc(collection(db, 'orders'), orderData);
       addLog("✅ تم إنشاء الطلب التجريبي بنجاح!");
       
-      // Open Order Portal in a new tab
-      window.open(`/order-portal/${docRef.id}`, '_blank');
+      // Navigate to order-portal in the same tab to avoid window.open being blocked by iframe/popups
+      navigate(`/order-portal/${docRef.id}`);
     } catch (err) {
       console.error("Test purchase failed:", err);
       addLog("❌ فشل إنشاء الطلب التجريبي");
+    } finally {
+      setIsTestPurchasing(null);
     }
   };
 
@@ -1914,11 +1938,12 @@ export default function Dashboard() {
                     
                     <div className="p-4 border-t border-white/5 bg-white/[0.02] flex items-center justify-between gap-2">
                       <button 
-                        onClick={() => handleTestPurchase(s, 'service')}
-                        className="w-12 h-12 bg-green-500/10 hover:bg-green-500 text-green-500 hover:text-white rounded-xl transition-all flex items-center justify-center"
-                        title="تجربة شراء (بوابة العميل)"
+                        onClick={(e) => { e.stopPropagation(); handleTestPurchase(s, 'service'); }}
+                        disabled={isTestPurchasing === s.id}
+                        className={`w-12 h-12 rounded-xl transition-all flex items-center justify-center ${isTestPurchasing === s.id ? 'bg-green-500/30 text-white cursor-wait' : 'bg-green-500/10 hover:bg-green-500 text-green-500 hover:text-white'}`}
+                        title={t('dashboard.list.testPurchase')}
                       >
-                        <PlayCircle size={20} />
+                        {isTestPurchasing === s.id ? <Loader2 size={20} className="animate-spin" /> : <PlayCircle size={20} />}
                       </button>
 
                       <button 
@@ -2034,11 +2059,12 @@ export default function Dashboard() {
                         <td className="p-6">
                           <div className="flex items-center gap-2 justify-end">
                             <button 
-                              onClick={() => handleTestPurchase(p, 'product')}
-                              className="w-10 h-10 flex items-center justify-center bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white rounded-xl transition-all"
+                              onClick={(e) => { e.stopPropagation(); handleTestPurchase(p, 'product'); }}
+                              disabled={isTestPurchasing === p.id}
+                              className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${isTestPurchasing === p.id ? 'bg-green-500/30 text-white cursor-wait' : 'bg-green-500/10 hover:bg-green-500 text-green-500 hover:text-white'}`}
                               title={t('dashboard.list.testPurchase')}
                             >
-                              <PlayCircle size={18} />
+                              {isTestPurchasing === p.id ? <Loader2 size={18} className="animate-spin" /> : <PlayCircle size={18} />}
                             </button>
                             <button 
                               onClick={() => handleEdit(p)}
