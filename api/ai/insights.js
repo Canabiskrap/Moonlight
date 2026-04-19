@@ -6,12 +6,13 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: `Analyze this product and return JSON with creativeSummary, targetAudience, proTip, suggestedUseCases: ${JSON.stringify(product)}` }] }],
-        generationConfig: { responseMimeType: 'application/json' }
+        contents: [{ role: 'user', parts: [{ text: `Analyze this product and return ONLY a JSON object with exactly these fields: creativeSummary (string), targetAudience (string), proTip (string), suggestedUseCases (array of strings). Product: ${JSON.stringify(product)}` }] }]
       })
     });
     const data = await response.json();
+    if (data.error) return res.status(500).json({ error: data.error });
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-    res.json(JSON.parse(text));
+    const clean = text.replace(/```json|```/g, '').trim();
+    res.json(JSON.parse(clean));
   } catch (e) { res.status(500).json({ error: e.message }); }
 }
