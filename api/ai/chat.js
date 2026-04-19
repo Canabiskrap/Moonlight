@@ -6,7 +6,7 @@ export default async function handler(req, res) {
   const { message, history, instruction } = req.body;
   try {
     const response = await genAI.models.generateContent({
-      model: 'gemini-1.5-flash-latest',
+      model: 'gemini-1.5-flash',
       contents: [
         ...(history || []).map(h => ({ role: h.role, parts: h.parts })),
         { role: 'user', parts: [{ text: message }] }
