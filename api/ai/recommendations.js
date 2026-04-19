@@ -6,7 +6,7 @@ export default async function handler(req, res) {
   const { query, products } = req.body;
   try {
     const response = await genAI.models.generateContent({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-1.5-flash-latest',
       contents: [{ role: 'user', parts: [{ text: `Based on query "${query}", recommend products from: ${JSON.stringify(products)}. Return JSON array of product names.` }] }],
       config: { responseMimeType: 'application/json' }
     });
