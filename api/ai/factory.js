@@ -6,7 +6,7 @@ export default async function handler(req, res) {
   const { input, systemInstruction, responseSchema } = req.body;
   try {
     const response = await genAI.models.generateContent({
-      model: 'gemini-1.5-flash-latest',
+      model: 'gemini-1.5-flash',
       contents: [{ role: 'user', parts: [{ text: input }] }],
       config: { systemInstruction, responseMimeType: 'application/json', responseSchema }
     });
