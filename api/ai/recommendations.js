@@ -1,15 +1,17 @@
-import { GoogleGenAI } from '@google/genai';
-const genAI = process.env.GEMINI_API_KEY ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }) : null;
-
 export default async function handler(req, res) {
-  if (!genAI) return res.status(500).json({ error: 'GEMINI_API_KEY missing' });
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const { query, products } = req.body;
   try {
-    const response = await genAI.models.generateContent({
-      model: 'gemini-1.5-flash',
-      contents: [{ role: 'user', parts: [{ text: `Based on query "${query}", recommend products from: ${JSON.stringify(products)}. Return JSON array of product names.` }] }],
-      config: { responseMimeType: 'application/json' }
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: `Based on query "${query}", recommend products from: ${JSON.stringify(products)}. Return JSON array of product names.` }] }],
+        generationConfig: { responseMimeType: 'application/json' }
+      })
     });
-    res.json(JSON.parse(response.text));
+    const data = await response.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
+    res.json(JSON.parse(text));
   } catch (e) { res.status(500).json({ error: e.message }); }
 }
