@@ -219,8 +219,32 @@ export async function runFactoryMachine(machineId: string, input: string, imageU
     const clean = text.replace(/```json|```/g, '').trim();
     
     try {
-        return JSON.parse(clean);
+        const parsed = JSON.parse(clean);
+        if (machineId === 'strategy' || machineId === 'swot') {
+            return {
+                ...parsed,
+                swot: {
+                    strengths: parsed.swot?.strengths || [],
+                    weaknesses: parsed.swot?.weaknesses || [],
+                    opportunities: parsed.swot?.opportunities || [],
+                    threats: parsed.swot?.threats || []
+                },
+                persona: parsed.persona || { name: '', needs: '', painPoints: '' }
+            };
+        }
+        if (machineId === 'bananaGenerator' || machineId === 'crazyIdea' || machineId === 'crazyHook') {
+            return { ...parsed, ideas: parsed.ideas || [{ type: 'فكرة', content: clean }] };
+        }
+        return parsed;
     } catch {
+        if (machineId === 'strategy' || machineId === 'swot') {
+            return { swot: { strengths: [], weaknesses: [], opportunities: [], threats: [] }, persona: { name: '', needs: '', painPoints: '' } };
+        }
+        if (machineId === 'bananaGenerator' || machineId === 'crazyIdea' || machineId === 'crazyHook') {
+            return { ideas: [{ type: 'نتيجة', content: clean }] };
+        }
         return { htmlContent: clean, text: clean };
     }
 }
+
+// This file replaces the old version - safety handled above
