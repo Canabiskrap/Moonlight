@@ -343,5 +343,5 @@ export async function runFactoryMachine(machineId: string, input: string, imageU
     }
     if (['bananaGenerator', 'crazyIdea', 'crazyHook'].includes(machineId)) {
       return { ideas: [{ type: 'نتيجة', content: clean }] };
-}
+    }
     
