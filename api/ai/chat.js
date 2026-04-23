@@ -3,8 +3,8 @@ export default async function handler(req, res) {
   
   const { message, history, instruction } = req.body;
 
-  if (!process.env.OPENAI_API_KEY) {
-    return res.status(500).json({ error: 'OPENAI_API_KEY is not set' });
+  if (!process.env.GROQ_API_KEY) {
+    return res.status(500).json({ error: 'GROQ_API_KEY is not set' });
   }
 
   try {
@@ -17,24 +17,24 @@ export default async function handler(req, res) {
       { role: 'user', content: message }
     ];
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'llama-3.1-8b-instant',
         messages: messages,
         temperature: 0.7,
-        max_tokens: 4096
+        max_tokens: 1024
       })
     });
 
     const data = await response.json();
 
     if (!response.ok || data.error) {
-      return res.status(500).json({ error: data.error?.message || 'OpenAI API error' });
+      return res.status(500).json({ error: data.error?.message || 'Groq API error' });
     }
 
     const text = data.choices?.[0]?.message?.content || '';
